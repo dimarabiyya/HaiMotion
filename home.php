@@ -205,15 +205,17 @@ include 'header.php'
                         borderWidth: 1
                       }]
                     },
-                    options: { 
-                        responsive: true, 
-                        legend: { 
-                            display: false // Langsung di bawah options, bukan di dalam 'plugins'
-                        }, 
-                        tooltips: { 
-                            enabled: true 
-                        } 
-                    }
+                      options: {
+                              responsive: true,
+                              plugins: {
+                                  legend: {
+                                      display: false // ✅ cara benar untuk v3+
+                                  },
+                                  tooltip: {
+                                      enabled: true
+                                  },
+                              }
+                      }
                   });
                 });
                 </script>";
@@ -232,7 +234,7 @@ include 'header.php'
           <b>Recent Activities</b>
         </div>
     
-        <div class="card-body py-2" style="max-height: 370px; overflow-y: auto;">
+        <div class="card-body py-2" style="max-height: 440px; overflow-y: auto;">
           <ul class="timeline list-unstyled position-relative pl-3 mb-0">
             <?php
             // Pastikan variabel session tersedia

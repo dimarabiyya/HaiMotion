@@ -100,34 +100,36 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
 ?>
 
 <div class="container-fluid mb-3">
-    <div class="d-flex justify-content-between align-items-center">
-        <div class="d-flex">
-            <div class="dropdown mr-2">
-                <button class="btn dropdown-toggle text-white" type="button" id="projectDropdown"
-                        data-toggle="dropdown" aria-expanded="false" style="background-color:#B75301;">
-                    <?php 
-                        if($selected_project_id){
-                            $proj_name = array_column($all_projects, 'name', 'id')[$selected_project_id] ?? "Pilih Project";
-                            echo htmlspecialchars($proj_name);
-                        } else {
-                            echo "Semua Project";
-                        }
-                    ?>
-                </button>
-                <div class="dropdown-menu" aria-labelledby="projectDropdown">
-                    <a class="dropdown-item <?= $selected_project_id == 0 ? 'active' : '' ?>" 
-                       href="index.php?page=task_list<?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
-                       Semua Project
-                    </a>
-                    <div class="dropdown-divider"></div>
-                    <?php foreach($all_projects as $p): ?>
-                        <a class="dropdown-item <?= $selected_project_id == $p['id'] ? 'active' : '' ?>"
-                           href="index.php?page=task_list&project_id=<?= $p['id'] ?><?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
-                            <?= htmlspecialchars($p['name']) ?>
+    <div class="row align-items-center">
+        
+        <div class="col-12 col-md-8 mb-2 mb-md-0">
+            <div class="d-flex flex-wrap">
+                <div class="dropdown mr-2 mb-2 mb-md-0">
+                    <button class="btn dropdown-toggle text-white" type="button" id="projectDropdown"
+                            data-toggle="dropdown" aria-expanded="false" style="background-color:#B75301;">
+                        <?php 
+                            if($selected_project_id){
+                                $proj_name = array_column($all_projects, 'name', 'id')[$selected_project_id] ?? "Pilih Project";
+                                echo htmlspecialchars($proj_name);
+                            } else {
+                                echo "Semua Project";
+                            }
+                        ?>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="projectDropdown">
+                        <a class="dropdown-item <?= $selected_project_id == 0 ? 'active' : '' ?>" 
+                           href="index.php?page=task_list<?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
+                           Semua Project
                         </a>
-                    <?php endforeach; ?>
+                        <div class="dropdown-divider"></div>
+                        <?php foreach($all_projects as $p): ?>
+                            <a class="dropdown-item <?= $selected_project_id == $p['id'] ? 'active' : '' ?>"
+                               href="index.php?page=task_list&project_id=<?= $p['id'] ?><?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
+                                <?= htmlspecialchars($p['name']) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
                 </div>
-            </div>
 
                 <?php if($_SESSION['login_type'] == 1 || $_SESSION['login_type'] == 2): ?>
                     <div class="dropdown">
@@ -165,10 +167,20 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
                     </div>
                 <?php endif ?>
             </div>
-
-        <button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
-            <i class="fa fa-plus"></i> Add New Task
-        </button>
+        </div>
+        
+        <?php if($_SESSION['login_type'] != 3): ?>
+            <div class="col-12 col-md-4">
+                <div class="d-flex justify-content-center justify-content-md-end">
+                    <button class="btn text-white" 
+                            style="background-color:#B75301;" 
+                            data-toggle="modal" 
+                            data-target="#addTaskModal">
+                        <i class="fa fa-plus mr-1"></i> Add New Task
+                    </button>
+                </div>
+            </div>
+        <?php endif ?>
 
     </div>
 </div>

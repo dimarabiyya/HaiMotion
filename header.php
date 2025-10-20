@@ -1,10 +1,22 @@
+<?php 
+// Pastikan sesi dimulai sebelum header dimuat
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+// Tambahkan pengaturan timezone default jika belum ada
+if (!ini_get('date.timezone')) {
+    date_default_timezone_set("Asia/Jakarta");
+}
+?>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php 
-    // ... (PHP code for title and timezone remains the same) ...
+    $title = isset($title) ? $title : "Project Management System";
+    // Ambil variabel sistem dari sesi
+    $system_name = isset($_SESSION['system']['name']) ? $_SESSION['system']['name'] : "HaiMotion";
     ?>
-    <title><?php echo $title ?> | <?php echo $_SESSION['system']['name'] ?></title>
+    <title><?php echo $title ?> | <?php echo $system_name ?></title>
 
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
     <link rel="stylesheet" href="assets/plugins/fontawesome-free/css/all.min.css">
@@ -23,13 +35,9 @@
     <link href="assets/css/style.css" rel="stylesheet"> 
     
     <script src="assets/plugins/jquery/jquery.min.js"></script>
-    
     <script src="assets/plugins/jquery-ui/jquery-ui.min.js"></script>
     
-    <script src="assets/vendor/bootstrap/js/bootstrap.bundle.min.js"></script> 
-    
     <script src="assets/plugins/summernote/summernote-bs4.min.js"></script> 
-    
     <script src="assets/plugins/select2/js/select2.full.min.js"></script>
     <script src="assets/plugins/toastr/toastr.min.js"></script>
     <script src="assets/plugins/bootstrap4-toggle/js/bootstrap4-toggle.min.js"></script>
@@ -41,10 +49,8 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 
-    <script src="assets/dist/js/adminlte.js"></script>
-
-    <script src="assets/dist/js/pages/dashboard.js"></script>
-    <script src="assets/dist/js/demo.js"></script>
     <script type="text/javascript" src="assets/js/jquery-te-1.4.0.min.js" charset="utf-8"></script>
-
-</head>
+    
+    <link rel="icon" type="image/png" href="assets/logobw.png">
+    
+ </head>

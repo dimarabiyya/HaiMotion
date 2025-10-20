@@ -73,3 +73,17 @@
     height: 250px; 
     width: 100%;
 }
+
+/* Kelas untuk membuat konten di dalam elemen bisa digeser horizontal */
+.horizontal-scroll-container {
+    /* Pastikan lebar container mencakup lebar konten penuh */
+    overflow-x: auto; /* Memungkinkan scrolling horizontal jika konten melebihi lebar */
+    -webkit-overflow-scrolling: touch; /* Memperbaiki scrolling di iOS */
+    max-width: 100%; /* Memastikan tidak melebihi lebar induk */
+}
+
+/* Jika Anda ingin konten di dalam card body bisa di-scroll: */
+.card-body.scrollable-content {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}

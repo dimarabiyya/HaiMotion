@@ -94,7 +94,7 @@
     data-encoded-id="<?= encode_id($row['id']) ?>" 
     style="cursor:pointer;">
   <div class="table-responsive">
-    <table class="table table-hover m-0">
+    <table class="table table-hover m-0" style="min-width: 768px;"> 
       <colgroup>
         <col width="30%">
         <col width="15%">
@@ -134,7 +134,8 @@
 
           <td class="project-assignment text-center">
             <?php if(!empty($uids)): 
-              echo '<div class="d-flex align-items-center justify-content-center">';
+              // text-nowrap memastikan semua elemen d-flex tetap dalam satu baris, memicu scrollbar
+              echo '<div class="d-flex align-items-center justify-content-center text-nowrap">'; 
               $displayed_count = 0;
               foreach($users_to_show as $uid):
                 if(isset($assigned_users[$uid])):
@@ -252,27 +253,34 @@
   </div>
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 table p { margin: 0 !important; }
 table td { vertical-align: middle !important; }
 
+/* ================================================= */
+/* KOREKSI: MENGAKTIFKAN HORIZONTAL SCROLL PADA TABEL */
+/* ================================================= */
 .table-responsive {
-  overflow-x: visible !important; 
+  /* Ubah 'visible' menjadi 'auto' atau hapus (auto lebih aman) */
+  /* JIKA Anda masih punya file CSS luar yang menimpa ini, 
+     gunakan 'auto !important' untuk memaksa scrollbar muncul. */
+  overflow-x: auto !important; 
   -webkit-overflow-scrolling: touch;
 }
 
+/* Memastikan tabel memiliki lebar minimum agar scrollbar muncul di layar kecil */
 .table-responsive table {
-  min-width: 700px;
+  /* min-width yang cukup lebar untuk konten Anda */
+  min-width: 700px; 
 }
 
 /* Dropdown tampil di atas layer lain */
 .dropdown-menu {
   position: absolute !important;
   z-index: 9999 !important;
-  transform: none !important;
+  /* Hapus transform: none !important; dan ganti dengan top/left/right: */
   top: 100% !important;
   left: auto !important;
   right: 0 !important;

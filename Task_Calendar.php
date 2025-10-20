@@ -87,13 +87,19 @@ include 'header.php';
 </head>
 
 <body>
+  <div class="text-right mb-3">
+    <button id="printCalendar" class="btn btn-danger">
+      <i class="fa fa-file-pdf-o"></i> Export to PDF
+    </button>
+  </div>
+  
   <div class="container-fluid mt-4 calendar-container border border-dark rounded">
     <div id="calendar"></div>
   </div>
 
   <!-- Modal -->
   <div class="modal fade" id="taskModal" tabindex="-1" role="dialog" aria-labelledby="taskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-x modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
       <div class="modal-content border-0 shadow">
         <div class="modal-header">
           <h5 class="modal-title" id="taskModalLabel">Task Detail</h5>
@@ -107,6 +113,10 @@ include 'header.php';
       </div>
     </div>
   </div>
+
+  <!-- html2pdf.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
 
   <script>
 $('#calendar').fullCalendar({
@@ -176,6 +186,24 @@ $('#calendar').fullCalendar({
     });
   }
 });
+
+$('#printCalendar').click(function() {
+  // Ambil elemen kalender
+  const calendarElement = document.querySelector('.calendar-container');
+
+  // Konfigurasi PDF
+  const opt = {
+    margin:       0.3,
+    filename:     'Task_Calendar.pdf',
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { scale: 2, useCORS: true },
+    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+  };
+
+  // Konversi ke PDF
+  html2pdf().set(opt).from(calendarElement).save();
+});
+
   </script>
 </body>
 </html>
