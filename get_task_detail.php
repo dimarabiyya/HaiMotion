@@ -2,12 +2,12 @@
 include 'db_connect.php';
 session_start();
 
-if (!isset($_REQUEST['id'])) {
+if (!isset($_REQUEST['id'])) { // Diubah dari $_POST ke $_REQUEST untuk kompatibilitas uni_modal (GET)
     echo "ID tidak ditemukan.";
     exit;
 }
 
-// Update status overdue
+// Update status overdue sebelum fetch
 $conn->query("
     UPDATE task_list 
     SET status = 4 
@@ -15,12 +15,13 @@ $conn->query("
     AND status NOT IN (0,3,5)
 ");
 
-$id = intval($_REQUEST['id']);
+
+$id = intval($_REQUEST['id']); // Diubah dari $_POST ke $_REQUEST
 $qry = $conn->query("SELECT * FROM task_list WHERE id = $id");
 
 if ($qry->num_rows > 0) {
     $row = $qry->fetch_assoc();
-    $project_id = $row['project_id'];
+    $project_id = $row['project_id']; // Dapatkan Project ID untuk edit
 
     // Ambil data project
     $project_name = "Unknown Project";
@@ -37,7 +38,7 @@ if ($qry->num_rows > 0) {
             $creator = $creator_q->fetch_assoc();
         }
     }
-
+    
     // Mapping status
     $statusArr = [
         0 => ['Pending', 'secondary'],
@@ -48,9 +49,9 @@ if ($qry->num_rows > 0) {
         5 => ['Done', 'success']
     ];
     $status = $statusArr[$row['status']] ?? ['Unknown', 'dark'];
-?>
-
-<div class="p-3">
+    ?>
+    
+    <div class="p-3">
 
   <!-- Header: Task Title + Buttons -->
   <div class="d-flex justify-content-between align-items-center mb-3">
@@ -61,6 +62,8 @@ if ($qry->num_rows > 0) {
       </span>
     </div>
   </div>
+
+  <hr>
 
   <!-- Project -->
   <div class="mb-3">
@@ -185,36 +188,74 @@ if ($qry->num_rows > 0) {
       ?>
     </ul>
   </div>
-    
-  <hr>
-  <div>
-      <button type="button" class="btn btn-sm btn-primary edit_task" data-id="<?= $row['id'] ?>">
-        <i class="fa fa-edit"></i> Edit
-      </button>
-      <button type="button" class="btn btn-sm btn-danger delete_task" data-id="<?= $row['id'] ?>">
-        <i class="fa fa-trash"></i> Delete
-      </button>
-  </div>
-
 </div>
 
-<style>
-.reference-links a {
-  display: inline-block;
-  max-width: 100%;
-  word-break: break-all;
-  white-space: normal;
-}
-.rounded-circle {
-  transition: transform 0.2s;
-}
-.rounded-circle:hover {
-  transform: scale(1.1);
-}
-</style>
+<div class="modal-footer display p-0 m-0">
+  <?php if (isset($_SESSION['login_type']) && $_SESSION['login_type'] != 3): ?>
+    <button class="btn btn-primary mr-2" onclick="editTask(<?= $id ?>, <?= $project_id ?>)">
+      <i class="fa fa-edit"></i> Edit Task
+    </button>
+    <button type="button" class="btn btn-danger mr-auto" onclick="confirmDelete(<?= $id ?>)">
+      <i class="fa fa-trash"></i> Delete
+    </button>
+    </button>
+  <?php endif; ?>
+  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+</div>
 
-<?php
+    
+<script>
+    function editTask(id, pid) {
+      // Sembunyikan modal detail task saat ini
+      $('#uni_modal').modal('hide');
+      
+      // Beri sedikit jeda lalu buka modal edit task (manage_task.php)
+      setTimeout(function(){
+          uni_modal("<i class='fa fa-edit'></i> Edit Task",
+              "manage_task.php?id=" + id + "&pid=" + pid,
+              "modal-xl");
+      }, 300); // 300ms delay
+    }
+    
+    function confirmDelete(id) {
+      // Tutup modal utama dulu
+      $('#uni_modal').modal('hide');
+
+      // Tunggu sampai animasi modal selesai baru panggil konfirmasi
+      setTimeout(() => {
+        _conf('Are you sure to delete this task?', 'delete_task', [id]);
+      }, 400);
+    }
+
+    // Sembunyikan footer default dan tampilkan footer kustom
+    $('#uni_modal .modal-footer').hide(); 
+    $('.modal-footer.display').show();
+    $('#uni_modal .modal-dialog').removeClass('modal-md').addClass("modal-lg");
+</script>
+    
+    <?php
 } else {
     echo "Data task tidak ditemukan.";
 }
 ?>
+
+<style>
+.reference-links a {
+    display: inline-block;
+    max-width: 100%;
+    word-wrap: break-word;
+    word-break: break-all;
+    overflow-wrap: break-word;
+    white-space: normal;
+}
+#uni_modal .modal-footer {
+    display: none; /* Hide default modal footer */
+}
+.modal-footer.display {
+    display: flex !important;
+    justify-content: flex-end;
+    align-items: center;
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+</style>

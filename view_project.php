@@ -72,8 +72,8 @@ $stat = array(
 <div class="col-lg-12">
 	<div class="row">
 		<div class="col-md-12">
-			<div class="callout callout-info">
-				<div class="col-md-12">
+			<div class="callout callout-secondary">
+				<div class="col-md-12">	
 					<div class="row">
 						<div class="col-sm-6">
 							<dl>
@@ -160,9 +160,9 @@ $stat = array(
 	</div>
 	<div class="row">
 		<div class="container-fluid">
-			<div class="card card-outline card-warning">
+			<div class="card card-outline">
 				<div class="card-header">
-					<span><b>Task List:</b></span>
+					<span><b>Task List</b></span>
 					<div class="card-tools">
 						<button class="btn btn-primary bg-gradient-primary btn-sm" type="button" id="new_task"><i class="fa fa-plus"></i> New Task</button>
 					</div>

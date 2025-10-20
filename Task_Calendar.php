@@ -92,7 +92,7 @@ include 'header.php';
       <i class="fa fa-file-pdf-o"></i> Export to PDF
     </button>
   </div>
-  
+
   <div class="container-fluid mt-4 calendar-container border border-dark rounded">
     <div id="calendar"></div>
   </div>
@@ -117,8 +117,7 @@ include 'header.php';
   <!-- html2pdf.js -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-
-  <script>
+<script>
 $('#calendar').fullCalendar({
   editable: true,
   selectable: true,
@@ -188,22 +187,56 @@ $('#calendar').fullCalendar({
 });
 
 $('#printCalendar').click(function() {
-  // Ambil elemen kalender
   const calendarElement = document.querySelector('.calendar-container');
 
-  // Konfigurasi PDF
+  // Set ukuran area render ke rasio A4 landscape
+  const originalWidth = calendarElement.scrollWidth;
+  calendarElement.style.width = '1123px'; // kira-kira 11.69 inch * 96 dpi
+
   const opt = {
-    margin:       0.3,
+    margin:       [0.25, 0.25, 0.25, 0.25], // margin tipis biar penuh
     filename:     'Task_Calendar.pdf',
     image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { scale: 2, useCORS: true },
-    jsPDF:        { unit: 'in', format: 'a4', orientation: 'landscape' }
+    html2canvas:  {
+      scale: 2,
+      useCORS: true,
+      scrollY: 0, // hindari potongan karena scroll
+      backgroundColor: '#ffffff' // biar gak transparan
+    },
+    jsPDF: {
+      unit: 'in',
+      format: [11.69, 8.27], // ukuran A4 landscape manual
+      orientation: 'landscape'
+    },
+    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
   };
 
-  // Konversi ke PDF
-  html2pdf().set(opt).from(calendarElement).save();
+  html2pdf()
+    .set(opt)
+    .from(calendarElement)
+    .save()
+    .then(() => {
+      // Kembalikan lebar asli agar layout web tidak rusak
+      calendarElement.style.width = originalWidth + 'px';
+    });
 });
 
-  </script>
+function delete_task(id){
+    start_load();
+    $.ajax({
+        url: 'ajax.php?action=delete_task',
+        method: 'POST',
+        data: { id: id },
+        success: function(resp){
+            if(resp == 1){
+                alert_toast("Task berhasil dihapus", "success");
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                alert_toast("Gagal menghapus task", "danger");
+            }
+        }
+    });
+}
+</script>
 </body>
 </html>
