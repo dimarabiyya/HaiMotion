@@ -1,0 +1,33 @@
+body.dark-mode {
+  background-color: #121212 !important;
+  color: #e0e0e0 !important;
+}
+
+.dark-mode .navbar,
+.dark-mode .modal-content,
+.dark-mode .card,
+.dark-mode .dropdown-menu {
+  background-color: #1e1e1e !important;
+  color: #fff !important;
+}
+  
+.dark-mode .btn {
+  border-color: #555;
+}
+
+.dark-mode .btn-secondary {
+  background-color: #444 !important;
+  color: #eee !important;
+}
+
+.dark-mode .form-control,
+.dark-mode .custom-select {
+  background-color: #2c2c2c !important;
+  color: #fff !important;
+  border-color: #555;
+}
+
+.dark-mode select option {
+  background-color: #2c2c2c;
+  color: #fff;
+}

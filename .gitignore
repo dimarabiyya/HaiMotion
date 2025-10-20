@@ -1,0 +1,4 @@
+/vendor/
+/assets/uploads/
+*.sql
+.DS_Store
