@@ -190,6 +190,51 @@ if ($action == 'get_project_users') {
     echo $options;
 }
 
+// Di dalam switch($_GET['action'])
+switch($action){
+    // ... existing cases ...
+    
+    case 'fetch_notifications':
+        $user_id = $_SESSION['login_id'];
+        
+        // Ambil 5 notifikasi terbaru (bisa diubah LIMITnya)
+        $notifications_q = $conn->query("SELECT * FROM notification_list WHERE user_id = '$user_id' ORDER BY date_created DESC LIMIT 5");
+        $notifications = [];
+        while ($row = $notifications_q->fetch_assoc()) {
+            $notifications[] = $row;
+        }
+        
+        // Hitung notifikasi belum dibaca
+        $unread_count_q = $conn->query("SELECT COUNT(id) AS total FROM notification_list WHERE user_id = '$user_id' AND is_read = 0");
+        $unread_count = $unread_count_q->fetch_assoc()['total'];
+
+        header('Content-Type: application/json');
+        echo json_encode(['status' => 1, 'notifications' => $notifications, 'unread_count' => $unread_count]);
+        exit;
+
+    case 'mark_as_read':
+        $id = $conn->real_escape_string($_POST['id'] ?? null);
+        $user_id = $_SESSION['login_id'];
+        
+        if ($id === 'all') {
+            $qry = $conn->query("UPDATE notification_list SET is_read = 1 WHERE user_id = '$user_id' AND is_read = 0");
+        } elseif (is_numeric($id) && $id > 0) {
+            $qry = $conn->query("UPDATE notification_list SET is_read = 1 WHERE id = '$id' AND user_id = '$user_id'");
+        } else {
+            echo 0;
+            exit;
+        }
+        
+        if($qry){
+            echo 1;
+        } else {
+            echo 0;
+        }
+        exit;
+
+    // ... sisa existing cases ...
+}
+
 ob_end_flush();
 ?>
 

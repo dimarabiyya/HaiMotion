@@ -1,6 +1,63 @@
 <?php
 session_start();
 ini_set('display_errors', 1);
+require_once 'phpmailer_config.php';
+
+function save_progress(){
+    extract($_POST);
+    // ... kode sanitasi dan save yang sudah ada ...
+
+    if ($save) {
+        $task_id = $this->conn->real_escape_string($task_id);
+        
+        // --- 1. Ambil Data Task, Project, dan Users Terlibat ---
+        $task_details_q = $this->conn->query("
+            SELECT t.task, t.user_ids AS task_users, p.manager_id 
+            FROM task_list t 
+            INNER JOIN project_list p ON p.id = t.project_id 
+            WHERE t.id = '{$task_id}'
+        ");
+        
+        if ($task_details_q && $task_details_q->num_rows > 0) {
+            $task_info = $task_details_q->fetch_assoc();
+            $task_name = $task_info['task'];
+            $manager_id = $task_info['manager_id'];
+            
+            // Task assigned users (selain user yang sedang login)
+            $task_user_ids = array_filter(explode(',', $task_info['task_users']));
+            $recipients_ids = array_unique(array_merge([$manager_id], $task_user_ids));
+            
+            // Hapus user yang sedang login dari daftar penerima notifikasi
+            if (($key = array_search($this->conn->real_escape_string($_SESSION['login_id']), $recipients_ids)) !== false) {
+                unset($recipients_ids[$key]);
+            }
+            
+            // --- 2. Ambil detail user penerima ---
+            if (!empty($recipients_ids)) {
+                $ids_str = implode(',', array_map('intval', $recipients_ids));
+                $users_q = $this->conn->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+                
+                $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
+                $link = "index.php?page=view_task&id=" . encode_id($task_id); // Asumsi encode_id() ada
+                $message = "Task **{$task_name}** mendapat komentar/update baru dari {$current_user_name}.";
+                $email_subject = "[KOMENTAR BARU] Task: {$task_name}";
+
+                while ($user = $users_q->fetch_assoc()) {
+                    $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
+                    
+                    $email_details = [
+                        'email' => $user['email'], 
+                        'name' => $full_name,
+                        'subject' => $email_subject
+                    ];
+                    
+                    // Rekam notifikasi (Type 4: Comment Added) dan kirim email push
+                    record_notification($user['id'], 4, $message, $link, $this->conn, true, $email_details);
+                }
+            }
+        }
+    }
+}
 
 class Action {
     private $db;
