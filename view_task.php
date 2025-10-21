@@ -191,7 +191,6 @@ if ($qry->num_rows > 0) {
 </div>
 
 <div class="modal-footer display p-0 m-0">
-  <?php if (isset($_SESSION['login_type']) && $_SESSION['login_type'] != 3): ?>
     <button class="btn btn-primary mr-2" onclick="editTask(<?= $id ?>, <?= $project_id ?>)">
       <i class="fa fa-edit"></i> Edit Task
     </button>
@@ -199,7 +198,6 @@ if ($qry->num_rows > 0) {
       <i class="fa fa-trash"></i> Delete
     </button>
     </button>
-  <?php endif; ?>
   <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 </div>
 

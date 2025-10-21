@@ -425,14 +425,14 @@ while($proj = $projects->fetch_assoc()){
               </div>
 
               <div class="col-md-3 px-3">
-                <h6 class="text-center font-weight-bold">Platform</h6>
+                <h6 class="font-weight-bold">Platform</h6>
                 <div class="chart-container" style="max-height:250px; padding-top:30px">
                     <canvas id="platformChart_<?= $p['id'] ?>"></canvas>
                 </div>
               </div>
               
               <div class="col-md-3 px-3">
-                <h6 class="text-center font-weight-bold">Assignment</h6>
+                <h6 class="font-weight-bold">Assignment</h6>
                 
                 <div class="p-2 mb-3 rounded" style="background-color: #f8f9fa;">
                   <small class="text-muted d-block">Project Manager</small>

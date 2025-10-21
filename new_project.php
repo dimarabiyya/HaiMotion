@@ -1,4 +1,12 @@
-<?php if(!isset($conn)){ include 'db_connect.php'; } ?>
+<?php 
+if(!isset($conn)){ 
+    include 'db_connect.php'; 
+} 
+// Memulai session jika belum dimulai (asumsi login_type diatur di session)
+if (session_status() == PHP_SESSION_NONE) {
+    session_start();
+}
+?>
 
 <div class="col-lg-12">
     <div class="card card-outline card-primary">
@@ -42,18 +50,17 @@
           </div>
         </div>
         <div class="row">
-            <?php if($_SESSION['login_type'] == 1 ): ?>
+            <?php if(isset($_SESSION['login_type']) && $_SESSION['login_type'] == 1 ): ?>
            <div class="col-md-6">
             <div class="form-group">
               <label for="" class="control-label">Project Manager</label>
               <select class="form-control form-control-sm select2" name="manager_id">
                 <option></option>
                 <?php 
-                // MODIFIKASI 1: Ambil Admin (type 1) dan Manager (type 2)
+                // MODIFIKASI 1: Memungkinkan Admin (type 1) dan Manager (type 2) menjadi Project Manager
                 $managers = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where type IN (1, 2) order by concat(firstname,' ',lastname) asc ");
                 while($row= $managers->fetch_assoc()):
-                // Tambahkan label role untuk kejelasan
-                $role_label = $row['type'] == 1 ? ' (Admin)' : ' (Manager)';
+                    $role_label = $row['type'] == 1 ? ' (Admin)' : ' (Manager)';
                 ?>
                 <option value="<?php echo $row['id'] ?>" <?php echo isset($manager_id) && $manager_id == $row['id'] ? "selected" : '' ?>><?php echo ucwords($row['name']) . $role_label ?></option>
                 <?php endwhile; ?>
@@ -61,7 +68,7 @@
             </div>
           </div>
       <?php else: ?>
-        <input type="hidden" name="manager_id" value="<?php echo $_SESSION['login_id'] ?>">
+        <input type="hidden" name="manager_id" value="<?php echo isset($_SESSION['login_id']) ? $_SESSION['login_id'] : '' ?>">
       <?php endif; ?>
           <div class="col-md-6">
             <div class="form-group">
@@ -69,11 +76,16 @@
               <select class="form-control form-control-sm select2" multiple="multiple" name="user_ids[]">
                 <option></option>
                 <?php 
-                // MODIFIKASI 2: Ambil Admin (type 1), Manager (type 2), dan Employee (type 3)
+                // MODIFIKASI 2: Memungkinkan Admin (type 1), Manager (type 2), dan Employee (type 3) menjadi Anggota Tim
                 $employees = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where type IN (1, 2, 3) order by concat(firstname,' ',lastname) asc ");
                 while($row= $employees->fetch_assoc()):
-                // Tambahkan label role untuk kejelasan
-                $role_label = $row['type'] == 1 ? ' (Admin)' : ($row['type'] == 2 ? ' (Manager)' : '');
+                    if ($row['type'] == 1) {
+                        $role_label = ' (Admin)';
+                    } elseif ($row['type'] == 2) {
+                        $role_label = ' (Manager)';
+                    } else {
+                        $role_label = ' (Member)'; // Mengasumsikan type 3 adalah Member/Employee
+                    }
                 ?>
                 <option value="<?php echo $row['id'] ?>" <?php echo isset($user_ids) && in_array($row['id'],explode(',',$user_ids)) ? "selected" : '' ?>><?php echo ucwords($row['name']) . $role_label ?></option>
                 <?php endwhile; ?>

@@ -1,15 +1,10 @@
 <?php 
-// Pastikan db_connect.php sudah di-include di file utama yang memanggil ini.
 if (session_status() == PHP_SESSION_NONE) {
     session_start();
 }
 include 'db_connect.php'; 
 
-// 1. DEFINE $selected_project_id.
-// Jika file ini dipanggil dari task_list.php, mungkin ada $_GET['project_id'].
 $selected_project_id = isset($_GET['project_id']) ? intval($_GET['project_id']) : 0; 
-// Jika tidak ada di GET, default ke 0 (tidak ada yang dipilih)
-
 $user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 ?>
@@ -18,7 +13,7 @@ $login_type = $_SESSION['login_type'];
   <div class="modal-dialog modal-lg" role="document">
     <div class="modal-content">
       <form action="" id="add-task-form">
-        <div class="modal-header text-white" style="background-color:#B75301;">
+        <div class="modal-header" style="color:#B75301;">
           <h5 class="modal-title" id="addTaskModalLabel"><i class="fa fa-plus"></i> Add New Task</h5>
           <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
             <span aria-hidden="true">&times;</span>
@@ -26,21 +21,18 @@ $login_type = $_SESSION['login_type'];
         </div>
         
         <div class="modal-body">
+          <!-- PROJECT -->
           <div class="form-group">
-            <label for="project_id">Project</label>
+            <label for="project_id"><b>Project</b></label>
             <select name="project_id" id="project_id" class="form-control" required>
               <option value="">Select Project</option>
               <?php
-              // 2. TWEAK QUERY untuk Administrator (type 1)
               $project_where = " WHERE 1=1 ";
               if ($login_type == 2) {
-                  // Manager: Proyek yang ia kelola
                   $project_where .= " AND manager_id = '$user_id' ";
               } elseif ($login_type == 3) {
-                  // User: Proyek yang ia menjadi anggota
                   $project_where .= " AND FIND_IN_SET('$user_id', user_ids) ";
               }
-              // Administrator (type 1) tidak diberi batasan, sehingga akan menggunakan WHERE 1=1
 
               $projects = $conn->query("
                 SELECT id, name 
@@ -50,40 +42,77 @@ $login_type = $_SESSION['login_type'];
               ");
 
               while($row = $projects->fetch_assoc()):
-                // Tandai project yang sedang difilter di halaman utama
                 $selected = ($row['id'] == $selected_project_id) ? 'selected' : '';
               ?>
               <option value="<?= $row['id'] ?>" <?= $selected ?>>
                   <?= ucwords($row['name']) ?>
               </option>
-
               <?php endwhile; ?>
             </select>
           </div>
 
+          <!-- TASK NAME -->
           <div class="form-group">
-            <label for="task">Task</label>
+            <label for="task"><b>Task</b></label>
             <input type="text" name="task" id="task" class="form-control" required>
           </div>
 
+          <!-- DATES -->
           <div class="form-row">
             <div class="form-group col-md-6">
-              <label for="start_date">Start Date</label>
+              <label for="start_date"><b>Start Date</b></label>
               <input type="date" name="start_date" id="start_date" class="form-control" required>
             </div>
             <div class="form-group col-md-6">
-              <label for="end_date">End Date</label>
+              <label for="end_date"><b>End Date</b></label>
               <input type="date" name="end_date" id="end_date" class="form-control" required>
             </div>
           </div>
 
+          <!-- DESCRIPTION -->
           <div class="form-group">
-            <label for="description">Description</label>
+            <label for="description"><b>Description</b></label>
             <textarea name="description" id="description" class="summernote form-control"></textarea>
           </div>
 
+          <!-- CONTENT PILLAR -->
           <div class="form-group">
-            <label>Status</label>
+            <label><b>Content Pillar</b></label><br>
+            <?php
+            $pillars = ['Edukasi', 'Tips', 'Behind The Scene', 'Testimoni', 'Portofolio', 'Awareness', 'Engagement', 'Promo', 'Lainnya'];
+            foreach($pillars as $pillar):
+            ?>
+            <div class="form-check form-check-inline mb-1">
+              <input class="form-check-input" type="checkbox" name="content_pillar[]" value="<?= $pillar ?>">
+              <label class="form-check-label"><?= $pillar ?></label>
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <!-- PLATFORM -->
+          <div class="form-group">
+            <label><b>Platform</b></label><br>
+            <?php
+            $platforms = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'LinkedIn', 'Website', 'Lainnya'];
+            foreach($platforms as $plat):
+            ?>
+            <div class="form-check form-check-inline mb-1">
+              <input class="form-check-input" type="checkbox" name="platform[]" value="<?= $plat ?>">
+              <label class="form-check-label"><?= $plat ?></label>
+            </div>
+            <?php endforeach; ?>
+          </div>
+
+          <!-- REFERENCE LINKS -->
+          <div class="form-group">
+            <label><b>Link Referensi</b></label>
+            <textarea name="reference_links" id="reference_links" class="form-control" rows="3" placeholder="Pisahkan link dengan enter."></textarea>
+            <small class="text-muted">Pisahkan link dengan enter.</small>
+          </div>
+
+          <!-- STATUS -->
+          <div class="form-group">
+            <label><b>Status</b></label>
             <select name="status" id="status" class="form-control">
               <option value="0">Pending</option>
               <option value="1">Started</option>
@@ -94,15 +123,16 @@ $login_type = $_SESSION['login_type'];
             </select>
           </div>
 
+          <!-- ASSIGN TO -->
           <div class="form-group">
-            <label>Assign To</label>
+            <label><b>Assign To</b></label>
             <select name="user_ids[]" id="user_ids" class="form-control select2" multiple="multiple" style="width:100%;" required>
               <option value="">-- Select project first --</option>
             </select>
           </div>
         </div>
         
-        <div class="modal-footer">
+        <div class="modal-footer border-top">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
           <button type="submit" class="btn text-white" style="background-color:#B75301;">Save Task</button>
         </div>
@@ -113,34 +143,29 @@ $login_type = $_SESSION['login_type'];
 
 <script>
 $(document).ready(function(){
-    // Inisialisasi Summernote dan Select2
     $('.summernote').summernote({ height: 200 });
     $('.select2').select2({ placeholder: "Select Employee" });
 
-    // Pemicu awal jika project_id sudah ada di URL saat modal dibuka
-    // Ini penting agar daftar Assign To langsung terisi jika filter project aktif
+    // Auto-load user list jika project aktif
     if($('#project_id').val()){
         $('#project_id').trigger('change');
     }
 
-    // ⬇️ Kalau project dipilih, ambil user dari backend
     $('#project_id').change(function(){
         var pid = $(this).val();
         var userSelect = $('#user_ids');
         
-        // Kosongkan dan beri pesan loading
         userSelect.html('<option value="">Loading users...</option>');
         userSelect.trigger('change');
 
         if(pid){
             $.ajax({
-                // Ini memanggil ajax.php?action=get_project_users
                 url: 'ajax.php?action=get_project_users',
                 method: 'POST',
                 data: {pid: pid},
                 success:function(resp){
-                    userSelect.html(resp); // isi option user
-                    userSelect.trigger('change'); // refresh select2
+                    userSelect.html(resp);
+                    userSelect.trigger('change');
                 }
             });
         }else{
@@ -152,8 +177,7 @@ $(document).ready(function(){
     // Submit form
     $('#add-task-form').submit(function(e){
         e.preventDefault();
-        // Asumsi start_load() didefinisikan di global script
-        if (typeof start_load !== 'undefined') { start_load(); } 
+        if (typeof start_load !== 'undefined') { start_load(); }
 
         $.ajax({
             url: 'ajax.php?action=save_task',
@@ -165,7 +189,6 @@ $(document).ready(function(){
                     $('#addTaskModal').modal('hide');
                     setTimeout(function(){ location.reload(); },1500);
                 }else{
-                    // Menampilkan pesan error dari backend
                     alert_toast("Error saving task: "+resp, 'danger');
                 }
                 if (typeof end_load !== 'undefined') { end_load(); }

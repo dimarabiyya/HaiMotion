@@ -2,14 +2,13 @@
 include 'db_connect.php';
 session_start();
 
-// Kondisi WHERE berdasarkan tipe user
-$where = '';
-if ($_SESSION['login_type'] == 2) {
-    $where = " WHERE p.manager_id = '{$_SESSION['login_id']}' ";
-} elseif ($_SESSION['login_type'] == 3) {
-    $where = " WHERE CONCAT('[', REPLACE(p.user_ids, ',', '],['), ']') LIKE '%[{$_SESSION['login_id']}]%' ";
+// Filter project sesuai role
+$where = "";
+if ($login_type == 2) { // Manager
+    $where = "WHERE FIND_IN_SET($current_user_id, user_ids) OR manager_id = $current_user_id";
+} elseif ($login_type == 3) { // Member
+    $where = "WHERE FIND_IN_SET($current_user_id, user_ids)";
 }
-
 // Ambil data task (pakai end_date sebagai tanggal event)
 $sql = "
     SELECT 

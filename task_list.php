@@ -13,77 +13,7 @@ $user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 $selected_project_id = isset($_GET['project_id']) ? intval($_GET['project_id']) : 0; 
 $selected_user_id = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0; 
-
-// =========================================================================
-//                   LOGIC 0: FILTER DAFTAR PROJECT UTAMA ($where)
-// =========================================================================
-// Variabel $where membatasi proyek berdasarkan role (Admin melihat semua)
-$where = " WHERE 1=1 ";
-if ($login_type == 2) {
-    $where .= " AND manager_id = '$user_id' ";
-} elseif ($login_type == 3) {
-    $where .= " AND FIND_IN_SET('$user_id', user_ids) ";
-}
-
-// Ambil semua project yang valid untuk dropdown
-$all_projects_q = $conn->query("SELECT id, name FROM project_list p $where ORDER BY name ASC");
-$all_projects = [];
-while($p = $all_projects_q->fetch_assoc()){
-    $all_projects[] = $p;
-}
-
-// Ambil semua user untuk dropdown berdasarkan filter (Diperlukan oleh dropdown)
-$user_filter_where = " WHERE 1=1 ";
-$all_users_q = $conn->query("SELECT id, firstname, lastname FROM users $user_filter_where ORDER BY firstname ASC");
-$all_users = [];
-while($u = $all_users_q->fetch_assoc()){
-    $all_users[] = $u;
-}
-
-// =========================================================================
-//                   LOGIC 2: FILTER TUGAS (TASK) UTAMA
-// =========================================================================
-// $task_where HANYA akan menampung filter tambahan (User Dropdown atau Role 3)
-$task_where = " WHERE 1=1 "; 
-
-// --- A. Batasan Tugas berdasarkan Role ---
-
-if ($login_type == 2) {
-    // Manager: Hanya tugas yang ditugaskan kepada Employee (Role 3).
-    $users_q = $conn->query("SELECT id FROM users WHERE type = 3");
-    $role_3_user_ids = [];
-    while($row = $users_q->fetch_assoc()){
-        $role_3_user_ids[] = $row['id'];
-    }
-    
-    if (!empty($role_3_user_ids)) {
-        $task_where .= " AND (";
-        foreach ($role_3_user_ids as $r3_id) {
-            $task_where .= " FIND_IN_SET('$r3_id', t.user_ids) OR";
-        }
-        $task_where = rtrim($task_where, " OR") . " ) ";
-        
-    } else {
-        $task_where .= " AND t.id = 0 ";
-    }
-} elseif ($login_type == 3) {
-    // User (Role 3): Hanya tugas yang ditugaskan kepadanya.
-    $task_where .= " AND FIND_IN_SET('$user_id', t.user_ids) "; 
-}
-// Administrator (Role 1) tidak diberi batasan role apa pun di $task_where.
-
-// --- B. Filter tambahan berdasarkan GET parameters (dropdown filter) ---
-
-// Filter Project (Diterapkan ke $where di Langkah C)
-if ($selected_project_id > 0) {
-    $where .= " AND p.id = '$selected_project_id' ";
-}
-
-// Filter User Dropdown (Diterapkan ke $task_where)
-if ($login_type != 3 && $selected_user_id > 0) {
-    $task_where .= " AND FIND_IN_SET('$selected_user_id', t.user_ids) ";
-}
-
+$selected_status = isset($_GET['status']) && $_GET['status'] !== '' ? intval($_GET['status']) : -1; // -1 untuk Semua Status
 
 // Status mapping
 $stat = [
@@ -94,23 +24,68 @@ $stat = [
     4 => "Over Due",
     5 => "Done"
 ];
+$status_options = $stat;
+$status_options[-1] = "Semua Status";
+ksort($status_options);
 
-// Query project yang akan di-looping (menggunakan $where yang sudah difilter)
-$projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC");
+
+// =========================================================================
+//                   LOGIC 0: FILTER DAFTAR PROJECT UTAMA ($where)
+// =========================================================================
+// $where_project_dropdown digunakan untuk membatasi project di DROPDOWN filter dan loop utama
+$where_project_dropdown = " WHERE 1=1 ";
+if ($login_type == 2) {
+    // Manager melihat project yang dia kelola ATAU dia menjadi anggota
+    $where_project_dropdown .= " AND (p.manager_id = '$user_id' OR FIND_IN_SET('$user_id', p.user_ids)) ";
+} elseif ($login_type == 3) {
+    // User biasa hanya melihat project di mana dia menjadi anggota
+    $where_project_dropdown .= " AND FIND_IN_SET('$user_id', p.user_ids) ";
+}
+// Admin (Role 1) tidak memiliki batasan
+
+
+// Ambil semua project yang valid untuk dropdown
+$all_projects_q = $conn->query("SELECT id, name FROM project_list p $where_project_dropdown ORDER BY name ASC");
+$all_projects = [];
+while($p = $all_projects_q->fetch_assoc()){
+    $all_projects[] = $p;
+}
+
+// Ambil semua user untuk dropdown (Hanya untuk Admin/Manager)
+$user_filter_where = " WHERE 1=1 ";
+$all_users_q = $conn->query("SELECT id, firstname, lastname FROM users $user_filter_where ORDER BY firstname ASC");
+$all_users = [];
+while($u = $all_users_q->fetch_assoc()){
+    // Anda mungkin ingin memfilter user berdasarkan role/project di sini, 
+    // tapi untuk dropdown User, kita tampilkan semua user yang ada (paling fleksibel).
+    $all_users[] = $u;
+}
+
+// =========================================================================
+//                   LOGIC 1: APPLY PROJECT FILTER (untuk Query Project di Bawah)
+// =========================================================================
+$project_query_where = $where_project_dropdown;
+if ($selected_project_id > 0) {
+    $project_query_where .= " AND p.id = '$selected_project_id' ";
+}
+
+// Query project yang akan di-looping (menggunakan $project_query_where yang sudah difilter)
+$projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDER BY name ASC");
 ?>
 
 <div class="container-fluid mb-3">
     <div class="row align-items-center">
         
         <div class="col-12 col-md-8 mb-2 mb-md-0">
-            <div class="d-flex flex-wrap">
+            <div class="d-flex flex-wrap align-items-center">
+                
                 <div class="dropdown mr-2 mb-2 mb-md-0">
                     <button class="btn dropdown-toggle text-white" type="button" id="projectDropdown"
                             data-toggle="dropdown" aria-expanded="false" style="background-color:#B75301;">
                         <?php 
                             if($selected_project_id){
                                 $proj_name = array_column($all_projects, 'name', 'id')[$selected_project_id] ?? "Pilih Project";
-                                echo htmlspecialchars($proj_name);
+                                echo "Project: " . htmlspecialchars($proj_name);
                             } else {
                                 echo "Semua Project";
                             }
@@ -118,18 +93,36 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
                     </button>
                     <div class="dropdown-menu" aria-labelledby="projectDropdown">
                         <a class="dropdown-item <?= $selected_project_id == 0 ? 'active' : '' ?>" 
-                           href="index.php?page=task_list<?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
+                           href="index.php?page=task_list<?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
                            Semua Project
                         </a>
                         <div class="dropdown-divider"></div>
                         <?php foreach($all_projects as $p): ?>
                             <a class="dropdown-item <?= $selected_project_id == $p['id'] ? 'active' : '' ?>"
-                               href="index.php?page=task_list&project_id=<?= $p['id'] ?><?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
+                               href="index.php?page=task_list&project_id=<?= $p['id'] ?><?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
                                 <?= htmlspecialchars($p['name']) ?>
                             </a>
                         <?php endforeach; ?>
                     </div>
                 </div>
+
+                <div class="dropdown mr-2 mb-2 mb-md-0">
+                    <button class="btn dropdown-toggle text-white" type="button" id="statusDropdown"
+                            data-toggle="dropdown" aria-expanded="false" style="background-color:#B75301;">
+                        <?php 
+                            echo "Status: " . htmlspecialchars($status_options[$selected_status]);
+                        ?>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="statusDropdown">
+                        <?php foreach($status_options as $key => $label): ?>
+                            <a class="dropdown-item <?= $selected_status == $key ? 'active' : '' ?>"
+                               href="index.php?page=task_list&status=<?= $key ?><?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?><?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?>">
+                                <?= htmlspecialchars($label) ?>
+                            </a>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+
 
                 <?php if($_SESSION['login_type'] == 1 || $_SESSION['login_type'] == 2): ?>
                     <div class="dropdown">
@@ -144,7 +137,7 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
                                             break;
                                         }
                                     }
-                                    echo htmlspecialchars($user_name ?: "Pilih User");
+                                    echo "User: " . htmlspecialchars($user_name ?: "Pilih User");
                                 } else {
                                     echo "Semua User";
                                 }
@@ -153,13 +146,13 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
                         
                         <div class="dropdown-menu" aria-labelledby="userDropdown">
                             <a class="dropdown-item <?= $selected_user_id == 0 ? 'active' : '' ?>" 
-                            href="index.php?page=task_list<?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?>">
+                            href="index.php?page=task_list<?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
                             Semua User
                             </a>
                             <div class="dropdown-divider"></div>
                             <?php foreach($all_users as $u): ?>
                                 <a class="dropdown-item <?= $selected_user_id == $u['id'] ? 'active' : '' ?>"
-                                href="index.php?page=task_list&user_id=<?= $u['id'] ?><?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?>">
+                                href="index.php?page=task_list&user_id=<?= $u['id'] ?><?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
                                     <?= htmlspecialchars(ucwords($u['firstname'] . ' ' . $u['lastname'])) ?>
                                 </a>
                             <?php endforeach; ?>
@@ -189,7 +182,7 @@ $projects = $conn->query("SELECT * FROM project_list p $where ORDER BY name ASC"
 // ===== LOOPING PROJECT =====
 if($projects->num_rows > 0):
 while ($proj = $projects->fetch_assoc()):
-    // Hitung progress
+    // Hitung progress (tetap dihitung dari semua task proyek untuk badge progress)
     $tprog = $conn->query("SELECT * FROM task_list WHERE project_id = {$proj['id']}")->num_rows;
     $cprog = $conn->query("SELECT * FROM task_list WHERE project_id = {$proj['id']} AND status = 5")->num_rows;
     $prog = $tprog > 0 ? ($cprog / $tprog) * 100 : 0;
@@ -197,19 +190,44 @@ while ($proj = $projects->fetch_assoc()):
 
     $prod = $conn->query("SELECT * FROM user_productivity WHERE project_id = {$proj['id']}")->num_rows;
 
-    // Update status otomatis
+    // Update status otomatis (Logika yang sama, jalankan di sisi PHP)
     if ($proj['status'] == 0 && strtotime(date('Y-m-d')) >= strtotime($proj['start_date'])) {
         $proj['status'] = ($prod > 0 || $cprog > 0) ? 2 : 1;
     } elseif ($proj['status'] == 0 && strtotime(date('Y-m-d')) > strtotime($proj['end_date'])) {
         $proj['status'] = 4; // Over Due
     }
 
-    // Ambil task dengan filter user dan project (FIXED)
-    // $task_where menampung filter role dan user dropdown. Kita tambahkan project_id di sini.
-    $tasks = $conn->query("SELECT * FROM task_list t $task_where AND t.project_id = {$proj['id']} ORDER BY t.task ASC");
+    // ==========================
+    // PERBAIKAN QUERY TASK DENGAN SEMUA FILTER
+    // ==========================
+    $task_query = "
+    SELECT t.* FROM task_list t 
+    WHERE t.project_id = {$proj['id']}
+    ";
 
-    // Hanya tampilkan project yang memiliki task setelah di filter
-    if($tasks->num_rows == 0) continue;
+    // Filter Task Berdasarkan Role
+    if ($login_type == 3) {
+        // Role 3 (User): Hanya task yang ditugaskan padanya.
+        $task_query .= " AND FIND_IN_SET('$user_id', t.user_ids)";
+    } 
+    // CATATAN: Role 1 (Admin) dan Role 2 (Manager) tidak difilter di sini 
+    // karena mereka berhak melihat semua task di proyek yang sudah difilter di atas.
+
+    // Filter Task Berdasarkan User Dropdown
+    if ($login_type != 3 && $selected_user_id > 0) {
+        $task_query .= " AND FIND_IN_SET('$selected_user_id', t.user_ids)";
+    }
+    
+    // Filter Task Berdasarkan Status Dropdown
+    if ($selected_status != -1) {
+        $task_query .= " AND t.status = '$selected_status'";
+    }
+
+    $task_query .= " ORDER BY t.id DESC";
+
+    $tasks = $conn->query($task_query);
+    // Hanya tampilkan project yang punya task setelah filter
+    if(!$tasks || $tasks->num_rows == 0) continue;
 ?>
 
 <div class="col-lg-12">
@@ -242,15 +260,13 @@ while ($proj = $projects->fetch_assoc()):
                         <?php $i = 1; while ($row = $tasks->fetch_assoc()): 
                             $desc = strip_tags(html_entity_decode($row['description']));
 
-                            // === Cek deadline untuk status Over Due ===
+                            // === Cek deadline untuk status Over Due (Hanya perlu jika status di DB belum di-update) ===
+                            $current_status = (int)$row['status'];
                             $today = strtotime(date('Y-m-d'));
                             $end   = strtotime($row['end_date']);
 
-                            if ($today > $end) {
-                                if ($row['status'] != 0 && $row['status'] != 3 && $row['status'] != 5) {
-                                    // update status ke Over Due (4) hanya jika bukan Pending, On-Hold, atau Done
-                                    $row['status'] = 4;
-                                }
+                            if ($today > $end && $current_status != 5 && $current_status != 3) {
+                                $current_status = 4; // Over Due
                             }
                         ?>
                         <tr class="task-row" 
@@ -266,21 +282,18 @@ while ($proj = $projects->fetch_assoc()):
                             
                             <td class="text-center">
                                 <?php
-                                $status_code = (int)$row['status'];
-                                $tstatus = $stat[$status_code] ?? 'Pending';
+                                $tstatus = $stat[$current_status] ?? 'Pending';
 
                                 $badge_class = [
-                                    "Pending"     => "secondary",
-                                    "Started"     => "info",
-                                    "On-Progress" => "primary",
-                                    "On-Hold"     => "warning",
-                                    "Over Due"    => "danger",
-                                    "Done"        => "success"
-                                ];
-
-                                $color = $badge_class[$tstatus] ?? "secondary";
-
-                                echo "<span class='badge badge-{$color} p-2'>{$tstatus}</span>";
+                                    0=>'secondary',
+                                    1=>'info',
+                                    2=>'primary',
+                                    3=>'warning',
+                                    4=>'danger',
+                                    5=>'success'
+                                ][$current_status] ?? 'secondary';
+                                
+                                echo "<span class='badge badge-{$badge_class} p-2'>{$tstatus}</span>";
                                 ?>
                             </td>
 
@@ -300,13 +313,30 @@ while ($proj = $projects->fetch_assoc()):
                                 ?>
                                 <?php if (!empty($task_assigned_users)): ?>
                                     <div class="d-flex justify-content-center">
-                                        <?php foreach ($task_assigned_users as $au): ?>
-                                            <img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
+                                        <?php 
+                                        $max_show_avatars = 3;
+                                        $displayed_count = 0;
+                                        foreach (array_slice($task_assigned_users, 0, $max_show_avatars) as $au): 
+                                            $avatar = !empty($au['avatar']) ? 'assets/uploads/'.$au['avatar'] : 'assets/uploads/default.png';
+                                        ?>
+                                            <img src="<?php echo $avatar; ?>" 
                                                  alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
                                                  class="rounded-circle border border-secondary" 
                                                  style="width:35px; height:35px; object-fit:cover; margin-left:-8px;" 
                                                  title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
-                                        <?php endforeach; ?>
+                                        <?php 
+                                            $displayed_count++;
+                                        endforeach; 
+                                        
+                                        $more_count = count($task_assigned_users) - $max_show_avatars;
+                                        if ($more_count > 0):
+                                        ?>
+                                             <span class="d-flex align-items-center justify-content-center text-secondary" 
+                                                   style="width:35px; height:35px; font-size:12px; padding:0; margin-left:-8px; border-radius: 50%; background-color: #f8f9fa; border: 1px solid #ccc;"
+                                                   title="and <?= $more_count ?> more members">
+                                                +<?= $more_count ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 <?php else: ?>
                                     <span class="text-muted">No User</span>
@@ -380,10 +410,14 @@ while ($proj = $projects->fetch_assoc()):
 </style>
 
 <script>
+// Fungsi uni_modal, start_load, alert_toast, dan _conf harus tersedia di file lain (misalnya header.php atau script global Anda)
+// Karena tidak disertakan, saya asumsikan mereka ada.
+
 $(document).ready(function(){
 
     // View Task (dropdown)
     $('.view_task').click(function(){
+        // Menggunakan parent().parent() untuk memastikan tidak ada event propagation dari tr
         uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large")
     })
     
@@ -411,8 +445,8 @@ $(document).ready(function(){
     
     // FIX: Klik seluruh row task untuk menampilkan modal detail
     $('.task-row').click(function(e){
-        // supaya klik tombol dropdown dll tidak ikut aksi ini
-        if($(e.target).closest('.dropdown').length || $(e.target).is('button') || $(e.target).is('a') || $(e.target).is('i')) return;
+        // Mencegah aksi jika klik berasal dari dalam dropdown menu atau elemen interaktif lainnya
+        if($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .new_productivity, .edit_task, .delete_task').length) return;
 
         var taskId = $(this).data('id');
         // Memanggil modal detail saat baris diklik
@@ -421,19 +455,21 @@ $(document).ready(function(){
 });
 
 
-// Function delete
+// Function delete (assuming it is globally defined or defined here)
 function delete_task(id){
-    start_load();
+    // start_load() jika ada
     $.ajax({
         url: 'ajax.php?action=delete_task',
         method: 'POST',
         data: { id: id },
         success: function(resp){
             if(resp == 1){
-                alert_toast("Task berhasil dihapus", "success");
+                // alert_toast("Task berhasil dihapus", "success"); // Ganti dengan fungsi alert_toast yang sebenarnya
+                alert("Task berhasil dihapus");
                 setTimeout(() => location.reload(), 1500);
             } else {
-                alert_toast("Gagal menghapus task", "danger");
+                // alert_toast("Gagal menghapus task", "danger"); // Ganti dengan fungsi alert_toast yang sebenarnya
+                alert("Gagal menghapus task");
             }
         }
     });
@@ -442,6 +478,10 @@ function delete_task(id){
 
 
 <style>
+    .dropdown-menu {
+        /* Memastikan dropdown tampil di atas elemen lain */
+        z-index: 1051 !important; 
+    }
     table p {
         margin: unset !important;
     }

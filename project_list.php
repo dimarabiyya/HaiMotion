@@ -22,7 +22,7 @@
                 <div class="d-flex justify-content-end">
                     <?php if($_SESSION['login_type'] != 3): ?>
                         <div class="card-tools">
-                          <a href="index.php?page=new_project" class="btn text-white font-weight-bold" style="background-color:#B75301;">
+                          <a href="index.php?page=new_project" class="btn text-white" style="background-color:#B75301;">
                             Add Project
                           </a>
                         </div>
@@ -40,12 +40,17 @@
     
     // LOGIKA FILTER PROJECT BERDASARKAN ROLE
     if($_SESSION['login_type'] == 2){
-      // Manager: Proyek yang ia kelola
-      $where = " where manager_id = '{$_SESSION['login_id']}' ";
-    }elseif($_SESSION['login_type'] == 3){
-      // User: Proyek yang ia menjadi anggota (FIND_IN_SET lebih aman)
-      $where = " where FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
+      // Manager: Proyek yang ia kelola ATAU ia menjadi anggota
+      $where = " WHERE manager_id = '{$_SESSION['login_id']}' OR FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
+    } elseif($_SESSION['login_type'] == 3){
+      // User: Proyek yang ia menjadi anggota
+      $where = " WHERE FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
+    } else {
+        // Admin (login_type = 1) atau lainnya, tidak ada filter spesifik
+        $where = "";
     }
+
+$qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
     
     $qry = $conn->query("SELECT * FROM project_list $where order by name asc");
     

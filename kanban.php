@@ -11,7 +11,7 @@ $login_type = $_SESSION['login_type'];
 // Filter project sesuai role
 $where = "";
 if ($login_type == 2) { // Manager
-    $where = "WHERE manager_id = $current_user_id";
+    $where = "WHERE FIND_IN_SET($current_user_id, user_ids) OR manager_id = $current_user_id";
 } elseif ($login_type == 3) { // Member
     $where = "WHERE FIND_IN_SET($current_user_id, user_ids)";
 }
