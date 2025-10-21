@@ -57,6 +57,11 @@ if(isset($_GET['id'])){
 					</div>
 				</div>
 			</div>
+			<hr>
+			<div class="text-right">
+				<button class="btn btn-primary mr-2">Save</button>
+				<a href="index.php?page=project_view" class="btn btn-secondary">Cancel</a>
+			</div>
 		</div>
 	</form>
 </div>

@@ -23,119 +23,90 @@ if ($action == 'delete_user') echo $crud->delete_user();
 
 /* ========== PROJECT MANAGEMENT ========== */
 if ($action == 'save_project') {
+    // Logika dan logging sudah dipindahkan ke admin_class.php
     $save = $crud->save_project();
-    if ($save == 1) {
-        $project_id = $conn->insert_id ?: ($_POST['id'] ?? null);
-        $project_name = $_POST['name'] ?? '';
-        $action_type = isset($_POST['id']) && $_POST['id'] ? 'project_update' : 'project_add';
-        $desc = $action_type == 'project_add'
-            ? "Menambahkan project baru: $project_name"
-            : "Mengubah project: $project_name";
-        $crud->log_activity($_SESSION['login_id'], $project_id, null, $action_type, $desc);
-    }
     echo $save;
 }
 
 if ($action == 'delete_project') {
-    $project_id = $_POST['id'] ?? 0;
-    $pname = $conn->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc()['name'] ?? '';
+    // Logika dan logging sudah dipindahkan ke admin_class.php
     $save = $crud->delete_project();
-    if ($save == 1) {
-        $crud->log_activity($_SESSION['login_id'], $project_id, null, 'project_delete', "Menghapus project: $pname");
-    }
     echo $save;
 }
 
 /* ========== TASK MANAGEMENT ========== */
 if ($action == 'save_task') {
-    $id          = intval($_POST['id'] ?? 0);
-    $task        = $conn->real_escape_string($_POST['task'] ?? '');
-    $description = $conn->real_escape_string($_POST['description'] ?? '');
-    $status      = intval($_POST['status'] ?? 0);
-    $project_id  = intval($_POST['project_id'] ?? 0);
-    $user_ids    = isset($_POST['user_ids']) ? implode(',', $_POST['user_ids']) : '';
-    $start_date  = $conn->real_escape_string($_POST['start_date'] ?? '');
-    $end_date    = $conn->real_escape_string($_POST['end_date'] ?? '');
-    $content_pillar  = isset($_POST['content_pillar']) ? implode(',', $_POST['content_pillar']) : '';
-    $platform        = isset($_POST['platform']) ? implode(',', $_POST['platform']) : '';
-    $reference_links = $conn->real_escape_string($_POST['reference_links'] ?? '');
-
-    if (empty($task) || !$project_id) {
-        echo "Task name dan project wajib diisi.";
-        exit;
-    }
-
-    if (!$id) {
-        $created_by = $_SESSION['login_id'];
-        $sql = "INSERT INTO task_list 
-                (project_id, task, description, status, user_ids, start_date, end_date, content_pillar, platform, reference_links, date_created, created_by)
-                VALUES ($project_id, '$task', '$description', $status, '$user_ids', '$start_date', '$end_date', '$content_pillar', '$platform', '$reference_links', NOW(), '$created_by')";
-        if ($conn->query($sql)) {
-            $task_id = $conn->insert_id;
-            $crud->log_activity($_SESSION['login_id'], $project_id, $task_id, 'task_add', 'Menambahkan task baru: ' . $task);
-            echo 1;
-        } else {
-            echo "Error: " . $conn->error;
-        }
-    } else {
-        $created_by = $_SESSION['login_id'];
-        $sql = "UPDATE task_list SET 
-                    task = '$task',
-                    description = '$description',
-                    status = $status,
-                    user_ids = '$user_ids',
-                    start_date = '$start_date',
-                    end_date = '$end_date',
-                    content_pillar = '$content_pillar',
-                    platform = '$platform',
-                    reference_links = '$reference_links',
-                    created_by = '$created_by'
-                WHERE id = $id";
-        if ($conn->query($sql)) {
-            $crud->log_activity($_SESSION['login_id'], $project_id, $id, 'task_update', 'Mengubah task: ' . $task);
-            echo 1;
-        } else {
-            echo "Error: " . $conn->error;
-        }
-    }
+    // Logika, logging, dan NOTIFIKASI sudah dipindahkan ke admin_class.php
+    echo $crud->save_task();
 }
 
 
 if ($action == 'delete_task') {
-    $task_id = $_POST['id'] ?? 0;
-    $tinfo = $conn->query("SELECT t.task, t.project_id, p.name AS project_name 
-                           FROM task_list t 
-                           LEFT JOIN project_list p ON t.project_id = p.id 
-                           WHERE t.id = $task_id")->fetch_assoc();
+    // Logika dan logging sudah dipindahkan ke admin_class.php
     $save = $crud->delete_task();
-    if ($save == 1) {
-        $crud->log_activity($_SESSION['login_id'], $tinfo['project_id'], $task_id, 'task_delete', "Menghapus task: {$tinfo['task']}");
-    }
     echo $save;
 }
 
 /* ========== PROGRESS MANAGEMENT ========== */
 if ($action == 'save_progress') {
+    // Logika, logging, dan NOTIFIKASI sudah dipindahkan ke admin_class.php
     $save = $crud->save_progress();
-    if ($save == 1) {
-        $task_id = $_POST['task_id'] ?? 0;
-        $project_id = $conn->query("SELECT project_id FROM task_list WHERE id = $task_id")->fetch_assoc()['project_id'] ?? 0;
-        $crud->log_activity($_SESSION['login_id'], $project_id, $task_id, 'progress_add', 'Menambahkan progress baru pada task.');
-    }
     echo $save;
 }
 
 if ($action == 'delete_progress') {
-    $progress_id = $_POST['id'] ?? 0;
-    $tinfo = $conn->query("SELECT p.task_id, t.project_id, t.task 
-                           FROM user_productivity p 
-                           LEFT JOIN task_list t ON p.task_id = t.id 
-                           WHERE p.id = $progress_id")->fetch_assoc();
+    // Logika dan logging sudah dipindahkan ke admin_class.php
     $save = $crud->delete_progress();
-    if ($save == 1) {
-        $crud->log_activity($_SESSION['login_id'], $tinfo['project_id'], $tinfo['task_id'], 'progress_delete', "Menghapus progress pada task: {$tinfo['task']}");
-    }
     echo $save;
+}
+
+/* ========== REPORT / MISC ========== */
+if ($action == 'get_report') echo $crud->get_report();
+
+// ... sisa kode existing di bawah baris 112
+
+// ... TAMBAHKAN KODE NOTIFIKASI BARU DI SINI
+
+/* ========== NOTIFICATION MANAGEMENT ========== */
+if ($action == 'fetch_notifications') {
+    $user_id = $_SESSION['login_id'];
+    
+    // Ambil 5 notifikasi terbaru 
+    $notifications_q = $conn->query("SELECT * FROM notification_list WHERE user_id = '$user_id' ORDER BY date_created DESC LIMIT 5");
+    $notifications = [];
+    while ($row = $notifications_q->fetch_assoc()) {
+        $notifications[] = $row;
+    }
+    
+    // Hitung notifikasi belum dibaca
+    $unread_count_q = $conn->query("SELECT COUNT(id) AS total FROM notification_list WHERE user_id = '$user_id' AND is_read = 0");
+    $unread_count = $unread_count_q->fetch_assoc()['total'];
+
+    header('Content-Type: application/json');
+    echo json_encode(['status' => 1, 'notifications' => $notifications, 'unread_count' => $unread_count]);
+    exit;
+
+}
+
+if ($action == 'mark_as_read') {
+    $id = $conn->real_escape_string($_POST['id'] ?? null);
+    $user_id = $_SESSION['login_id'];
+    
+    if ($id === 'all') {
+        $qry = $conn->query("UPDATE notification_list SET is_read = 1 WHERE user_id = '$user_id' AND is_read = 0");
+    } elseif (is_numeric($id) && $id > 0) {
+        $qry = $conn->query("UPDATE notification_list SET is_read = 1 WHERE id = '$id' AND user_id = '$user_id'");
+    } else {
+        echo 0;
+        exit;
+    }
+    
+    if($qry){
+        echo 1;
+    } else {
+        echo 0;
+    }
+    exit;
 }
 
 /* ========== REPORT / MISC ========== */

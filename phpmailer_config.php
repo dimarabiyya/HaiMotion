@@ -1,26 +1,27 @@
 <?php
-// Pastikan PHPMailer sudah terinstal via Composer: composer require phpmailer/phpmailer
-// require 'vendor/autoload.php'; // Uncomment ini jika menggunakan Composer
-
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
+// Pastikan autoload Composer dipanggil (wajib kalau install via composer)
+require_once __DIR__ . '/vendor/autoload.php';
+
 // GANTI KONFIGURASI DI BAWAH INI dengan detail SMTP Anda yang sebenarnya!
-define('SMTP_HOST', 'smtp.example.com');
-define('SMTP_USERNAME', 'your_email@example.com'); 
-define('SMTP_PASSWORD', 'your_password'); 
-define('SMTP_PORT', 587); // Biasanya 587 (TLS) atau 465 (SSL)
-define('SMTP_SECURE', 'tls'); 
-define('EMAIL_FROM', 'no-reply@yourdomain.com');
-define('EMAIL_FROM_NAME', 'Task Management System');
-define('APP_BASE_URL', 'http://localhost/your_project_folder/'); // GANTI dengan URL base Anda
+define('SMTP_HOST', 'mail.haimotion.com');
+define('SMTP_USERNAME', 'dashboard@haimotion.com'); 
+define('SMTP_PASSWORD', 'e[M)1hjKN-30(Ety'); 
+define('SMTP_PORT', 465);
+define('SMTP_SECURE', 'ssl'); 
+define('EMAIL_FROM', 'dashboard@haimotion.com');
+define('EMAIL_FROM_NAME', 'HaiMotion Dashboard');
+define('APP_BASE_URL', 'https://dashboard.haimotion.com/');
+define('MAIL_NAME', 'HaiMotion');
 
 /**
  * Mengirim notifikasi email.
- * @param string $recipient_email
- * @param string $recipient_name
- * @param string $subject
- * @param string $body_html
+ * @param string 
+ * @param string 
+ * @param string 
+ * @param string 
  * @return bool
  */
 function send_task_notification_email($recipient_email, $recipient_name, $subject, $body_html) {
@@ -41,6 +42,15 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
         $mail->Password   = SMTP_PASSWORD;
         $mail->SMTPSecure = SMTP_SECURE;
         $mail->Port       = SMTP_PORT;
+
+         // ✅ tambahan biar aman di localhost (skip verifikasi SSL)
+        $mail->SMTPOptions = [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            ]
+        ];
         
         $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
         $mail->addAddress($recipient_email, $recipient_name); 

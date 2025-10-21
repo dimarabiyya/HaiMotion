@@ -79,16 +79,21 @@
             </a>
           </li>
 
-          <?php if($_SESSION['login_type'] == 1): ?>
-          <li class="nav-item mb-2">
-            <a href="./index.php?page=user_list" class="nav-link nav-user_list">
-              <i class="nav-icon fas fa-users"></i>
-              <p>
-                Users
-              </p>
-            </a>
-          </li>
-            <?php endif; ?>
+         <?php
+          if ($_SESSION['login_type'] == 1):
+            // Halaman yang termasuk ke menu Users
+            $userPages = ['user_list', 'manage_user', 'new_user'];
+            $currentPage = $_GET['page'] ?? '';
+            $isActive = in_array($currentPage, $userPages) ? 'active' : '';
+          ?>
+            <li class="nav-item mb-2">
+              <a href="./index.php?page=user_list" class="nav-link <?= $isActive ?> nav-user_list">
+                <i class="nav-icon fas fa-users"></i>
+                <p>Users</p>
+              </a>
+            </li>
+          <?php endif; ?>
+
         </ul>
       </nav>
     </div>
@@ -107,6 +112,7 @@
           </div>
       </div>
   </aside>
+  
 
  
 

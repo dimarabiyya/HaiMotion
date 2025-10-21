@@ -1,13 +1,21 @@
 <?php include 'db_connect.php' ?>
-<div class="col-lg-12">
-  <div class="card card-outline card-warning">
-    <div class="card-header">
-      <div class="card-tools">
-        <button class="btn btn-block btn-sm btn-default btn-flat border-warning" id="add_user_btn">
-          <i class="fa fa-plus"></i> Add New User
-        </button>
-      </div>
-    </div>
+
+<div class="container-fluid">
+  <div class="col-md"
+    <h4>User Management</h4>
+  <div class="d-flex justify-content-end">
+        <?php if($_SESSION['login_type'] != 3): ?>
+          <div class="card-tools">
+              <button class="btn text-white" style="background-color:#B75301;" id="add_user_btn">
+                New User
+              </button>
+          </div>
+      <?php endif; ?>
+  </div>
+</div>
+
+<div class="col-lg-12 mt-3">
+  <div class="card card-outline card-orange">
     <div class="card-body">
       <div class="table-responsive">
         <table class="table table-hover table-bordered" id="list">
@@ -110,10 +118,10 @@ table.dataTable thead th.sorting_desc:after {
 $(document).ready(function(){
   $('#list').DataTable();
 
-  // Show modal add
   $('#add_user_btn').click(function(){
-    $('#userModal').modal('show');
+    window.location.href = "index.php?page=new_user";
   });
+
 
   // View User
   $('.view_user').click(function(){

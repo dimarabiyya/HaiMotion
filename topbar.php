@@ -15,25 +15,24 @@ $type_arr = array('', "Admin", "Project Manager", "Employee");
   </ul>
   
   <ul class="navbar-nav ml-auto align-items-center">
-
-  <li class="nav-item dropdown">
-      <a class="nav-link" data-toggle="dropdown" href="#" title="Notifications">
-          <i class="far fa-bell"></i>
-          <span class="badge badge-danger navbar-badge" id="notification-count" style="display:none;"></span>
-      </a>
-      <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right p-0" id="notification-dropdown">
-          <span class="dropdown-header text-center" id="notification-header">0 Notifications</span>
-          <div class="dropdown-divider"></div>
-          
-          <div id="notification-list" style="max-height: 300px; overflow-y: auto;">
-              <span class="dropdown-item dropdown-header">Loading...</span>
-          </div>
-          
-          <div class="dropdown-divider"></div>
-          <a href="javascript:void(0)" class="dropdown-item dropdown-footer" id="mark-all-read">Mark all as read</a>
-      </div>
-  </li>
-
+    
+    <li class="nav-item dropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#" title="Notifications">
+            <i class="fa fa-bell"></i>
+            <span class="badge badge-danger navbar-badge" id="notification-count" style="display:none;"></span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right p-0" id="notification-dropdown" style="width: 300px;">
+            <span class="dropdown-header text-center" id="notification-header">0 Notifikasi</span>
+            <div class="dropdown-divider"></div>
+            
+            <div id="notification-list" style="max-height: 100px; overflow-y: auto; font-size: 14px;">
+                <span class="dropdown-item dropdown-header">Loading...</span>
+            </div>
+            
+            <div class="dropdown-divider"></div>
+            <a href="javascript:void(0)" class="dropdown-item dropdown-footer" id="mark-all-read">Mark all as read</a>
+        </div>
+    </li>
     <li class="nav-item">
       <a class="nav-link" data-widget="fullscreen" href="#" role="button">
         <i class="fas fa-expand-arrows-alt"></i>
@@ -61,9 +60,11 @@ $(document).ready(function(){
     let userId = $(this).attr('data-id');
     uni_modal("<i class='fa fa-id-card'></i> User Details", "view_user.php?id=" + userId);
   });
-});
-
-$(document).ready(function() {
+  
+  // ==============================================
+  // JAVASCRIPT NOTIFIKASI
+  // ==============================================
+  
     // Fungsi untuk memuat notifikasi
     function load_notifications() {
         $.ajax({
@@ -77,35 +78,40 @@ $(document).ready(function() {
                     const notifications = resp.notifications;
                     const unreadCount = resp.unread_count;
 
-                    $('#notification-header').text(`${unreadCount} Notifications`);
+                    $('#notification-header').text(`${unreadCount} Notifikasi`);
                     countBadge.text(unreadCount).toggle(unreadCount > 0);
 
                     list.empty();
 
                     if (notifications.length > 0) {
                         notifications.forEach(n => {
+                            // Cek apakah ada notifikasi yang tidak dibaca di list yang dimuat
                             const isUnread = n.is_read == 0 ? 'bg-light font-weight-bold' : '';
                             const readIndicator = n.is_read == 0 ? '<i class="fa fa-circle text-danger float-right small mt-1"></i>' : '';
                             
                             let icon = '<i class="fa fa-bell mr-2 text-secondary"></i>';
                             if (n.type == 1) icon = '<i class="fa fa-tasks mr-2 text-primary"></i>'; 
-                            else if (n.type == 2) icon = '<i class="fa fa-sync-alt mr-2 text-warning"></i>';
+                            else if (n.type == 2) icon = '<i class="fa fa-sync-alt mr-2 text-warning"></i>'; 
                             else if (n.type == 4) icon = '<i class="fa fa-comment-dots mr-2 text-info"></i>';
 
-                            // Format pesan agar tidak terlalu panjang
                             const short_message = n.message.length > 50 ? n.message.substring(0, 50) + '...' : n.message;
+                            
+                            // Tambahkan waktu di notifikasi (Anda mungkin perlu fungsi helper untuk ini)
+                            const timeAgo = (new Date(n.date_created)).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+
 
                             const html = `
                                 <a href="${n.link}" class="dropdown-item notification-item ${isUnread}" data-id="${n.id}">
                                     ${icon} ${short_message}
                                     ${readIndicator}
+                                    <span class="float-right text-muted text-sm d-block">${timeAgo}</span>
                                 </a>
                                 <div class="dropdown-divider"></div>
                             `;
                             list.append(html);
                         });
                     } else {
-                        list.append('<span class="dropdown-item dropdown-header">Tidak ada notifikasi.</span>');
+                        list.append('<span class="dropdown-item dropdown-header">Tidak ada notifikasi baru.</span>');
                     }
                 } else {
                     $('#notification-list').html('<span class="dropdown-item dropdown-header text-danger">Gagal memuat notifikasi.</span>');
@@ -113,8 +119,7 @@ $(document).ready(function() {
                 }
             },
             error: function() {
-                $('#notification-list').html('<span class="dropdown-item dropdown-header text-danger">Gagal memuat notifikasi.</span>');
-                $('#notification-count').hide();
+                console.error("Failed to fetch notifications");
             }
         });
     }
@@ -141,11 +146,11 @@ $(document).ready(function() {
     
     // Handler untuk klik notifikasi di dropdown (menandai sudah dibaca saat diklik)
     $(document).on('click', '.notification-item', function(e) {
-        if ($(this).hasClass('font-weight-bold')) { // Hanya tandai jika belum dibaca
+        // Cek jika elemen yang diklik adalah bagian dari item yang belum dibaca
+        if ($(this).hasClass('font-weight-bold')) { 
             const id = $(this).data('id');
             mark_as_read(id);
         }
-        // Lanjutkan navigasi
     });
 
     // Load notifikasi saat halaman dimuat dan refresh setiap 30 detik

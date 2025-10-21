@@ -1,63 +1,7 @@
 <?php
-session_start();
+// ... baris 1-3
 ini_set('display_errors', 1);
-require_once 'phpmailer_config.php';
-
-function save_progress(){
-    extract($_POST);
-    // ... kode sanitasi dan save yang sudah ada ...
-
-    if ($save) {
-        $task_id = $this->conn->real_escape_string($task_id);
-        
-        // --- 1. Ambil Data Task, Project, dan Users Terlibat ---
-        $task_details_q = $this->conn->query("
-            SELECT t.task, t.user_ids AS task_users, p.manager_id 
-            FROM task_list t 
-            INNER JOIN project_list p ON p.id = t.project_id 
-            WHERE t.id = '{$task_id}'
-        ");
-        
-        if ($task_details_q && $task_details_q->num_rows > 0) {
-            $task_info = $task_details_q->fetch_assoc();
-            $task_name = $task_info['task'];
-            $manager_id = $task_info['manager_id'];
-            
-            // Task assigned users (selain user yang sedang login)
-            $task_user_ids = array_filter(explode(',', $task_info['task_users']));
-            $recipients_ids = array_unique(array_merge([$manager_id], $task_user_ids));
-            
-            // Hapus user yang sedang login dari daftar penerima notifikasi
-            if (($key = array_search($this->conn->real_escape_string($_SESSION['login_id']), $recipients_ids)) !== false) {
-                unset($recipients_ids[$key]);
-            }
-            
-            // --- 2. Ambil detail user penerima ---
-            if (!empty($recipients_ids)) {
-                $ids_str = implode(',', array_map('intval', $recipients_ids));
-                $users_q = $this->conn->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
-                
-                $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
-                $link = "index.php?page=view_task&id=" . encode_id($task_id); // Asumsi encode_id() ada
-                $message = "Task **{$task_name}** mendapat komentar/update baru dari {$current_user_name}.";
-                $email_subject = "[KOMENTAR BARU] Task: {$task_name}";
-
-                while ($user = $users_q->fetch_assoc()) {
-                    $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
-                    
-                    $email_details = [
-                        'email' => $user['email'], 
-                        'name' => $full_name,
-                        'subject' => $email_subject
-                    ];
-                    
-                    // Rekam notifikasi (Type 4: Comment Added) dan kirim email push
-                    record_notification($user['id'], 4, $message, $link, $this->conn, true, $email_details);
-                }
-            }
-        }
-    }
-}
+require_once 'phpmailer_config.php'; // TAMBAHKAN BARIS INI
 
 class Action {
     private $db;
@@ -221,12 +165,18 @@ class Action {
         $description = $this->db->real_escape_string($description ?? '');
         $project_id = intval($project_id ?? 0);
         $status = intval($status ?? 0);
-        $user_ids = '';
+        $user_ids_array = [];
+        $user_ids_string = '';
+
         if (isset($_POST['user_ids']) && is_array($_POST['user_ids'])) {
-            $user_ids = implode(',', array_map('intval', $_POST['user_ids']));
+            $user_ids_array = array_map('intval', $_POST['user_ids']);
+            $user_ids_string = implode(',', $user_ids_array);
         } elseif (!empty($_POST['user_ids']) && !is_array($_POST['user_ids'])) {
-            $user_ids = $this->db->real_escape_string($_POST['user_ids']);
+             // Handle case where it comes as a comma-separated string (unlikely from a modern form)
+            $user_ids_array = array_map('intval', array_filter(explode(',', $_POST['user_ids'])));
+            $user_ids_string = $this->db->real_escape_string($_POST['user_ids']);
         }
+        
         $start_date = $this->db->real_escape_string($start_date ?? '');
         $end_date = $this->db->real_escape_string($end_date ?? '');
         $content_pillar = isset($_POST['content_pillar']) ? $this->db->real_escape_string(is_array($_POST['content_pillar']) ? implode(',', $_POST['content_pillar']) : $_POST['content_pillar']) : '';
@@ -237,43 +187,74 @@ class Action {
             return 0;
         }
 
-        if (empty($id)) {
-            $sql = "INSERT INTO task_list 
-                    (project_id, task, description, status, user_ids, start_date, end_date, content_pillar, platform, reference_links, date_created)
-                    VALUES ($project_id, '{$task}', '{$description}', $status, '{$user_ids}', '{$start_date}', '{$end_date}', '{$content_pillar}', '{$platform}', '{$reference_links}', NOW())";
+        $is_new = empty($id);
+        
+        // Prepare SQL data string
+        $data = "
+            project_id = $project_id, 
+            task = '{$task}', 
+            description = '{$description}', 
+            status = $status, 
+            user_ids = '{$user_ids_string}', 
+            start_date = '{$start_date}', 
+            end_date = '{$end_date}', 
+            content_pillar = '{$content_pillar}', 
+            platform = '{$platform}', 
+            reference_links = '{$reference_links}'
+        ";
+
+        if ($is_new) {
+            $sql = "INSERT INTO task_list SET {$data}, date_created = NOW()";
             $save = $this->db->query($sql);
-            if ($save) {
-                $task_id = $this->db->insert_id;
-                $proj = $this->db->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc();
-                $project_name = $proj['name'] ?? 'Unknown Project';
-                $this->log_activity($_SESSION['login_id'], $project_id, $task_id, 'task_add', 'Menambahkan task baru: ' . $task . ' pada project: ' . $project_name);
-                return 1;
-            } else {
-                error_log("save_task insert error: " . $this->db->error . " -- SQL: " . $sql);
-                return 0;
-            }
+            $task_id = $this->db->insert_id;
+            $action_type = 'task_add';
         } else {
-            // update
             $id = intval($id);
-            $sql = "UPDATE task_list SET 
-                        task = '{$task}',
-                        description = '{$description}',
-                        status = {$status},
-                        user_ids = '{$user_ids}',
-                        start_date = '{$start_date}',
-                        end_date = '{$end_date}',
-                        content_pillar = '{$content_pillar}',
-                        platform = '{$platform}',
-                        reference_links = '{$reference_links}'
-                    WHERE id = {$id}";
+            $sql = "UPDATE task_list SET {$data} WHERE id = {$id}";
             $save = $this->db->query($sql);
-            if ($save) {
-                $this->log_activity($_SESSION['login_id'], $project_id, $id, 'task_update', 'Mengupdate task: ' . $task);
-                return 1;
-            } else {
-                error_log("save_task update error: " . $this->db->error . " -- SQL: " . $sql);
-                return 0;
+            $task_id = $id;
+            $action_type = 'task_update';
+        }
+
+        if ($save) {
+            // Fetch project name for logs/notifications
+            $proj = $this->db->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc();
+            $project_name = $proj['name'] ?? 'Unknown Project';
+
+            // Log Activity
+            $log_desc = $action_type == 'task_add'
+                        ? 'Menambahkan task baru: ' . $task . ' pada project: ' . $project_name
+                        : 'Mengupdate task: ' . $task;
+            $this->log_activity($_SESSION['login_id'], $project_id, $task_id, $action_type, $log_desc);
+
+            // === NOTIFICATION PUSH (Type 1) ===
+            $link = "index.php?page=view_task&id=" . encode_id($task_id);
+            $message_prefix = $action_type == 'task_add' ? "baru ditugaskan" : "diupdate";
+            $message = "Task **{$task}** telah {$message_prefix} di project {$project_name}.";
+            $email_subject = "[TASK] Tugas {$task} {$message_prefix}";
+            
+            if (!empty($user_ids_array)) {
+                $ids_str = implode(',', $user_ids_array);
+                $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+                
+                while ($user = $users_q->fetch_assoc()) {
+                    // record_notification() akan mengabaikan notifikasi jika user_id == login_id
+                    $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
+                    $email_details = [
+                        'email' => $user['email'], 
+                        'name' => $full_name,
+                        'subject' => $email_subject
+                    ];
+                    // Type 1: Task Assigned/Updated
+                    record_notification($user['id'], 1, $message, $link, $this->db, true, $email_details);
+                }
             }
+            // === END NOTIFICATION PUSH ===
+            
+            return 1;
+        } else {
+            error_log("save_task error: " . $this->db->error . " -- SQL: " . $sql);
+            return 0;
         }
     }
 
@@ -296,7 +277,7 @@ class Action {
         return 0;
     }
 
-    // === PROGRESS (TASK ACTIVITY) ===
+// === PROGRESS (TASK ACTIVITY) ===
     function save_progress() {
         extract($_POST);
         $data = "";
@@ -307,10 +288,12 @@ class Action {
                 $data .= (empty($data)) ? " $k='{$v}' " : ", $k='{$v}' ";
             }
         }
-
+        
+        // ... kode perhitungan durasi (Line 324)
         $dur = abs(strtotime("2020-01-01 " . ($end_time ?? '00:00'))) - abs(strtotime("2020-01-01 " . ($start_time ?? '00:00')));
         $dur = $dur / (60 * 60);
         $data .= ", time_rendered='{$dur}' ";
+        // ...
 
         if (empty($id)) {
             // ensure task_id present
@@ -319,15 +302,51 @@ class Action {
             $save = $this->db->query($sql);
             if ($save) {
                 $insert_id = $this->db->insert_id;
-                // try to get project_id & task name
                 $task_id = intval($task_id ?? 0);
-                $tq = $this->db->query("SELECT t.task, t.project_id FROM task_list t WHERE t.id = $task_id");
+                
+                // --- Fetch Data for Notification ---
+                $task_details_q = $this->db->query("
+                    SELECT t.task, t.project_id, p.manager_id, t.user_ids AS task_users 
+                    FROM task_list t 
+                    INNER JOIN project_list p ON p.id = t.project_id 
+                    WHERE t.id = {$task_id}
+                ");
+                
                 $project_id = null; $task_name = '';
-                if ($tq && $tq->num_rows > 0) {
-                    $tr = $tq->fetch_assoc();
+                if ($task_details_q && $task_details_q->num_rows > 0) {
+                    $tr = $task_details_q->fetch_assoc();
                     $project_id = $tr['project_id'];
                     $task_name = $tr['task'];
+                    $manager_id = $tr['manager_id'];
+                    $task_user_ids = array_map('intval', array_filter(explode(',', $tr['task_users'])));
+
+                    // Recipients: Manager + All Task Assignees (unique and exclude current user)
+                    $recipients_ids = array_unique(array_merge([$manager_id], $task_user_ids));
+                    
+                    // Notification Logic (Comment Added)
+                    if (!empty($recipients_ids)) {
+                        $ids_str = implode(',', array_map('intval', $recipients_ids));
+                        $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+                        
+                        $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
+                        $link = "index.php?page=view_task&id=" . encode_id($task_id);
+                        $message = "Task **{$task_name}** mendapat komentar baru dari {$current_user_name}.";
+                        $email_subject = "[KOMENTAR BARU] Task: {$task_name}";
+                        
+                        while ($user = $users_q->fetch_assoc()) {
+                            // record_notification() akan mengabaikan notifikasi jika user_id == login_id
+                            $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
+                            $email_details = [
+                                'email' => $user['email'], 
+                                'name' => $full_name,
+                                'subject' => $email_subject
+                            ];
+                            // Type 4: Comment Added
+                            record_notification($user['id'], 4, $message, $link, $this->db, true, $email_details);
+                        }
+                    }
                 }
+                
                 $this->log_activity($_SESSION['login_id'], $project_id, $task_id, 'progress_add', 'Menambahkan progress pada task: ' . $task_name);
                 return 1;
             } else {
@@ -335,6 +354,7 @@ class Action {
                 return 0;
             }
         } else {
+            // ... (kode update progress yang sudah ada)
             $id = intval($id);
             $sql = "UPDATE user_productivity SET $data WHERE id = $id";
             $save = $this->db->query($sql);
