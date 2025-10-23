@@ -89,10 +89,24 @@ class Action {
         if ($check > 0) return 2;
 
         if (isset($_FILES['img']) && $_FILES['img']['tmp_name'] != '') {
-            $fname = strtotime(date('y-m-d H:i')) . '_' . $_FILES['img']['name'];
-            move_uploaded_file($_FILES['img']['tmp_name'], 'assets/uploads/' . $fname);
-            $data .= ", avatar = '{$fname}' ";
+            // Amankan nama file
+            $original_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", $_FILES['img']['name']);
+            $fname = time() . '_' . $original_name;
+            $upload_path = 'assets/uploads/' . $fname;
+
+            // Pastikan folder ada
+            if (!is_dir('assets/uploads')) {
+                mkdir('assets/uploads', 0777, true);
+            }
+
+            // Pindahkan file
+            if (move_uploaded_file($_FILES['img']['tmp_name'], $upload_path)) {
+                $data .= ", avatar = '{$fname}' ";
+            } else {
+                error_log("Gagal upload avatar: " . $_FILES['img']['error']);
+            }
         }
+
 
         if (empty($id)) {
             $save = $this->db->query("INSERT INTO users SET $data");
