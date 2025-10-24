@@ -5,7 +5,6 @@
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css">
 
 
@@ -19,19 +18,35 @@
             </div>
 
             <div class="col-md-6">
-                <div class="d-flex justify-content-end">
-                    <?php if($_SESSION['login_type'] != 3): ?>
-                        <div class="card-tools">
-                          <a href="index.php?page=new_project" class="btn text-white" style="background-color:#B75301;">
-                            Add Project
-                          </a>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
+                  <div class="d-flex justify-content-end">
+                      <?php if($_SESSION['login_type'] != 3): ?>
+                          <div class="card-tools">
+                            <button type="button" class="btn text-white" style="background-color:#B75301;" id="new_project_btn">
+                              <i class="fa fa-plus mr-2"></i> Add Project
+                            </button>
+                          </div>
+                      <?php endif; ?>
+                  </div>
+              </div>
         </div>
     </div>
-<div class="col-12 col-sm-6 col-md-12">
+
+    <div class="card card-outline">
+        <div class="table-responsive">
+            <div class="card-body">
+                <table class="table table-hover table-condensed">
+                    <colgroup>
+                        <col width="30%"> <col width="15%"> <col width="35%"> <col width="15%"> <col width="5%">  </colgroup>
+                    <thead>
+                        <tr>
+                            <th class="text-left">Project Title</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Progress</th>
+                            <th class="text-left">Assignee</th>
+                            <th class="text-left"> </th>
+                        </tr>
+                    </thead>
+                    <tbody>
     
     <?php
     $i = 1;
@@ -50,9 +65,7 @@
         $where = "";
     }
 
-$qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
-    
-    $qry = $conn->query("SELECT * FROM project_list $where order by name asc");
+    $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
     
     if($qry->num_rows > 0):
     while($row= $qry->fetch_assoc()):
@@ -94,98 +107,85 @@ $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
       }
 ?>
 
-<div class="card project-card mb-3" 
+<tr class="project-row" 
     data-id="<?php echo $row['id'] ?>" 
     data-encoded-id="<?= encode_id($row['id']) ?>" 
     style="cursor:pointer;">
-  <div class="table-responsive">
-    <table class="table table-hover m-0" style="min-width: 768px;"> 
-      <colgroup>
-        <col width="30%">
-        <col width="15%">
-        <col width="35%">
-        <col width="15%">
-        <col width="5%">
-      </colgroup>
-      <tbody>
-        <tr>
-          <td>
-            <b><?php echo ucwords($row['name']) ?></b><br>
-            <small>Due: <?php echo date("Y-m-d",strtotime($row['end_date'])) ?></small>
-          </td>
 
-          <td class="project-state">
-            <?php
-              $status = (int)$row['status'];
-              $label = isset($stat[$status]) ? $stat[$status] : "Unknown";
-              $badgeClass = [
-                0=>'badge-secondary',
-                1=>'badge-info',
-                2=>'badge-primary',
-                3=>'badge-warning',
-                4=>'badge-danger',
-                5=>'badge-success'
-              ][$status] ?? 'badge-dark';
-              echo "<span class='badge {$badgeClass}'>{$label}</span>";
-            ?>
-          </td>
+    <td class="text-left">
+        <b><?php echo ucwords($row['name']) ?></b>
+        <p class="text-muted"><small>Due: <?php echo date("Y-m-d",strtotime($row['end_date'])) ?></small></p>
+    </td>
 
-          <td class="project_progress">
-            <div class="progress progress-sm">
-              <div class="progress-bar bg-success" role="progressbar" style="width: <?php echo $prog ?>%"></div>
-            </div>
-            <small><?php echo $prog ?>% Complete</small>
-          </td>
+    <td class="project-state text-left">
+        <?php
+          $status = (int)$row['status'];
+          $label = isset($stat[$status]) ? $stat[$status] : "Unknown";
+          $badgeClass = [
+            0=>'badge-secondary',
+            1=>'badge-info',
+            2=>'badge-primary',
+            3=>'badge-warning',
+            4=>'badge-danger',
+            5=>'badge-success'
+          ][$status] ?? 'badge-dark';
+          echo "<span class='badge {$badgeClass} p-2'>{$label}</span>";
+        ?>
+    </td>
 
-          <td class="project-assignment text-center">
-            <?php if(!empty($uids)): 
-              // text-nowrap memastikan semua elemen d-flex tetap dalam satu baris, memicu scrollbar
-              echo '<div class="d-flex align-items-center justify-content-center text-nowrap">'; 
-              $displayed_count = 0;
-              foreach($users_to_show as $uid):
-                if(isset($assigned_users[$uid])):
-                  $u = $assigned_users[$uid];
-                  $avatar = !empty($u['avatar']) ? 'assets/uploads/'.$u['avatar'] : 'assets/uploads/default.png';
-            ?>
-                <img src="<?= $avatar ?>" 
-                     class="rounded-circle border border-white" 
-                     style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
-                     title="<?= ucwords($u['firstname'].' '.$u['lastname']) ?>">
-            <?php 
-                  $displayed_count++;
-                endif;
-              endforeach; 
+    <td class="project_progress text-left">
+        <div class="progress progress-sm mb-1 progress-custom"> 
+          <div class="progress-bar progress-bar-custom" role="progressbar" style="width: <?php echo $prog ?>%"></div>
+        </div>
+        <small><?php echo $prog ?>% Complete</small>
+    </td>
 
-              // Tombol (+.. more)
-              if ($more_count > 0):
-            ?>
-                <button type="button" 
-                        class="btn btn-sm btn-info rounded-circle border border-white view_all_users"
-                        data-id="<?= $row['id'] ?>"
-                        data-users='<?= htmlspecialchars(json_encode(array_values($assigned_users)), ENT_QUOTES, 'UTF-8') ?>'
-                        style="width:30px; height:30px; font-size:10px; padding:0; line-height:30px; margin-left:-8px;"
-                        title="View all <?= $total_users ?> members"
-                        data-toggle="modal" 
-                        data-target="#usersModal">
-                  +<?= $more_count ?>
-                </button>
-            <?php
-              endif;
-              echo '</div>'; // Tutup d-flex
-            else: ?>
-              <span class="text-muted">No assignment</span>
-            <?php endif; ?>
-          </td>
-          <td>
-            <div class="dropdown dropleft position-relative">
-              <button class="btn p-0" type="button" id="dropdownMenu<?= $row['id'] ?>"
-                data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+    <td class="project-assignment text-left">
+        <?php if(!empty($uids)): 
+          echo '<div class="d-flex align-items-center text-nowrap">'; 
+          $displayed_count = 0;
+          foreach($users_to_show as $uid):
+            if(isset($assigned_users[$uid])):
+              $u = $assigned_users[$uid];
+              $avatar = !empty($u['avatar']) ? 'assets/uploads/'.$u['avatar'] : 'assets/uploads/default.png';
+        ?>
+            <img src="<?= $avatar ?>" 
+                 class="rounded-circle border border-white" 
+                 style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
+                 title="<?= ucwords($u['firstname'].' '.$u['lastname']) ?>">
+        <?php 
+              $displayed_count++;
+            endif;
+          endforeach; 
+
+          // Tombol (+.. more)
+          if ($more_count > 0):
+        ?>
+            <button type="button" 
+                    class="btn btn-sm btn-info rounded-circle border border-white view_all_users"
+                    data-id="<?= $row['id'] ?>"
+                    data-users='<?= htmlspecialchars(json_encode(array_values($assigned_users)), ENT_QUOTES, 'UTF-8') ?>'
+                    style="width:30px; height:30px; font-size:10px; padding:0; line-height:30px; margin-left:-8px;"
+                    title="View all <?= $total_users ?> members"
+                    data-toggle="modal" 
+                    data-target="#usersModal">
+              +<?= $more_count ?>
+            </button>
+        <?php
+          endif;
+          echo '</div>'; 
+        else: ?>
+          <span class="text-muted">No assignment</span>
+        <?php endif; ?>
+    </td>
+
+    <td class="text-left">
+        <div class="dropdown">
+            <button class="btn text-secondary" type="button" data-toggle="dropdown">
                 <i class="fa fa-ellipsis-v"></i>
-              </button>
-
-              <div class="dropdown-menu shadow border-0"
-                aria-labelledby="dropdownMenu<?= $row['id'] ?>"
-                data-popper-config='{"strategy":"fixed"}'>
+            </button>
+            <div class="dropdown-menu">
+                <h6 class="dropdown-header">Action</h6>
                 <a class="dropdown-item" href="index.php?page=view_project&id=<?= encode_id($row['id']) ?>">
                   <i class="fa fa-eye mr-2"></i> View
                 </a>
@@ -201,23 +201,26 @@ $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
                   <i class="fa fa-trash mr-2"></i> Delete
                 </a>
                 <?php endif; ?>
-              </div>
-            </div>
-          </td> 
-        </tr>
-      </tbody>  
-    </table>
-  </div>
-</div>
-    <?php endwhile; ?>
-    <?php else: ?>
-        <div class="card card-outline">
-            <div class="card-body">
-                <p class="text-center">Tidak ada proyek yang sesuai dengan role Anda.</p>
             </div>
         </div>
+    </td> 
+</tr>
+
+    <?php endwhile; ?>
+    <?php else: ?>
+        <tr>
+            <td colspan="5">
+                <p class="text-center">Tidak ada proyek yang sesuai dengan role Anda.</p>
+            </td>
+        </tr>
     <?php endif; ?>
-</div>
+    
+                    </tbody>  
+                </table>
+            </div>
+        </div>
+    </div>
+    </div>
 
 <div class="modal fade" id="deleteProjectModal" tabindex="-1" role="dialog" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -261,57 +264,91 @@ $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+/* ================================================= */
+/* CUSTOM CSS UNTUK MEMAKSA MODAL-XL JADI LEBIH LEBAR */
+/* ================================================= */
+.modal-xl {
+    max-width: 150% !important; 
+    width: 100% !important;
+}
+
+#uni_modal .modal-body {
+    padding: 1.5rem; 
+}
+
+/* ================================================= */
+/* (CSS lain yang sudah ada) */
+/* ================================================= */
+
 table p { margin: 0 !important; }
 table td { vertical-align: middle !important; }
 
-/* ================================================= */
-/* KOREKSI: MENGAKTIFKAN HORIZONTAL SCROLL PADA TABEL */
-/* ================================================= */
+/* Menghapus margin-left-8px untuk elemen pertama di d-flex assignment */
+.project-assignment .d-flex img:first-child,
+.project-assignment .d-flex button:first-child {
+    margin-left: 0px !important;
+}
+
 .table-responsive {
-  /* Ubah 'visible' menjadi 'auto' atau hapus (auto lebih aman) */
-  /* JIKA Anda masih punya file CSS luar yang menimpa ini, 
-     gunakan 'auto !important' untuk memaksa scrollbar muncul. */
-  overflow-x: auto !important; 
+  overflow-x: auto; 
   -webkit-overflow-scrolling: touch;
 }
 
-/* Memastikan tabel memiliki lebar minimum agar scrollbar muncul di layar kecil */
 .table-responsive table {
-  /* min-width yang cukup lebar untuk konten Anda */
-  min-width: 700px; 
+  min-width: 768px; 
 }
 
-/* Dropdown tampil di atas layer lain */
-.dropdown-menu {
-  position: absolute !important;
-  z-index: 9999 !important;
-  /* Hapus transform: none !important; dan ganti dengan top/left/right: */
-  top: 100% !important;
-  left: auto !important;
-  right: 0 !important;
+.progress-custom {
+    border-radius: 10px !important; 
+    height: 10px; 
+    overflow: hidden; 
 }
 
-/* Perbaiki tombol dropdown */
-.dropdown {
-  position: relative !important;
-}
-
-/* Biar card tetap rapi tapi gak motong dropdown */
-.card.project-card {
-  overflow: visible !important;
+.progress-bar-custom {
+    background-color: #B75301 !important; 
+    border-radius: 10px !important;
+    height: 100%;
 }
 </style>
 
 <script>
 // PENTING: Anda harus memastikan fungsi encode_id() tersedia di global scope JS.
-// Untuk saat ini, kita akan menggunakan data-encoded-id yang diperbaiki di HTML.
+
+// FUNGSI UNI_MODAL DIREVISI
+function uni_modal(title, url, size = 'xl') {
+    var $modal = $('#uni_modal');
+    
+    // Hapus semua kelas ukuran modal yang mungkin ada, lalu tambahkan kelas yang diminta
+    $modal.find('.modal-dialog')
+        .removeClass('modal-sm modal-md modal-lg modal-xl')
+        .addClass('modal-' + size); 
+
+    // --- START: CUSTOM STYLE HEADER ---
+    $modal.find('.modal-header').css('color', '#B75301').removeClass('bg-primary');
+    $modal.find('.modal-title').html(title);
+    $modal.find('.close').css('color', '#B75301 !important'); // Ganti warna tombol close
+    // --- END: CUSTOM STYLE HEADER ---
+
+    $modal.find('.modal-body').html('Loading...');
+    
+    $.ajax({
+        url: url,
+        success: function(resp){
+            if(resp){
+                $modal.find('.modal-body').html(resp);
+                $modal.modal('show');
+            }
+        }
+    });
+}
 
 $(document).ready(function(){
     
-    // Klik card project → masuk ke view_project
-    $(document).on('click', '.project-card', function(e){
+    // Klik card project → masuk ke view_project (Diubah menjadi klik row)
+    $(document).on('click', '.project-row', function(e){
+        // Mencegah aksi jika klik berasal dari dalam dropdown menu, tombol view_all_users, atau elemen interaktif lainnya
         if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
-            var encoded_pid = $(this).data('encoded-id'); // Mengambil ID yang sudah di-encode
+            var encoded_pid = $(this).data('encoded-id'); 
             window.location.href = "index.php?page=view_project&id=" + encoded_pid;
         }
     });
@@ -325,10 +362,12 @@ $(document).ready(function(){
             data: { id },
             success: function(resp){
                 if(resp == 1){
-                    alert_toast("Project berhasil dihapus", "success");
+                    // alert_toast("Project berhasil dihapus", "success");
+                    alert("Project berhasil dihapus");
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    alert_toast("Gagal menghapus project", "danger");
+                    // alert_toast("Gagal menghapus project", "danger");
+                    alert("Gagal menghapus project");
                 }
             }
         });
@@ -356,7 +395,7 @@ $(document).ready(function(){
     // LOGIKA MODAL ALL ASSIGNED USERS
     // =========================================================
     $(document).on('click', '.view_all_users', function(){
-        const users = $(this).data('users');
+        const users = $(this).data('users'); 
         const modalBody = $('#usersModalBody');
         let htmlContent = '';
 
@@ -385,8 +424,12 @@ $(document).ready(function(){
         modalBody.html(htmlContent);
     });
 
+    // Aksi klik tombol "Add Project"
+    $('#new_project_btn').click(function(){
+        // Mengubah ke "xl" dan menggunakan CSS kustom di atas untuk memaksa lebar
+        uni_modal("<span style='color:#B75301;'><i class='fa fa-plus mr-1'></i> Add New Project", "new_project.php", "xl"); 
+    });
 
-    // Paksa dropdown Bootstrap agar tidak di-clipping oleh parent overflow
     $('.dropdown-toggle').dropdown({ display: 'static' });
 });
 </script>

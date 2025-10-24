@@ -134,7 +134,7 @@ $login_type = $_SESSION['login_type'];
         
         <div class="modal-footer border-top">
           <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="submit" class="btn text-white" style="background-color:#B75301;">Save Task</button>
+          <button type="submit" class="btn text-white" style="background-color:#B75301;">Save</button>
         </div>
       </form>
     </div>

@@ -169,7 +169,7 @@ $projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDE
                             style="background-color:#B75301;" 
                             data-toggle="modal" 
                             data-target="#addTaskModal">
-                        <i class="fa fa-plus mr-1"></i> Add New Task
+                        <i class="fa fa-plus mr-1"></i> Add Task
                     </button>
                 </div>
             </div>
@@ -241,19 +241,19 @@ while ($proj = $projects->fetch_assoc()):
                     <colgroup>
                         <col width="5%">
                         <col width="40%">
-                        <col width="20%">   
-                        <col width="10%">
-                        <col width="20%">
-                        <col width="5%">
+                        <col width="15%">   
+                        <col width="15%">
+                        <col width="23%">
+                        <col width="3%">
                     </colgroup>
                     <thead>
                         <tr>
-                            <th class="text-center">No</th>
-                            <th class="text-center">Task</th>
-                            <th class="">Due Date</th>
-                            <th class="text-center">Task Status</th>
-                            <th class="text-center">Assigned</th>
-                            <th class="text-center"></th>
+                            <th class="text-left">No</th>
+                            <th class="text-left">Task</th>
+                            <th class="text-left">Due Date</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Assigned To</th>
+                            <th class="text-left"> </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -273,14 +273,14 @@ while ($proj = $projects->fetch_assoc()):
                             data-id="<?= $row['id'] ?>" 
                             data-pid="<?= $proj['id'] ?>" 
                             style="cursor:pointer;">
-                            <td class="text-center"><?php echo $i++ ?></td>
-                            <td class="text-center">
+                            <td class="text-left"><?php echo $i++ ?></td>
+                            <td class="text-left">
                                 <b><?php echo ucwords($row['task']) ?></b>
                                 <p class="truncate"><?php echo $desc ?></p>
                             </td>
                             <td><b><?php echo date("M d, Y", strtotime($row['end_date'])) ?></b></td>
                             
-                            <td class="text-center">
+                            <td class="text-left">
                                 <?php
                                 $tstatus = $stat[$current_status] ?? 'Pending';
 
@@ -297,7 +297,7 @@ while ($proj = $projects->fetch_assoc()):
                                 ?>
                             </td>
 
-                            <td class="text-center">
+                            <td class="text-left">
                                 <?php 
                                 $task_assigned_users = [];
                                 if (!empty($row['user_ids'])) {
@@ -312,7 +312,7 @@ while ($proj = $projects->fetch_assoc()):
                                 }
                                 ?>
                                 <?php if (!empty($task_assigned_users)): ?>
-                                    <div class="d-flex justify-content-center">
+                                    <div class="d-flex justify-content-left">
                                         <?php 
                                         $max_show_avatars = 3;
                                         $displayed_count = 0;
@@ -343,7 +343,7 @@ while ($proj = $projects->fetch_assoc()):
                                 <?php endif; ?>
                             </td>
 
-                            <td class="text-center">
+                            <td class="text-left">
                                 <div class="dropdown">
                                     <button class="btn text-secondary" type="button" data-toggle="dropdown">
                                         <i class="fa fa-ellipsis-v"></i>
@@ -386,7 +386,7 @@ while ($proj = $projects->fetch_assoc()):
     <div class="col-lg-12">
         <div class="card card-outline">
             <div class="card-body">
-                <p class="text-center">Tidak ada proyek yang sesuai dengan filter.</p>
+                <p class="text-left">Tidak ada proyek yang sesuai dengan filter.</p>
             </div>
         </div>
     </div>

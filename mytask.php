@@ -36,11 +36,11 @@ $stat = [
 
 <div class="container-fluid mb-3">
     <div class="d-flex justify-content-between align-items-center">
-        <h3 class="m-0">Tugas Saya</h3>
+        <h3 class="m-0">My Task</h3>
         
         <?php if($_SESSION['login_type'] != 3): // Biasanya user biasa (tipe 3) tidak bisa menambah task ?>
         <button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
-            <i class="fa fa-plus"></i> Add New Task
+            <i class="fa fa-plus"></i> Add Task
         </button>
         <?php endif; ?>
     </div>

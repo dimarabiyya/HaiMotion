@@ -20,7 +20,7 @@
           <?php if($_SESSION['login_type'] != 3): ?>
             <div class="card-tools">
                 <button class="btn text-white" style="background-color:#B75301;" id="add_user_btn">
-                  New User
+                  <i class="fa fa-plus mr-2"></i> New User
                 </button>
             </div>
         <?php endif; ?>
@@ -29,19 +29,20 @@
   </div>
 </div>
 
+
 <div class="col-lg-12 mt-3">
-  <div class="card card-outline card-orange">
+  <div class="card card-outline">
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-hover table-bordered" id="list">
+        <table class="table table-hover table-condensed" id="list">
           <thead>
             <tr>
-              <th class="text-center">#</th>
+              <th class="text-left">No</th>
               <th>Avatar</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Action</th>
+              <th> </th>
             </tr>
           </thead>
           <tbody>

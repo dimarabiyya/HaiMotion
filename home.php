@@ -12,7 +12,6 @@ include 'header.php'
 <head>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<!-- Info boxes -->
 <div class="col-12">    
   <h3 class="font-weight-bold" style="color:#b75301;">
     Hi, <?php echo $_SESSION['login_name'] ?>! 
@@ -39,18 +38,26 @@ include 'header.php'
 <div class="container-fluid">
   <div class="row">
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <?php if($_SESSION['login_type'] == 1): ?>
+      <a href="index.php?page=user_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
+      <?php else: ?>
+      <div class="small-box bg-light shadow-sm border p-2"> <?php endif; ?>
               <div class="inner">
                 <h3><?php echo $conn->query('SELECT * FROM users')->num_rows ?></h3>
-                <p class="mb-0">Total User</p>
+                <p class="mb-0">Total Users</p>
               </div>
               <div class="icon">
                 <i class="fa fa-solid fa-users" style="color:#d49867;"></i>
               </div>
+      <?php if($_SESSION['login_type'] == 1): ?>
+      </a>
+      <?php else: ?>
       </div>
+      <?php endif; ?>
     </div>
+
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <a href="index.php?page=project_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
               <div class="inner">
                 <h3><?php echo $conn->query("SELECT * FROM project_list $where")->num_rows; ?></h3>
                 <p class="mb-0">Total Projects</p>
@@ -58,10 +65,11 @@ include 'header.php'
               <div class="icon">
                 <i class="fa fa-solid fa-folder-open" style="color:#d49867;"></i>
               </div>
-      </div>
+      </a>
     </div>
+
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <a href="index.php?page=task_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
               <div class="inner">
                 <h3><?php echo $conn->query("SELECT t.*,p.name as pname,p.start_date,p.status as pstatus, p.end_date,p.id as pid FROM task_list t inner join project_list p on p.id = t.project_id $where2")->num_rows; ?></h3>
                 <p class="mb-0">Total Tasks</p>
@@ -69,14 +77,13 @@ include 'header.php'
               <div class="icon">
                 <i class="fa fa-solid fa-tasks" style="color:#d49867;"></i>
               </div>
-      </div>
+      </a>
     </div>
   </div>
 </div>
 
 <div class="container-fluid">
   <div class="row">
-    <!-- Pending -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -88,7 +95,6 @@ include 'header.php'
       </div>
     </div>
 
-    <!-- Started -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -100,7 +106,6 @@ include 'header.php'
       </div>
     </div>
 
-    <!-- On-Progress -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -112,7 +117,6 @@ include 'header.php'
       </div>
     </div>
 
-    <!-- On-Hold -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -124,7 +128,6 @@ include 'header.php'
       </div>
     </div>
 
-    <!-- On-Hold -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -136,7 +139,6 @@ include 'header.php'
       </div>
     </div>
 
-    <!-- Done -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
       <div class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
@@ -150,9 +152,8 @@ include 'header.php'
   </div>
 </div>
 
- <div class="container-fluid">
+<div class="container-fluid">
   <div class="row">
-    <!-- ======== LEFT: Project Progress ======== -->
     <div class="col-md-8 mb-4">
       <div class="card card-outline shadow-sm h-70">
         <div class="card-header py-2 d-flex align-items-center justify-content-between">
@@ -160,7 +161,6 @@ include 'header.php'
         </div>
 
         <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-          <!-- Legend -->
           <div class="mb-3">
             <span class="badge badge-secondary">Pending</span>
             <span class="badge badge-info">Started</span>
@@ -170,7 +170,6 @@ include 'header.php'
             <span class="badge badge-success">Done</span>
           </div>
 
-          <!-- Scrollable Chart Row -->
           <div class="d-flex overflow-auto" style="gap: 1rem; padding-bottom: .5rem;">
             <?php
             $chart_scripts = "";
@@ -227,7 +226,6 @@ include 'header.php'
       </div>
     </div>
  
-    <!-- ======== RIGHT: Recent Activities (Timeline - Compact & Match Height) ======== -->
     <div class="col-md-4">
       <div class="card card-outline shadow-sm h-70">
         <div class="card-header py-2">
@@ -471,6 +469,52 @@ while($proj = $projects->fetch_assoc()){
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+/* ================================================= */
+/* CSS Fix untuk Timeline Badge (Recent Activities) */
+/* ================================================= */
+
+/* Pastikan list item memiliki posisi relatif */
+.timeline-item {
+    position: relative;
+    list-style: none;
+}
+
+/* Garis vertikal (Timeline line) */
+.card-body .timeline.pl-3::before { 
+    content: '';
+    padding-left: 0 !important;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 12px !important;
+    width: 2px;
+    background-color: #e9ecef; 
+    z-index: 0;
+}
+
+.card-body .timeline-item .timeline-badge {
+    position: absolute;
+    top: 5px; 
+    left: 10px !important; 
+    transform: translateX(-50%) !important; 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%;
+    z-index: 1;
+    border: 2px solid white; 
+}
+.card-body .timeline-item > div {
+  padding-left: 20px !important;
+}
+
+/* Menghapus margin default dari item (jika ada) */
+.timeline li {
+    margin-bottom: 15px; 
+}
+</style>
+
 <script>
 <?php foreach($project_stats as $p): ?>
 
