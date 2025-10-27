@@ -103,16 +103,11 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
 /* ==============================
    CATAT DAN KIRIM NOTIFIKASI
    ============================== */
-function record_notification($user_id, $type, $message, $page, $task_id, $conn, $send_email = false, $email_details = []) {
+function record_notification($user_id, $type, $message, $link, $conn, $send_email = false, $email_details = []) {
     $message_db = $conn->real_escape_string($message);
-    $page_db = $conn->real_escape_string($page);
-    $task_id_db = intval($task_id);
+    $link_db = $conn->real_escape_string($link);
     $user_id_db = intval($user_id);
     $type_db = intval($type);
-
-    // 🔗 Link yang disimpan format: index.php?page=view_task&id=123
-    $link = "index.php?page={$page}&id={$task_id_db}";
-    $link_db = $conn->real_escape_string($link);
 
     $query = "
         INSERT INTO notification_list (user_id, type, message, link)
@@ -120,8 +115,8 @@ function record_notification($user_id, $type, $message, $page, $task_id, $conn, 
     ";
 
     $insert_success = $conn->query($query);
-
-    // Kalau perlu kirim email
+    
+    // Jika email perlu dikirim
     if ($insert_success && $send_email && !empty($email_details) && isset($email_details['email'])) {
         $full_link = APP_BASE_URL . $link;
         $html_message = "
@@ -137,4 +132,4 @@ function record_notification($user_id, $type, $message, $page, $task_id, $conn, 
         );
     }
 }
-
+?>
