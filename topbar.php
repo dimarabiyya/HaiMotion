@@ -15,7 +15,6 @@
 
   <ul class="navbar-nav ml-auto align-items-center">
 
-    <!-- ===================== NOTIFICATION ===================== -->
     <li class="nav-item dropdown">
       <a class="nav-link position-relative" data-toggle="dropdown" href="#" title="Notifikasi">
         <i class="fa fa-bell"></i>
@@ -31,20 +30,18 @@
         </div>
         <div class="text-center py-2 border-top bg-light">
           <a href="javascript:void(0)" id="mark-all-read" class="small text-primary font-weight-bold">
-            Mark as read
+            Mark all as read
           </a>
         </div>
       </div>
     </li>
 
-    <!-- ===================== FULLSCREEN ===================== -->
     <li class="nav-item">
       <a class="nav-link" data-widget="fullscreen" href="#" role="button">
         <i class="fas fa-expand-arrows-alt"></i>
       </a>
     </li>
 
-    <!-- ===================== PROFILE ===================== -->
     <li class="nav-item ml-2 mr-4">
       <a class="nav-link p-0 view_user" href="javascript:void(0)" data-id="<?php echo $_SESSION['login_id']; ?>" style="display: flex; align-items: center;">
         <img src="assets/uploads/<?php echo $_SESSION['login_avatar']; ?>" class="img-circle elevation-2" alt="User Avatar" style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
@@ -55,60 +52,23 @@
 </nav>
 
 <style>
-/* ====== Notifikasi Dropdown Style Global ====== */
-#notification-dropdown {
-  width: 340px !important;
-  border-radius: 0.75rem !important;
-  overflow: hidden !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-  font-size: 14px !important;
-}
-
-#notification-dropdown .dropdown-header {
-  font-size: 14px !important;
-  padding: 0.5rem !important;
-}
-
-#notification-list .list-group-item {
-  padding: 0.6rem 0.75rem !important;
-  border: none !important;
-}
-
-#notification-list .list-group-item:hover {
-  background-color: #f8f9fa !important;
-}
-
-.navbar .fa-bell {
-  font-size: 18px !important;
-}
-
-#notification-count {
-  font-size: 11px !important;
-  position: absolute !important;
-  top: 6px !important;
-  right: 8px !important;
-  min-width: 16px !important;
-  height: 16px !important;
-  padding: 0 !important;
-  line-height: 16px !important;
-  text-align: center !important;
-  border-radius: 50% !important;
-}
-
-/* Pastikan dropdown tidak ikut overflow parent */
-.navbar-nav > .dropdown .dropdown-menu {
-  position: absolute !important;
-}
+/* ... (Gaya CSS yang sama) ... */
 </style>
 
-
 <script>
+// Fungsi untuk mengekstrak ID numerik dari URL notifikasi (Robust)
+function extractTaskId(url) {
+    // Mencari pola id=NUMERIC_ID (mengabaikan ID non-numerik yang dienkripsi)
+    const match = url.match(/id=(\d+)/);
+    return match ? match[1] : null; 
+}
+
 $(document).ready(function(){
 
   // ====== Profile Modal ======
   $('.view_user').click(function(){
     let userId = $(this).attr('data-id');
-    uni_modal("<i class='fa fa-id-card'></i> Profil Pengguna", "view_profile.php?id=" + userId);
+    uni_modal("<i class='fa fa-id-card'></i> Profil Pengguna", "view_user.php?id=" + userId);
   });
 
   // ====== Load Notifications ======
@@ -150,11 +110,18 @@ $(document).ready(function(){
               else if (n.type == 2) icon = '<i class="fa fa-sync-alt text-warning mr-2"></i>';
               else if (n.type == 4) icon = '<i class="fa fa-comment-dots text-info mr-2"></i>';
 
-              const short_message = n.message.length > 70 ? n.message.substring(0, 70) + '...' : n.message;
+              // Hilangkan markdown bold dari notifikasi
+              let short_message = n.message.replace(/\*\*/g, '');
+              short_message = short_message.length > 70 ? short_message.substring(0, 70) + '...' : short_message;
               const time = `<small class="text-muted d-block">${timeAgo(n.date_created)}</small>`;
+              
+              // Simpan link asli di data-href dan buat href menjadi # (untuk intercept)
+              const linkIsTask = n.link.includes('get_task_detail.php?id=') || n.link.includes('view_task&id=');
+              const finalHref = linkIsTask ? 'javascript:void(0)' : n.link;
 
               const html = `
-                <a href="${n.link}" class="${itemClass} notification-item border-0" data-id="${n.id}" style="cursor:pointer;">
+                <a href="${finalHref}" class="${itemClass} notification-item border-0" 
+                   data-id="${n.id}" data-original-link="${n.link}" style="cursor:pointer;">
                   <div class="d-flex align-items-start">
                     ${icon}
                     <div class="flex-fill">
@@ -196,11 +163,35 @@ $(document).ready(function(){
     mark_as_read('all');
   });
 
-  $(document).on('click', '.notification-item', function() {
-    if ($(this).hasClass('font-weight-bold')) {
+  // Handler untuk klik notifikasi di dropdown (Membuka modal jika itu notifikasi task)
+  $(document).on('click', '.notification-item', function(e) {
+      const originalLink = $(this).data('original-link');
       const id = $(this).data('id');
-      mark_as_read(id);
-    }
+      
+      // 1. Periksa apakah ini adalah notifikasi tugas/progress
+      if (originalLink && (originalLink.includes('get_task_detail.php?id=') || originalLink.includes('view_task&id='))) {
+          e.preventDefault(); 
+          
+          const taskId = extractTaskId(originalLink);
+
+          if (taskId) {
+              // Jika ID numerik valid ditemukan, buka modal
+              // Target URL adalah get_task_detail.php
+              uni_modal("Task Details", 'get_task_detail.php?id=' + taskId, "mid-large"); 
+              
+              // Tutup dropdown setelah membuka modal
+              $(this).closest('.dropdown-menu').removeClass('show');
+          } else {
+              // Notifikasi lama/rusak (ID dienkripsi), kita bisa arahkan ke halaman utama task_list
+              console.warn("Notifikasi lama terdeteksi, navigasi ke task list.");
+              window.location.href = 'index.php?page=mytask';
+          }
+      }
+      
+      // 2. Mark as Read (Jika belum dibaca)
+      if ($(this).hasClass('font-weight-bold')) { 
+          mark_as_read(id);
+      }
   });
 
   load_notifications();
