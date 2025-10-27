@@ -8,7 +8,7 @@
     ob_start();
     
     // =======================================================
-    // ðŸš¨ KODE KEAMANAN PROJECT HEADER CHECK ðŸš¨
+    // 🚨 KODE KEAMANAN PROJECT HEADER CHECK 🚨
     // =======================================================
     $page = $_GET['page'] ?? 'home';
     if ($page == 'view_project' || $page == 'edit_project') {
@@ -49,7 +49,7 @@
         $_GET['id'] = $project_id;
     }
     // =======================================================
-    // ðŸš¨ AKHIR KODE KEAMANAN
+    // 🚨 AKHIR KODE KEAMANAN
     // =======================================================
 
   if(!isset($_SESSION['system'])){

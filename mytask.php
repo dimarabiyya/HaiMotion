@@ -294,4 +294,5 @@ if (taskId) {
     uni_modal("Task Details", "get_task_detail.php?id=" + taskId, "mid-large");
   }, 500);
 }
+
 </script>

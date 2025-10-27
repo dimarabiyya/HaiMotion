@@ -23,7 +23,6 @@ class Action {
         ");
         if (!$stmt) {
             error_log("log_activity prepare error: " . $this->db->error);
-            $this->db->close();
             return false;
         }
         // types: i = int, s = string
@@ -143,12 +142,12 @@ class Action {
             $save = $this->db->query("INSERT INTO project_list SET $data");
             if ($save) {
                 $pid = $this->db->insert_id;
-                $this->log_activity($_SESSION['login_id'] ?? 0, $pid, null, 'project_add', 'Menambahkan project baru: ' . ($name ?? ''));
+                $this->log_activity($_SESSION['login_id'], $pid, null, 'project_add', 'Menambahkan project baru: ' . ($name ?? ''));
             }
         } else {
             $save = $this->db->query("UPDATE project_list SET $data WHERE id = $id");
             if ($save) {
-                $this->log_activity($_SESSION['login_id'] ?? 0, $id, null, 'project_update', 'Mengupdate project: ' . ($name ?? ''));
+                $this->log_activity($_SESSION['login_id'], $id, null, 'project_update', 'Mengupdate project: ' . ($name ?? ''));
             }
         }
 
@@ -164,7 +163,7 @@ class Action {
             $project_name = $row['name'];
             $delete = $this->db->query("DELETE FROM project_list WHERE id = $id");
             if ($delete) {
-                $this->log_activity($_SESSION['login_id'] ?? 0, $id, null, 'project_delete', 'Menghapus project: ' . $project_name);
+                $this->log_activity($_SESSION['login_id'], $id, null, 'project_delete', 'Menghapus project: ' . $project_name);
                 return 1;
             }
         }
@@ -222,8 +221,7 @@ class Action {
             return 0;
         }
 
-        $id = intval($_POST['id'] ?? 0); // Pastikan $id adalah integer
-        $is_new = $id === 0;
+        $is_new = empty($_POST['id']);
         $sql = '';
 
         if ($is_new) {
@@ -236,6 +234,7 @@ class Action {
                 ({$project_id}, '{$task}', '{$description}', {$status}, '{$this->db->real_escape_string($user_ids_string)}', '{$start_date}', '{$end_date}', '{$content_pillar}', '{$platform}', '{$reference_links}', {$created_by}, NOW()
                 )";
         } else {
+            $id = intval($_POST['id']);
             $sql = "UPDATE task_list SET
                 project_id = {$project_id},
                 task = '{$task}',
@@ -265,10 +264,10 @@ class Action {
         $log_desc = $action_type == 'task_add' ? "Menambahkan task baru: {$task} pada project: {$project_name}" : "Mengupdate task: {$task}";
         $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $task_id, $action_type, $log_desc);
 
-        // REVISI PENTING: Menggunakan ID MENTAH dan mengarahkan ke mytask.php
-        $link = "index.php?page=mytask&id=" . $task_id; // <-- ID MENTAH (Numerik)
+        // push notifikasi seperti sebelumnya (tetap gunakan user_ids_array)
+        $link = "index.php?page=view_task&id=" . (function_exists('encode_id') ? encode_id($task_id) : $task_id);
         $message_prefix = $action_type == 'task_add' ? "baru ditugaskan" : "diupdate";
-        $message = "Task **{$task}** telah {$message_prefix} di project {$project_name}.";
+        $message = "Task {$task} telah {$message_prefix} di project {$project_name}.";
         $email_subject = "[TASK] Tugas {$task} {$message_prefix}";
 
         if (!empty($user_ids_array)) {
@@ -281,8 +280,7 @@ class Action {
                     'name'  => $full_name,
                     'subject' => $email_subject
                 ];
-                // Asumsikan record_notification ada dan menggunakan $link yang baru.
-                // record_notification($user['id'], 1, $message, $link, $this->db, true, $email_details); 
+                record_notification($user['id'], 1, $message, $link, $this->db, true, $email_details);
             }
         }
 
@@ -291,48 +289,37 @@ class Action {
 
 
     public function delete_task() {
+        // Memastikan koneksi database tersedia (seperti yang dilakukan oleh include 'db_connect.php')
+        global $conn; 
+        
+        // 1. Ambil ID tugas
         extract($_POST);
-        $id = intval($id ?? 0);
+        $id = intval($id);
         
-        $tq = $this->db->query("SELECT task, project_id FROM task_list WHERE id = $id");
-        if (!$tq || $tq->num_rows == 0) {
-            return 0; 
-        }
-
-        $row = $tq->fetch_assoc();
-        $task_name = $row['task'];
-        $project_id = $row['project_id'];
-        
-        // ===============================================
-        // REVISI PENTING: HAPUS SEMUA NOTIFIKASI TERKAIT
-        // Mencari notifikasi dengan ID tugas ini di bagian link manapun
-        // ===============================================
-        $notification_id_string_pattern = "%id={$id}%";
-        
-        $delete_notifications = $this->db->query("
+        // 2. HAPUS NOTIFIKASI TERKAIT (SOLUSI BUG)
+        // Notifikasi merujuk ke link: view_task.php?id=[ID_TUGAS]
+        $delete_notification = $conn->query("
             DELETE FROM notification_list 
-            WHERE link LIKE '{$notification_id_string_pattern}'
+            WHERE link = 'view_task.php?id=$id' 
         ");
-        
-        if (!$delete_notifications) {
-            error_log("Gagal menghapus notifikasi terkait tugas {$id}: " . $this->db->error);
+
+        if (!$delete_notification) {
+            // Log error jika penghapusan notifikasi gagal
+            error_log("Gagal menghapus notifikasi terkait tugas $id: " . $conn->error);
         }
         
         // 3. HAPUS TUGAS UTAMA
-        $delete_task = $this->db->query("
+        $delete_task = $conn->query("
             DELETE FROM task_list 
             WHERE id = $id
         ");
 
         if ($delete_task) {
-            // Log activity
-            $proj = $this->db->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc();
-            $project_name = $proj['name'] ?? 'Unknown Project';
-            $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $id, 'task_delete', 'Menghapus task: ' . $task_name . ' dari project: ' . $project_name);
-            return 1;
+            // Jika tugas utama berhasil dihapus
+            return 1; // Success
         } else {
-            error_log("Gagal menghapus tugas: " . $this->db->error);
-            return 0;
+            // Jika tugas utama gagal dihapus
+            return "Gagal menghapus tugas: " . $conn->error;
         }
     }
 
@@ -356,7 +343,7 @@ class Action {
 
         if (empty($id)) {
             // ensure task_id present
-            $data .= ", user_id=" . intval($_SESSION['login_id'] ?? 0) . " ";
+            $data .= ", user_id=" . intval($_SESSION['login_id']) . " ";
             $sql = "INSERT INTO user_productivity SET $data";
             $save = $this->db->query($sql);
             if ($save) {
@@ -388,25 +375,25 @@ class Action {
                         $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
                         
                         $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
-                        // REVISI PENTING: Menggunakan ID MENTAH dan target mytask.php
-                        $link = "index.php?page=mytask&id=" . $task_id; // <-- ID MENTAH (Numerik)
+                        $link = "index.php?page=view_task&id=" . encode_id($task_id);
                         $message = "Task **{$task_name}** mendapat komentar baru dari {$current_user_name}.";
                         $email_subject = "[KOMENTAR BARU] Task: {$task_name}";
                         
                         while ($user = $users_q->fetch_assoc()) {
+                            // record_notification() akan mengabaikan notifikasi jika user_id == login_id
                             $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
                             $email_details = [
                                 'email' => $user['email'], 
                                 'name' => $full_name,
                                 'subject' => $email_subject
                             ];
-                            // Asumsikan record_notification ada dan menggunakan $link yang baru.
-                            // record_notification($user['id'], 4, $message, $link, $this->db, true, $email_details);
+                            // Type 4: Comment Added
+                            record_notification($user['id'], 4, $message, $link, $this->db, true, $email_details);
                         }
                     }
                 }
                 
-                $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $task_id, 'progress_add', 'Menambahkan progress pada task: ' . $task_name);
+                $this->log_activity($_SESSION['login_id'], $project_id, $task_id, 'progress_add', 'Menambahkan progress pada task: ' . $task_name);
                 return 1;
             } else {
                 error_log("save_progress insert error: " . $this->db->error . " -- SQL: " . $sql);
@@ -439,7 +426,7 @@ class Action {
             $project_id = $row['project_id'] ?? null;
             $delete = $this->db->query("DELETE FROM user_productivity WHERE id = $id");
             if ($delete) {
-                $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $row['task_id'] ?? null, 'progress_delete', 'Menghapus progress pada task: ' . $task_name);
+                $this->log_activity($_SESSION['login_id'], $project_id, $row['task_id'] ?? null, 'progress_delete', 'Menghapus progress pada task: ' . $task_name);
                 return 1;
             }
         }

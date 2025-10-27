@@ -1,5 +1,15 @@
 <?php include 'db_connect.php' ?>
 
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css">
+
+
+
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-6">
@@ -10,7 +20,7 @@
           <?php if($_SESSION['login_type'] != 3): ?>
             <div class="card-tools">
                 <button class="btn text-white" style="background-color:#B75301;" id="add_user_btn">
-                  <i class="fa fa-plus mr-2"></i> New User
+                  New User
                 </button>
             </div>
         <?php endif; ?>
@@ -19,20 +29,19 @@
   </div>
 </div>
 
-
 <div class="col-lg-12 mt-3">
-  <div class="card card-outline">
+  <div class="card card-outline card-orange">
     <div class="card-body">
       <div class="table-responsive">
-        <table class="table table-hover table-condensed" id="list">
+        <table class="table table-hover table-bordered" id="list">
           <thead>
             <tr>
-              <th class="text-left">No</th>
+              <th class="text-center">#</th>
               <th>Avatar</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th> </th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
