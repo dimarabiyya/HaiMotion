@@ -21,9 +21,10 @@
         <i class="fa fa-bell"></i>
         <span class="badge badge-danger navbar-badge" id="notification-count" style="display:none;"></span>
       </a>
-      <div class="dropdown-menu dropdown-menu-right shadow-lg border-0 p-0" id="notification-dropdown" style="width: 300px; border-radius: 0.75rem; overflow:hidden;">
+      <div class="dropdown-menu dropdown-menu-right shadow-lg border-0 p-0" id="notification-dropdown" style="width: 340px; border-radius: 0.75rem; overflow:hidden;">
         <div class="text-center py-2">
           <p id="notification-header"></p>
+          <hr>
         </div>
         <div id="notification-list" style="max-height: 300px; overflow-y: auto;" class="list-group list-group-flush">
           <div class="list-group-item text-center text-muted small">Loading...</div>
