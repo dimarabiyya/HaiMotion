@@ -60,11 +60,10 @@ $user_task_filter = " AND CONCAT('[', REPLACE(t.user_ids, ',', '],['), ']') LIKE
 if($projects->num_rows > 0):
 while ($proj = $projects->fetch_assoc()):
     
-    // Ambil task dengan filter user yang sedang login
     $tasks = $conn->query("SELECT * FROM task_list t 
-                           WHERE t.project_id = {$proj['id']} 
-                           $user_task_filter 
-                           ORDER BY t.end_date ASC");
+                       WHERE t.project_id = {$proj['id']} 
+                       $user_task_filter 
+                       ORDER BY t.date_created DESC");
 
     // Hanya tampilkan project yang memiliki task yang di-assign ke user ini
     if($tasks->num_rows == 0) continue;
@@ -285,4 +284,14 @@ $(document).ready(function(){
         uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"mid-large");
     });
 });
+
+// Cek jika URL mengandung ?id=...
+const params = new URLSearchParams(window.location.search);
+const taskId = params.get('id');
+
+if (taskId) {
+  setTimeout(() => {
+    uni_modal("Task Details", "get_task_detail.php?id=" + taskId, "mid-large");
+  }, 500);
+}
 </script>

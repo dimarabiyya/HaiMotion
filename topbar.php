@@ -15,6 +15,7 @@
 
   <ul class="navbar-nav ml-auto align-items-center">
 
+    <!-- ===================== NOTIFICATION ===================== -->
     <li class="nav-item dropdown">
       <a class="nav-link position-relative" data-toggle="dropdown" href="#" title="Notifikasi">
         <i class="fa fa-bell"></i>
@@ -30,18 +31,20 @@
         </div>
         <div class="text-center py-2 border-top bg-light">
           <a href="javascript:void(0)" id="mark-all-read" class="small text-primary font-weight-bold">
-            Mark all as read
+            Mark as read
           </a>
         </div>
       </div>
     </li>
 
+    <!-- ===================== FULLSCREEN ===================== -->
     <li class="nav-item">
       <a class="nav-link" data-widget="fullscreen" href="#" role="button">
         <i class="fas fa-expand-arrows-alt"></i>
       </a>
     </li>
 
+    <!-- ===================== PROFILE ===================== -->
     <li class="nav-item ml-2 mr-4">
       <a class="nav-link p-0 view_user" href="javascript:void(0)" data-id="<?php echo $_SESSION['login_id']; ?>" style="display: flex; align-items: center;">
         <img src="assets/uploads/<?php echo $_SESSION['login_avatar']; ?>" class="img-circle elevation-2" alt="User Avatar" style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
@@ -52,8 +55,52 @@
 </nav>
 
 <style>
-/* ... (Gaya CSS yang sama) ... */
+/* ====== Notifikasi Dropdown Style Global ====== */
+#notification-dropdown {
+  width: 340px !important;
+  border-radius: 0.75rem !important;
+  overflow: hidden !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+  font-size: 14px !important;
+}
+
+#notification-dropdown .dropdown-header {
+  font-size: 14px !important;
+  padding: 0.5rem !important;
+}
+
+#notification-list .list-group-item {
+  padding: 0.6rem 0.75rem !important;
+  border: none !important;
+}
+
+#notification-list .list-group-item:hover {
+  background-color: #f8f9fa !important;
+}
+
+.navbar .fa-bell {
+  font-size: 18px !important;
+}
+
+#notification-count {
+  font-size: 11px !important;
+  position: absolute !important;
+  top: 6px !important;
+  right: 8px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  padding: 0 !important;
+  line-height: 16px !important;
+  text-align: center !important;
+  border-radius: 50% !important;
+}
+
+/* Pastikan dropdown tidak ikut overflow parent */
+.navbar-nav > .dropdown .dropdown-menu {
+  position: absolute !important;
+}
 </style>
+
 
 <script>
 // Fungsi untuk mengekstrak ID numerik dari URL notifikasi (Robust)
@@ -117,11 +164,14 @@ $(document).ready(function(){
               
               // Simpan link asli di data-href dan buat href menjadi # (untuk intercept)
               const linkIsTask = n.link.includes('get_task_detail.php?id=') || n.link.includes('view_task&id=');
-              const finalHref = linkIsTask ? 'javascript:void(0)' : n.link;
+              const taskLink = n.task_id 
+                ? `index.php?page=mytask&id=${n.task_id}`
+                : (n.link && n.link.trim() !== '' ? n.link : '#');
 
               const html = `
-                <a href="${finalHref}" class="${itemClass} notification-item border-0" 
-                   data-id="${n.id}" data-original-link="${n.link}" style="cursor:pointer;">
+                <a href="${taskLink}" class="${itemClass} notification-item border-0"
+                  data-id="${n.id}" data-task-id="${n.task_id || ''}" 
+                  data-original-link="${n.link || ''}" style="cursor:pointer;">
                   <div class="d-flex align-items-start">
                     ${icon}
                     <div class="flex-fill">
@@ -131,6 +181,7 @@ $(document).ready(function(){
                   </div>
                 </a>`;
               list.append(html);
+
             });
           } else {
             list.append('<div class="list-group-item text-center text-muted small">Tidak ada notifikasi baru.</div>');

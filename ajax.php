@@ -70,11 +70,13 @@ if ($action == 'fetch_notifications') {
     
     // Ambil 5 notifikasi terbaru 
     $notifications_q = $conn->query("
-        SELECT * FROM notification_list 
+        SELECT id, user_id, message, link, is_read, date_created, task_id 
+        FROM notification_list 
         WHERE user_id = '$user_id' 
         ORDER BY date_created DESC 
         LIMIT 10
     ");
+
     
     $notifications = [];
     while ($row = $notifications_q->fetch_assoc()) {
