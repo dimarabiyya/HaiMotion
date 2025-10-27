@@ -185,7 +185,6 @@
                 <i class="fa fa-ellipsis-v"></i>
             </button>
             <div class="dropdown-menu">
-                <h6 class="dropdown-header">Action</h6>
                 <a class="dropdown-item" href="index.php?page=view_project&id=<?= encode_id($row['id']) ?>">
                   <i class="fa fa-eye mr-2"></i> View
                 </a>
@@ -344,14 +343,13 @@ function uni_modal(title, url, size = 'xl') {
 
 $(document).ready(function(){
     
-    // Klik card project → masuk ke view_project (Diubah menjadi klik row)
-    $(document).on('click', '.project-row', function(e){
-        // Mencegah aksi jika klik berasal dari dalam dropdown menu, tombol view_all_users, atau elemen interaktif lainnya
-        if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
-            var encoded_pid = $(this).data('encoded-id'); 
-            window.location.href = "index.php?page=view_project&id=" + encoded_pid;
-        }
-    });
+$(document).on('click', '.project-row', function(e){
+    if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
+        var encoded_pid = $(this).data('encoded-id'); 
+        var projectName = $(this).find('b:first').text();
+        uni_modal("Project: " + projectName, "index.php?page=view_project&id=" + encoded_pid, "mid-large");
+    }
+});
 
     // Delete project logic
     function delete_project(id){
