@@ -88,8 +88,8 @@ include 'header.php';
 
 <body>
   <div class="text-right mb-3">
-    <button id="printCalendar" class="btn btn-danger">
-      <i class="fa fa-file-pdf-o"></i> Export to PDF
+    <button id="printCalendar" class="btn text-white" style="background-color: #f78923ff;">
+      <i class="fa fa-file-pdf-o"></i> Export Calendar
     </button>
   </div>
 
@@ -99,7 +99,7 @@ include 'header.php';
 
   <!-- Modal -->
   <div class="modal fade" id="taskModal" tabindex="-1" role="dialog" aria-labelledby="taskModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered" role="document">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
       <div class="modal-content border-0 shadow">
         <div class="modal-header">
           <h5 class="modal-title" id="taskModalLabel">Task Detail</h5>

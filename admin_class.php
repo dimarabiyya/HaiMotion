@@ -1,5 +1,4 @@
 <?php
-// ... baris 1-3
 ini_set('display_errors', 1);
 require_once 'phpmailer_config.php'; // TAMBAHKAN BARIS INI
 
@@ -173,122 +172,155 @@ class Action {
 
     // === TASK MANAGEMENT ===
     function save_task() {
-        extract($_POST);
-        // sanitize inputs
-        $task = $this->db->real_escape_string($task ?? '');
-        $description = $this->db->real_escape_string($description ?? '');
-        $project_id = intval($project_id ?? 0);
-        $status = intval($status ?? 0);
+        // ambil dari $_POST tapi tidak menggunakan extract() untuk keamanan
+        $task = $this->db->real_escape_string($_POST['task'] ?? '');
+        $description = $this->db->real_escape_string($_POST['description'] ?? '');
+        $project_id = intval($_POST['project_id'] ?? 0);
+        $status = intval($_POST['status'] ?? 0);
+
+        // user_ids bisa berupa array (multi select) atau string
         $user_ids_array = [];
         $user_ids_string = '';
-
-        if (isset($_POST['user_ids']) && is_array($_POST['user_ids'])) {
-            $user_ids_array = array_map('intval', $_POST['user_ids']);
-            $user_ids_string = implode(',', $user_ids_array);
-        } elseif (!empty($_POST['user_ids']) && !is_array($_POST['user_ids'])) {
-             // Handle case where it comes as a comma-separated string (unlikely from a modern form)
-            $user_ids_array = array_map('intval', array_filter(explode(',', $_POST['user_ids'])));
-            $user_ids_string = $this->db->real_escape_string($_POST['user_ids']);
+        if (isset($_POST['user_ids'])) {
+            if (is_array($_POST['user_ids'])) {
+                $user_ids_array = array_map('intval', $_POST['user_ids']);
+                $user_ids_string = implode(',', $user_ids_array);
+            } else {
+                // jika datang sebagai string (contoh: "1,2,3")
+                $user_ids_array = array_map('intval', array_filter(explode(',', $_POST['user_ids'])));
+                $user_ids_string = implode(',', $user_ids_array);
+            }
         }
-        
-        $start_date = $this->db->real_escape_string($start_date ?? '');
-        $end_date = $this->db->real_escape_string($end_date ?? '');
-        $content_pillar = isset($_POST['content_pillar']) ? $this->db->real_escape_string(is_array($_POST['content_pillar']) ? implode(',', $_POST['content_pillar']) : $_POST['content_pillar']) : '';
-        $platform = isset($_POST['platform']) ? $this->db->real_escape_string(is_array($_POST['platform']) ? implode(',', $_POST['platform']) : $_POST['platform']) : '';
-        $reference_links = $this->db->real_escape_string($reference_links ?? '');
 
-        if (empty($task) || !$project_id) {
+        $start_date = $this->db->real_escape_string($_POST['start_date'] ?? '');
+        $end_date   = $this->db->real_escape_string($_POST['end_date'] ?? '');
+
+        // content_pillar & platform bisa checkbox array atau string input
+        $content_pillar = '';
+        if (isset($_POST['content_pillar'])) {
+            if (is_array($_POST['content_pillar'])) {
+                $content_pillar = $this->db->real_escape_string(implode(',', array_map('trim', $_POST['content_pillar'])));
+            } else {
+                $content_pillar = $this->db->real_escape_string($_POST['content_pillar']);
+            }
+        }
+
+        $platform = '';
+        if (isset($_POST['platform'])) {
+            if (is_array($_POST['platform'])) {
+                $platform = $this->db->real_escape_string(implode(',', array_map('trim', $_POST['platform'])));
+            } else {
+                $platform = $this->db->real_escape_string($_POST['platform']);
+            }
+        }
+
+        $reference_links = $this->db->real_escape_string($_POST['reference_links'] ?? '');
+
+        if (empty($task) || $project_id <= 0) {
+            // missing required
             return 0;
         }
 
-        $is_new = empty($id);
-        
-        // Prepare SQL data string
-        $data = "
-            project_id = $project_id, 
-            task = '{$task}', 
-            description = '{$description}', 
-            status = $status, 
-            user_ids = '{$user_ids_string}', 
-            start_date = '{$start_date}', 
-            end_date = '{$end_date}', 
-            content_pillar = '{$content_pillar}', 
-            platform = '{$platform}', 
-            reference_links = '{$reference_links}'
-        ";
+        $is_new = empty($_POST['id']);
+        $sql = '';
 
         if ($is_new) {
-            $sql = "INSERT INTO task_list SET {$data}, date_created = NOW()";
-            $save = $this->db->query($sql);
-            $task_id = $this->db->insert_id;
-            $action_type = 'task_add';
+            // gunakan created_by dari session (lebih aman dibanding rely on form input)
+            $created_by = isset($_SESSION['login_id']) ? intval($_SESSION['login_id']) : 0;
+
+            $sql = "INSERT INTO task_list 
+                (project_id, task, description, status, user_ids, start_date, end_date, content_pillar, platform, reference_links, created_by, date_created)
+                VALUES
+                ({$project_id}, '{$task}', '{$description}', {$status}, '{$this->db->real_escape_string($user_ids_string)}', '{$start_date}', '{$end_date}', '{$content_pillar}', '{$platform}', '{$reference_links}', {$created_by}, NOW()
+                )";
         } else {
-            $id = intval($id);
-            $sql = "UPDATE task_list SET {$data} WHERE id = {$id}";
-            $save = $this->db->query($sql);
-            $task_id = $id;
-            $action_type = 'task_update';
+            $id = intval($_POST['id']);
+            $sql = "UPDATE task_list SET
+                project_id = {$project_id},
+                task = '{$task}',
+                description = '{$description}',
+                status = {$status},
+                user_ids = '{$this->db->real_escape_string($user_ids_string)}',
+                start_date = '{$start_date}',
+                end_date = '{$end_date}',
+                content_pillar = '{$content_pillar}',
+                platform = '{$platform}',
+                reference_links = '{$reference_links}'
+                WHERE id = {$id}";
         }
 
-        if ($save) {
-            // Fetch project name for logs/notifications
-            $proj = $this->db->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc();
-            $project_name = $proj['name'] ?? 'Unknown Project';
-
-            // Log Activity
-            $log_desc = $action_type == 'task_add'
-                        ? 'Menambahkan task baru: ' . $task . ' pada project: ' . $project_name
-                        : 'Mengupdate task: ' . $task;
-            $this->log_activity($_SESSION['login_id'], $project_id, $task_id, $action_type, $log_desc);
-
-            // === NOTIFICATION PUSH (Type 1) ===
-            $link = "index.php?page=view_task&id=" . encode_id($task_id);
-            $message_prefix = $action_type == 'task_add' ? "baru ditugaskan" : "diupdate";
-            $message = "Task **{$task}** telah {$message_prefix} di project {$project_name}.";
-            $email_subject = "[TASK] Tugas {$task} {$message_prefix}";
-            
-            if (!empty($user_ids_array)) {
-                $ids_str = implode(',', $user_ids_array);
-                $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
-                
-                while ($user = $users_q->fetch_assoc()) {
-                    // record_notification() akan mengabaikan notifikasi jika user_id == login_id
-                    $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
-                    $email_details = [
-                        'email' => $user['email'], 
-                        'name' => $full_name,
-                        'subject' => $email_subject
-                    ];
-                    // Type 1: Task Assigned/Updated
-                    record_notification($user['id'], 1, $message, $link, $this->db, true, $email_details);
-                }
-            }
-            // === END NOTIFICATION PUSH ===
-            
-            return 1;
-        } else {
-            error_log("save_task error: " . $this->db->error . " -- SQL: " . $sql);
+        $save = $this->db->query($sql);
+        if (!$save) {
+            error_log("save_task failed SQL: {$sql} -- Error: " . $this->db->error);
             return 0;
         }
-    }
 
-    function delete_task() {
-        extract($_POST);
-        $id = intval($id);
-        $tq = $this->db->query("SELECT task, project_id FROM task_list WHERE id = $id");
-        if ($tq && $tq->num_rows > 0) {
-            $row = $tq->fetch_assoc();
-            $task_name = $row['task'];
-            $project_id = $row['project_id'];
-            $delete = $this->db->query("DELETE FROM task_list WHERE id = $id");
-            if ($delete) {
-                $proj = $this->db->query("SELECT name FROM project_list WHERE id = $project_id")->fetch_assoc();
-                $project_name = $proj['name'] ?? 'Unknown Project';
-                $this->log_activity($_SESSION['login_id'], $project_id, $id, 'task_delete', 'Menghapus task: ' . $task_name . ' dari project: ' . $project_name);
-                return 1;
+        $task_id = $is_new ? $this->db->insert_id : $id;
+        $action_type = $is_new ? 'task_add' : 'task_update';
+
+        // Log aktivitas
+        $proj = $this->db->query("SELECT name FROM project_list WHERE id = {$project_id}")->fetch_assoc();
+        $project_name = $proj['name'] ?? 'Unknown Project';
+        $log_desc = $action_type == 'task_add' ? "Menambahkan task baru: {$task} pada project: {$project_name}" : "Mengupdate task: {$task}";
+        $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $task_id, $action_type, $log_desc);
+
+        // push notifikasi seperti sebelumnya (tetap gunakan user_ids_array)
+        $link = "index.php?page=view_task&id=" . (function_exists('encode_id') ? encode_id($task_id) : $task_id);
+        $message_prefix = $action_type == 'task_add' ? "baru ditugaskan" : "diupdate";
+        $message = "Task {$task} telah {$message_prefix} di project {$project_name}.";
+        $email_subject = "[TASK] Tugas {$task} {$message_prefix}";
+
+        if (!empty($user_ids_array)) {
+            $ids_str = implode(',', $user_ids_array);
+            $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+            while ($user = $users_q->fetch_assoc()) {
+                $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
+                $email_details = [
+                    'email' => $user['email'],
+                    'name'  => $full_name,
+                    'subject' => $email_subject
+                ];
+                record_notification($user['id'], 1, $message, $link, $this->db, true, $email_details);
             }
         }
-        return 0;
+
+        return 1;
+    }
+
+
+    public function delete_task() {
+        // Memastikan koneksi database tersedia (seperti yang dilakukan oleh include 'db_connect.php')
+        global $conn; 
+        
+        // 1. Ambil ID tugas
+        extract($_POST);
+        $id = intval($id);
+        
+        // 2. HAPUS NOTIFIKASI TERKAIT (SOLUSI BUG)
+        // Notifikasi merujuk ke link: view_task.php?id=[ID_TUGAS]
+        $delete_notification = $conn->query("
+            DELETE FROM notification_list 
+            WHERE link = 'view_task.php?id=$id' 
+        ");
+
+        if (!$delete_notification) {
+            // Log error jika penghapusan notifikasi gagal
+            error_log("Gagal menghapus notifikasi terkait tugas $id: " . $conn->error);
+        }
+        
+        // 3. HAPUS TUGAS UTAMA
+        $delete_task = $conn->query("
+            DELETE FROM task_list 
+            WHERE id = $id
+        ");
+
+        if ($delete_task) {
+            // Jika tugas utama berhasil dihapus
+            return 1; // Success
+        } else {
+            // Jika tugas utama gagal dihapus
+            return "Gagal menghapus tugas: " . $conn->error;
+        }
     }
 
 // === PROGRESS (TASK ACTIVITY) ===

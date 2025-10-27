@@ -40,12 +40,12 @@ if ($action == 'save_task') {
     echo $crud->save_task();
 }
 
-
 if ($action == 'delete_task') {
     // Logika dan logging sudah dipindahkan ke admin_class.php
-    $save = $crud->delete_task();
+    $save = $crud->delete_task(); // <-- Memanggil fungsi yang diperbaiki
     echo $save;
 }
+// ...
 
 /* ========== PROGRESS MANAGEMENT ========== */
 if ($action == 'save_progress') {
@@ -63,30 +63,43 @@ if ($action == 'delete_progress') {
 /* ========== REPORT / MISC ========== */
 if ($action == 'get_report') echo $crud->get_report();
 
-// ... sisa kode existing di bawah baris 112
-
-// ... TAMBAHKAN KODE NOTIFIKASI BARU DI SINI
 
 /* ========== NOTIFICATION MANAGEMENT ========== */
 if ($action == 'fetch_notifications') {
     $user_id = $_SESSION['login_id'];
     
     // Ambil 5 notifikasi terbaru 
-    $notifications_q = $conn->query("SELECT * FROM notification_list WHERE user_id = '$user_id' ORDER BY date_created DESC LIMIT 5");
+    $notifications_q = $conn->query("
+        SELECT * FROM notification_list 
+        WHERE user_id = '$user_id' 
+        ORDER BY date_created DESC 
+        LIMIT 10
+    ");
+    
     $notifications = [];
     while ($row = $notifications_q->fetch_assoc()) {
+        // ✅ Pastikan ada kolom 'id' walau nama aslinya 'notification_id'
+        if (!isset($row['id'])) $row['id'] = $row['notification_id'] ?? null;
         $notifications[] = $row;
     }
     
     // Hitung notifikasi belum dibaca
-    $unread_count_q = $conn->query("SELECT COUNT(id) AS total FROM notification_list WHERE user_id = '$user_id' AND is_read = 0");
+    $unread_count_q = $conn->query("
+        SELECT COUNT(*) AS total 
+        FROM notification_list 
+        WHERE user_id = '$user_id' AND is_read = 0
+    ");
     $unread_count = $unread_count_q->fetch_assoc()['total'];
 
     header('Content-Type: application/json');
-    echo json_encode(['status' => 1, 'notifications' => $notifications, 'unread_count' => $unread_count]);
+    echo json_encode([
+        'status' => 1,
+        'notifications' => $notifications,
+        'unread_count' => $unread_count
+    ]);
     exit;
-
 }
+
 
 if ($action == 'mark_as_read') {
     $id = $conn->real_escape_string($_POST['id'] ?? null);

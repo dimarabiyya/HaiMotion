@@ -56,16 +56,12 @@ $type_arr = array('', "Admin", "Project Manager", "Employee");
 
 <script>
 $(document).ready(function(){
-  $('.view_user').click(function(){
+  $('.view_profile').click(function(){
     let userId = $(this).attr('data-id');
-    uni_modal("<i class='fa fa-id-card'></i> User Details", "view_user.php?id=" + userId);
+    uni_modal("<i class='fa fa-id-card'></i> User Details", "view_profile.php?id=" + userId);
   });
   
-  // ==============================================
-  // JAVASCRIPT NOTIFIKASI
-  // ==============================================
-  
-    // Fungsi untuk memuat notifikasi
+// Fungsi untuk memuat notifikasi
     function load_notifications() {
         $.ajax({
             url: 'ajax.php?action=fetch_notifications',
