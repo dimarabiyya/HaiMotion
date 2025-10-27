@@ -72,7 +72,7 @@ $stat = array(
 <div class="col-lg-12">
 	<div class="row">
 		<div class="col-md-12">
-			<div class="callout callout-secondary">
+			<div class="card border p-2">
 				<div class="col-md-12">	
 					<div class="row">
 						<div class="col-sm-6">
@@ -130,7 +130,7 @@ $stat = array(
 
 						</div>
 					</div>
-						<div class="card border p-2">
+						<div class="p-2">
 							<div class="">
 								<span><b>Team Member/s:</b></span>
 								<div class="card-tools">	
@@ -164,27 +164,29 @@ $stat = array(
 				<div class="card-header">
 					<span><b>Task List</b></span>
 					<div class="card-tools">
-						<button class="btn btn-primary bg-gradient-primary btn-sm" type="button" id="new_task"><i class="fa fa-plus"></i> New Task</button>
+						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
+                        	<i class="fa fa-plus mr-1"></i> Add Task
+                    	</button>
 					</div>
 				</div>
 				<div class="card-body p-0">
 					<div class="table-responsive">
-					<table class="table table-condensed m-0 table-hover">
+					<table class="table table-condensed m-0">
 						<colgroup>
 							<col width="5%">
 							<col width="20%">
-							<col width="40%">
-							<col width="5%">
-							<col width="20%">
+							<col width="37%">
 							<col width="10%">
+							<col width="20%">
+							<col width="5%">
 						</colgroup>
 						<thead>
-							<th class="text-center">No</th>
+							<th class="text-left">No</th>
 							<th>Task</th>
 							<th>Description</th>
 							<th>Status</th>
-							<th class="text-center">Assigned</th>
-							<th>Action</th>
+							<th class="text-left">Assigned To</th>
+							<th> </th>
 						</thead>
 						<tbody>
 							<?php 
@@ -204,7 +206,7 @@ $stat = array(
 								}
 							?>
 								<tr class="view_task_row" data-id="<?php echo $row['id'] ?>" style="cursor:pointer;">
-									<td class="text-center"><?php echo $i++ ?></td>
+									<td class="text-left"><?php echo $i++ ?></td>
 									<td><b><?php echo ucwords($row['task']) ?></b></td>
 									<td><p class="truncate"><?php echo strip_tags($desc) ?></p></td>
 									<td>
@@ -241,9 +243,9 @@ $stat = array(
 										}
 									}
 									?>
-									<td class="text-center">
+									<td class="text-left">
 										<?php if (!empty($task_assigned_users)): ?>
-											<div class="d-flex justify-content-center">
+											<div class="d-flex justify-content-left">
 												<?php foreach ($task_assigned_users as $au): ?>
 													<img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
 														alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
@@ -286,7 +288,9 @@ $stat = array(
 				<div class="card-header">
 					<b>Comment</b>
 					<div class="card-tools">
-						<button class="btn btn-primary bg-gradient-primary btn-sm" type="button" id="new_productivity"><i class="fa fa-plus"></i> New Comment</button>
+						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
+                        	<i class="fa fa-plus mr-1"></i> Add Comment
+                    	</button>
 					</div>
 				</div>
 				<div class="card-body">

@@ -85,69 +85,69 @@ include 'header.php'
 <div class="container-fluid">
   <div class="row">
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=0" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 0")->num_rows; ?>
           </h3>
           <p>Task Pending</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=1" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 1")->num_rows; ?>
           </h3>
           <p>Task Started</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=2" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 2")->num_rows; ?>
           </h3>
           <p>Task On-Progress</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=3" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 3")->num_rows; ?>
           </h3>
           <p>Task On-Hold</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=4" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 4")->num_rows; ?>
           </h3>
           <p>Task Overdue</p>
         </div>
-      </div>
+      </a>
     </div>
 
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=5" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 5")->num_rows; ?>
           </h3>
           <p>Task Done</p>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 </div>
@@ -273,12 +273,12 @@ include 'header.php'
                 // Warna badge berdasarkan status task (1–5)
                 // Asumsi: Status 1=Started, 2=On-Progress, 3=On-Hold, 4=Over Due, 5=Done
                 switch ((int)$log['task_status']) {
-                  case 5: $color = '#28a745'; break; // Done - hijau
-                  case 4: $color = '#dc3545'; break; // Over Due - merah
-                  case 3: $color = '#ffc107'; break; // On-Hold - kuning
-                  case 2: $color = '#17a2b8'; break; // On-Progress - biru
-                  case 1: $color = '#007bff'; break; // Started - biru muda
-                  default: $color = '#adb5bd'; break; // Pending/lainnya - abu
+                  case 5: $color = '#4c9a2a'; break; // Done - hijau
+                  case 4: $color = '#c62828'; break; // Over Due - merah
+                  case 3: $color = '#e66a00'; break; // On-Hold - kuning
+                  case 2: $color = '#95c0dc'; break; // On-Progress - biru
+                  case 1: $color = '#f3dc80'; break; // Started - biru muda
+                  default: $color = '#3a495c'; break; // Pending/lainnya - abu
                 }
             ?>
               <li class="timeline-item">
@@ -293,7 +293,7 @@ include 'header.php'
                 <div class="timeline-content">
                   <span><?= htmlspecialchars($log['description']) ?></span>
                   <?php if (!empty($log['project_name'])): ?>
-                    <br><small class="text-muted">Project: **<?= $log['project_name'] ?>**</small>
+                    <br><small class="text-muted">Project: <?= $log['project_name'] ?></small>
                   <?php endif; ?>
                 </div>
               </li>

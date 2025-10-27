@@ -165,10 +165,7 @@ $projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDE
         <?php if($_SESSION['login_type'] != 3): ?>
             <div class="col-12 col-md-4">
                 <div class="d-flex justify-content-center justify-content-md-end">
-                    <button class="btn text-white" 
-                            style="background-color:#B75301;" 
-                            data-toggle="modal" 
-                            data-target="#addTaskModal">
+                    <button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
                         <i class="fa fa-plus mr-1"></i> Add Task
                     </button>
                 </div>
