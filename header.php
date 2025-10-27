@@ -53,4 +53,6 @@ if (!ini_get('date.timezone')) {
     
     <link rel="icon" type="image/png" href="assets/logobw.png">
     
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
  </head>
