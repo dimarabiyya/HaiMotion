@@ -9,16 +9,47 @@ if (!isset($_SESSION['login_id']) || !isset($_SESSION['login_type'])) {
 $current_user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 
+// --- NEW STATUS MAP (6 Columns) --- (Definisi ini penting untuk logging)
+$status_map_labels = [
+    0 => 'Pending',       
+    1 => 'Started',       
+    2 => 'On Progress',   
+    3 => 'Hold',          
+    4 => 'Overdue',       
+    5 => 'Done'           
+];
+
 // --- Handle Delete Task ---
-// Memastikan output adalah JSON MURNI
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
     header('Content-Type: application/json');
     $id = (int) $_POST['delete_task_id'];
     
     if ($login_type == 1 || $login_type == 2) {
-        // Asumsi fungsi delete di file ajax.php, kita hanya perlu menghapus di sini.
+        // 1. Ambil detail task sebelum dihapus untuk logging
+        $task_to_delete_q = $conn->query("SELECT task, project_id FROM task_list WHERE id = $id");
+        $task_to_delete = $task_to_delete_q->fetch_assoc();
+
         $delete = $conn->query("DELETE FROM task_list WHERE id = $id");
+
         if ($delete) {
+            // 2. LOG ACTIVITY untuk penghapusan
+            if ($task_to_delete) {
+                $user_id_log = $current_user_id;
+                $project_id_log = (int)$task_to_delete['project_id'];
+                $task_name = $task_to_delete['task'];
+                
+                $activity_type = "TASK_DELETED";
+                $description_log = "Menghapus tugas '{$task_name}' dari project ID: {$project_id_log}.";
+
+                // Menggunakan prepared statement untuk keamanan
+                $log_q = $conn->prepare("
+                    INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
+                    VALUES (?, ?, 0, ?, ?, NOW())
+                ");
+                // task_id di set 0 karena task sudah tidak ada
+                $log_q->bind_param("iiss", $user_id_log, $project_id_log, $activity_type, $description_log);
+                $log_q->execute();
+            }
             echo json_encode(['status' => 'success']);
         } else {
             echo json_encode(['status' => 'error', 'message' => $conn->error]);
@@ -54,8 +85,37 @@ if (!in_array($project_id, $allowed_project_ids) && !empty($allowed_project_ids)
 // Update status drag & drop
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'])) {
     $id = (int) $_POST['id'];
-    $status = (int) $_POST['status'];
-    $conn->query("UPDATE task_list SET status = $status WHERE id = $id");
+    $new_status = (int) $_POST['status'];
+    
+    // 1. Ambil status lama dan detail task
+    $old_task_q = $conn->query("SELECT task, project_id, status FROM task_list WHERE id = $id");
+    $old_task = $old_task_q->fetch_assoc();
+    $old_status = (int)$old_task['status'];
+
+    $update_success = $conn->query("UPDATE task_list SET status = $new_status WHERE id = $id");
+
+    // 2. LOG ACTIVITY jika update berhasil dan status berubah
+    if ($update_success && $old_status !== $new_status) {
+        $user_id_log = $current_user_id;
+        $project_id_log = (int)$old_task['project_id'];
+        $task_id_log = $id;
+        $task_name = $old_task['task'];
+
+        $old_status_label = $status_map_labels[$old_status] ?? 'Unknown';
+        $new_status_label = $status_map_labels[$new_status] ?? 'Unknown';
+
+        $activity_type = "TASK_STATUS_UPDATE";
+        $description_log = "Mengubah status tugas '{$task_name}' dari '{$old_status_label}' menjadi '{$new_status_label}' via Kanban.";
+        
+        // Query untuk memasukkan log activity
+        $log_q = $conn->prepare("
+            INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $log_q->bind_param("iiiss", $user_id_log, $project_id_log, $task_id_log, $activity_type, $description_log);
+        $log_q->execute();
+    }
+    
     exit;
 }
 
@@ -462,6 +522,44 @@ $(document).ready(function() {
         uni_modal("Task Detail", "get_task_detail.php?id=" + id, "modal-lg");
     });
 });
+
+// ... (Di dalam tag <script> di kanban.php) ...
+
+// FUNGSI GLOBAL DELETE YANG DIPANGGIL DARI MODAL DETAIL
+function deleteKanbanTaskFromModal(id) {
+    // Memanggil fungsi AJAX untuk menghapus task
+    delete_kanban_task_ajax(id);
+}
+
+function deleteKanbanTask(id) {
+    // Dipanggil dari tombol 'X' di card
+    _conf("Are you sure to delete this task?", "delete_kanban_task_ajax", [id]);
+}
+
+function delete_kanban_task_ajax(id) {
+    // start_load() // Jika ada
+    $.ajax({
+        url: window.location.href, 
+        method: 'POST',
+        data: { delete_task_id: id },
+        dataType: 'json',
+        success: function(resp){
+            // end_load() // Jika ada
+            if(resp.status === 'success'){
+                alert("Task berhasil dihapus!");
+                $('.task-card[data-id="'+id+'"]').remove();
+                location.reload(); 
+            } else {
+                alert("Gagal menghapus task: " + (resp.message || "Unknown error."));
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+             // end_load() // Jika ada
+             console.error("AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
+             alert("Terjadi kesalahan server saat menghapus task.");
+        }
+    });
+}
 </script>
 </body>
 </html>
