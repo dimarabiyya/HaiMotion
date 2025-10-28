@@ -346,8 +346,8 @@ $(document).ready(function(){
 $(document).on('click', '.project-row', function(e){
     if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
         var encoded_pid = $(this).data('encoded-id'); 
-        var projectName = $(this).find('b:first').text();
-        uni_modal("Project: " + projectName, "index.php?page=view_project&id=" + encoded_pid, "mid-large");
+        // Langsung redirect ke halaman view_project
+        window.location.href = "index.php?page=view_project&id=" + encoded_pid;
     }
 });
 

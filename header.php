@@ -12,7 +12,7 @@ if (!ini_get('date.timezone')) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php 
-    $title = isset($title) ? $title : "Project Management System";
+    $title = isset($title) ? $title : "Dashboard";
     // Ambil variabel sistem dari sesi
     $system_name = isset($_SESSION['system']['name']) ? $_SESSION['system']['name'] : "HaiMotion";
     ?>

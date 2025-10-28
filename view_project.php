@@ -351,9 +351,6 @@ $stat = array(
 </style>
 
 <script>
-    // Pastikan start_load() dan end_load() sudah didefinisikan secara global
-    // Pastikan _conf() sudah didefinisikan secara global
-
     // =========================================================
     // MODAL HANDLER: uni_modal (Implementasi Opsi A)
     // =========================================================
@@ -461,7 +458,7 @@ $stat = array(
 
     // 3. View Task
     $('.view_task').click(function(){
-        uni_modal("Task Details","view_task.php?id="+$(this).attr('data-id'),"mid-large")
+        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large")
     })
 
     // 4. Delete Task
