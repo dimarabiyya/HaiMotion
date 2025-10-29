@@ -43,7 +43,6 @@ $all_users_q = $conn->query("SELECT id, firstname, lastname, type FROM users WHE
 while($row = $all_users_q->fetch_assoc()){
     $all_users_data[] = $row;
 }
-// =========================================================================
 ?>
 
 <? include 'header.php'?>
@@ -71,7 +70,8 @@ while($row = $all_users_q->fetch_assoc()){
             </textarea>
         </div>
         <div class="form-group">
-    <label><b>Content Pillar</b></label><br>
+            <label>Content Pillar</label>
+            <br>
     <?php
     $pillars = ['Edukasi', 'Tips', 'Behind The Scene', 'Testimoni', 'Portofolio', 'Awareness', 'Engagement', 'Promo', 'Lainnya'];
     $selected_pillars = isset($content_pillar) ? explode(',', $content_pillar) : [];
@@ -85,12 +85,10 @@ while($row = $all_users_q->fetch_assoc()){
 </div>
 
         <div class="form-group">
-            <label><b>Platform</b></label><br>
-            <?php
-            $platforms = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'LinkedIn', 'Website', 'Lainnya'];
+            <label>Platform</label><br>
+            <?php $platforms = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'LinkedIn', 'Website', 'Lainnya'];
             $selected_platforms = isset($platform) ? explode(',', $platform) : [];
-            foreach($platforms as $plat):
-            ?>
+            foreach($platforms as $plat): ?>
             <div class="form-check form-check-inline">
                 <input class="form-check-input" type="checkbox" name="platform[]" value="<?= $plat ?>" <?= in_array($plat, $selected_platforms) ? 'checked' : '' ?>>
                 <label class="form-check-label"><?= $plat ?></label>
@@ -99,14 +97,14 @@ while($row = $all_users_q->fetch_assoc()){
         </div>
 
         <div class="form-group">
-            <label><b>Link Referensi</b></label>
+            <label>Reference Links</label>
             <textarea name="reference_links" class="form-control" rows="3"><?= isset($reference_links) ? $reference_links : '' ?></textarea>
             <small class="text-muted">Pisahkan link dengan enter.</small>
         </div>
 
         <div class="form-group">
             <label for="">Status</label>
-            <select name="status" id="status" class="custom-select custom-select-sm">
+            <select name="status" id="status" class="form-control form-control-sm select2-status">
                 <option value="0" <?php echo isset($status) && $status == 0 ? 'selected' : '' ?>>Pending</option>
                 <option value="2" <?php echo isset($status) && $status == 2 ? 'selected' : '' ?>>On-Progress</option>
                 <option value="3" <?php echo isset($status) && $status == 3 ? 'selected' : '' ?>>Hold</option>
@@ -115,7 +113,7 @@ while($row = $all_users_q->fetch_assoc()){
         </div>
 
         <div class="form-group">
-            <label for="" class="control-label">Assign To</label>
+            <label for="" class="control-label">Assignee</label>
             <select class="form-control form-control-sm select2" multiple="multiple" name="user_ids[]">
                 <option></option>
                 <?php 
@@ -135,9 +133,9 @@ while($row = $all_users_q->fetch_assoc()){
         </div>
         </form>
         
-        <div class="d-flex justify-content-end pt-3 border-top">
-            <button type="submit" class="btn btn-primary" form="manage-task">Save</button>
-            <button type="button" class="btn btn-secondary ml-2" data-dismiss="modal">Cancel</button>
+        <div class="d-flex justify-content-end pt-3">
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-brown ml-2" form="manage-task">Save</button>
         </div>
 </div>
 
@@ -158,9 +156,16 @@ while($row = $all_users_q->fetch_assoc()){
         ]
     });
 
-    // Inisialisasi Select2
+    // Inisialisasi Select2 untuk ASSIGN TO (Class: .select2)
     $('.select2').select2({
         placeholder: "Select Employee",
+        width: "100%"
+    });
+
+    // !!! TAMBAHAN: Inisialisasi Select2 untuk STATUS (Class: .select2-status)
+    $('.select2-status').select2({
+        placeholder: "Select Status",
+        minimumResultsForSearch: Infinity, // Biasanya Status tidak perlu fitur pencarian
         width: "100%"
     });
 });
@@ -177,11 +182,11 @@ while($row = $all_users_q->fetch_assoc()){
             if(resp == 1){
                 alert_toast("Task Save", 'success');
                 setTimeout(function(){
-                    $('#uni_modal').modal('hide'); // Tutup modal dengan ID uni_modal
-                    location.reload(); // Refresh halaman
+                    $('#uni_modal').modal('hide'); 
+                    location.reload();
                 }, 1500);
             } else {
-                alert_toast(resp, 'danger'); // Menampilkan pesan error dari backend
+                alert_toast(resp, 'danger');
             }
         }
     });

@@ -185,13 +185,12 @@
                 <i class="fa fa-ellipsis-v"></i>
             </button>
             <div class="dropdown-menu">
-                <h6 class="dropdown-header">Action</h6>
                 <a class="dropdown-item" href="index.php?page=view_project&id=<?= encode_id($row['id']) ?>">
                   <i class="fa fa-eye mr-2"></i> View
                 </a>
                 <?php if($_SESSION['login_type'] != 3): ?>
                 <a class="dropdown-item" href="index.php?page=edit_project&id=<?= encode_id($row['id']) ?>">
-                  <i class="fa fa-cog mr-2"></i> Edit
+                  <i class="fa fa-solid fa-pen mr-2"></i> Edit
                 </a>
                 <a class="dropdown-item text-danger delete_project_trigger"
                   data-id="<?= $row['id'] ?>"
@@ -247,7 +246,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" style="background-color:#B75301; color:white;">
-        <h5 class="modal-title" id="usersModalLabel">All Assigned Members</h5>
+        <h5 class="modal-title" id="usersModalLabel">All Assignee</h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
