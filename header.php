@@ -27,12 +27,7 @@ if (!ini_get('date.timezone')) {
     <link rel="stylesheet" href="assets/plugins/toastr/toastr.min.css">
     <link rel="stylesheet" href="assets/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
     <link rel="stylesheet" href="assets/plugins/bootstrap4-toggle/css/bootstrap4-toggle.min.css">
-    <link rel="stylesheet" href="assets/plugins/summernote/summernote-bs4.min.css"> 
-    
-    <link rel="stylesheet" href="assets/dist/css/adminlte.min.css">
-    <link rel="stylesheet" href="assets/dist/css/styles.css">
-    <link rel="stylesheet" href="css/dark-mode.css">  
-    <link href="assets/css/style.css" rel="stylesheet"> 
+    <link rel="stylesheet" href="assets/plugins/summernote/summernote-bs4.min.css">  
     
     <script src="assets/plugins/jquery/jquery.min.js"></script>
     <script src="assets/plugins/jquery-ui/jquery-ui.min.js"></script>
@@ -53,4 +48,10 @@ if (!ini_get('date.timezone')) {
     
     <link rel="icon" type="image/png" href="assets/logobw.png">
     
+    <link rel="stylesheet" href="assets/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="assets/dist/css/styles.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link href="../css/style.css" rel="stylesheet"> 
  </head>

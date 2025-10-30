@@ -77,23 +77,21 @@ $stat = array(
 					<div class="row">
 						<div class="col-sm-6">
 							<dl>
-								<dt><b class="border-warning">Project Name</b></dt>
+								<dt>Project Name</dt>
 								<dd><?php echo ucwords($name) ?></dd>
-								<dt><b class="border-warning">Description</b></dt>
+								<dt>Description</dt>
 								<dd>
-									<?php 
-									$decoded_description = html_entity_decode(html_entity_decode($description));
-									echo strip_tags($decoded_description); 
+									<?php $decoded_description = html_entity_decode(html_entity_decode($description)); echo strip_tags($decoded_description); 
 									?>
 								</dd>
 							</dl>
 							<dl>
-								<dt><b class="border-warning">Project Manager</b></dt>
+								<dt>Project Manager</dt>
 								<dd>
 									<?php if(isset($manager['id'])) : ?>
 									<div class="d-flex align-items-center mt-1">
 										<img class="img-circle img-thumbnail p-0 shadow-sm border-info img-sm mr-3" src="assets/uploads/<?php echo $manager['avatar'] ?>" alt="Avatar">
-										<b><?php echo ucwords($manager['name']) ?></b>
+										<?php echo ucwords($manager['name']) ?>
 									</div>
 									<?php else: ?>
 										<small><i>Manager Deleted from Database</i></small>
@@ -103,15 +101,15 @@ $stat = array(
 						</div>
 						<div class="col-md-6">
 							<dl>
-								<dt><b class="border-warning">Start Date</b></dt>
+								<dt>Start Date</dt>
 								<dd><?php echo date("F d, Y",strtotime($start_date)) ?></dd>
 							</dl>
 							<dl>
-								<dt><b class="border-warning">End Date</b></dt>
+								<dt>End Date</dt>
 								<dd><?php echo date("F d, Y",strtotime($end_date)) ?></dd>
 							</dl>
 							<dl>
-								<dt><b class="border-warning">Status</b></dt>
+								<dt>Status</dt>
 								<dd>
 									<?php 
 									$badgeClass = [
@@ -126,34 +124,39 @@ $stat = array(
 									echo "<span class='badge badge-{$class}'>".$stat[$status]."</span>";
 									?>
 								</dd>
-							</dl>
-
+							</dlv>
 						</div>
 					</div>
 						<div class="p-2">
 							<div class="">
-								<span><b>Team Member/s:</b></span>
+								<span><b class="bold-warning">Assignee:</b></span>
 								<div class="card-tools">	
-									</div>
+								</div>
 							</div>
 							<div class="card-body">
-								<ul class="users-list clearfix">
+								<div class="d-flex align-items-center text-nowrap user-avatar-stack">
 									<?php 
 									if(!empty($user_ids)):
 										$members = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where id in ($user_ids) order by concat(firstname,' ',lastname) asc");
 										while($row=$members->fetch_assoc()):
 									?>
-											<li>
-												<img src="assets/uploads/<?php echo $row['avatar'] ?>" alt="User Image">
-												<a class="users-list-name" href="javascript:void(0)"><?php echo ucwords($row['name']) ?></a>
-												</li>
+											<img src="assets/uploads/<?php echo $row['avatar'] ?>" 
+												alt="<?php echo ucwords($row['name']) ?>" 
+												class="rounded-circle border border-white member-avatar" 
+												style="width:38px; height:38px; object-fit:cover; margin-left:-8px;"
+												title="<?php echo ucwords($row['name']) ?>">
 									<?php 
 										endwhile;
+									else:
+									?>
+										<span class="text-muted">No Team Member Assigned</span>
+									<?php
 									endif;
 									?>
-								</ul>
+								</div>
 							</div>
 						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -162,7 +165,7 @@ $stat = array(
 		<div class="container-fluid">
 			<div class="card card-outline">
 				<div class="card-header">
-					<span><b>Task List</b></span>
+					<span style="font-size: 20px;"><b>Task List</b></span>
 					<div class="card-tools">
 						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
                         	<i class="fa fa-plus mr-1"></i> Add Task
@@ -171,7 +174,7 @@ $stat = array(
 				</div>
 				<div class="card-body p-0">
 					<div class="table-responsive">
-					<table class="table table-condensed m-0">
+					<table class="table table-condensed m-0 table-hover">
 						<colgroup>
 							<col width="5%">
 							<col width="20%">
@@ -182,10 +185,10 @@ $stat = array(
 						</colgroup>
 						<thead>
 							<th class="text-left">No</th>
-							<th>Task</th>
-							<th>Description</th>
-							<th>Status</th>
-							<th class="text-left">Assigned To</th>
+							<th class="text-left">Task</th>
+							<th class="text-left">Description</th>
+							<th class="text-left">Status</th>
+							<th class="text-left">Assignee</th>
 							<th> </th>
 						</thead>
 						<tbody>
@@ -265,9 +268,8 @@ $stat = array(
 												<i class="fa fa-ellipsis-v"></i>
 											</button>
 											<div class="dropdown-menu">
-												<h6 class="dropdown-header">Action</h6>
 												<a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-eye mr-3"></i>View</a>
-												<a class="dropdown-item edit_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-cog mr-3"></i>Edit</a>
+												<a class="dropdown-item edit_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-pen mr-3"></i>Edit</a>
 												<a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"><i class="fa fa-trash mr-3"></i>Delete</a>
 											</div>
 										</div>
@@ -286,78 +288,91 @@ $stat = array(
 		<div class="col-md-12">
 			<div class="card">
 				<div class="card-header">
-					<b>Comment</b>
+					<span style="font-size: 20px;"><b>Comments</b></span>
 					<div class="card-tools">
 						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
                         	<i class="fa fa-plus mr-1"></i> Add Comment
                     	</button>
 					</div>
 				</div>
-				<div class="card-body">
-					<?php 
-					$progress = $conn->query("SELECT p.*,concat(u.firstname,' ',u.lastname) as uname,u.avatar,t.task FROM user_productivity p inner join users u on u.id = p.user_id inner join task_list t on t.id = p.task_id where p.project_id = $id order by unix_timestamp(p.date_created) desc ");
-					while($row = $progress->fetch_assoc()):
-					?>
-						<div class="post">
-		                      <div class="user-block">
-		                      	<?php if($_SESSION['login_id'] == $row['user_id']): ?>
-		                      	<span class="btn-group dropleft float-right">
-								  <span class="btndropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-								    <i class="fa fa-ellipsis-v"></i>
-								  </span>
-								  <div class="dropdown-menu">
-									<h6 class="dropdown-header">Action</h6>
-								  	<a class="dropdown-item manage_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"  data-task="<?php echo $row['task'] ?>">Edit</a>
-									<a class="dropdown-item delete_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">Delete</a>
-								  </div>
+				<div class="card-body p-4">
+					<?php $progress = $conn->query("SELECT p.*,concat(u.firstname,' ',u.lastname) as uname,u.avatar,t.task FROM user_productivity p inner join users u on u.id = p.user_id inner join task_list t on t.id = p.task_id where p.project_id = $id order by unix_timestamp(p.date_created) desc ");
+					while($row = $progress->fetch_assoc()): ?>
+						<div class="post mb-3 border-bottom comment-item"> 
+							<div class="user-block d-flex align-items-left">
+								
+								<img class="img-circle img-bordered-sm" src="assets/uploads/<?php echo $row['avatar'] ?>" alt="user image">
+								
+								<div class="flex-grow-1"> 
+									<div class="d-flex justify-content-between align-items-center mb-0">
+										<span class="username font-weight-bold">
+											<a href="#"><?php echo ucwords($row['uname']) ?></a>
+										</span>
+										
+										<small class="text-muted text-right comment-time">
+											<?php echo date('M d, Y - h:i A',strtotime($row['date_created'])) ?> 
+										</small>
+									</div>
+									
+									<span class="description text-muted mt-0 pt-0">
+										Task: <?php echo ucwords($row['task']) ?>
+									</span>
+								</div>
+
+								<?php if($_SESSION['login_id'] == $row['user_id']): ?>
+								<span class="btn-group dropleft ml-2">
+									<span class="btndropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+										<i class="fa fa-ellipsis-v"></i>
+									</span>
+									<div class="dropdown-menu">
+										<h6 class="dropdown-header">Action</h6>
+										<a class="dropdown-item manage_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"  data-task="<?php echo $row['task'] ?>">Edit</a>
+										<a class="dropdown-item delete_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">Delete</a>
+									</div>
 								</span>
 								<?php endif; ?>
-		                        <img class="img-circle img-bordered-sm" src="assets/uploads/<?php echo $row['avatar'] ?>" alt="user image">
-		                        <span class="username">
-		                          <a href="#"><?php echo ucwords($row['uname']) ?>[ <?php echo ucwords($row['task']) ?> ]</a>
-		                        </span>
-		                        <span class="description">
-		                        	<span class="fa fa-calendar-day"></span>
-		                        	<span><b><?php echo date('M d, Y',strtotime($row['date'])) ?></b></span>
-		                        	<span class="fa fa-user-clock"></span>
-                      				<span>Start: <b><?php echo date('h:i A',strtotime($row['date'].' '.$row['start_time'])) ?></b></span>
-		                        	<span> | </span>
-                      				<span>End: <b><?php echo date('h:i A',strtotime($row['date'].' '.$row['end_time'])) ?></b></span>
-	                        	</span>
-		                      </div>
-		                      <div>
-		                       <?php echo html_entity_decode($row['comment']) ?>
-		                      </div>
-
-		                      <p>
-		                        </p>
-	                    </div>
-	                    <div class="post clearfix"></div>
-                    <?php endwhile; ?>
+							</div>
+							
+							<div class="mt-2 comment-content-body"> 
+								<?php echo html_entity_decode($row['comment']) ?>
+							</div>
+						</div>
+						
+					<?php endwhile; ?>
 				</div>
 			</div>
 		</div>
 	</div>
 </div>
+
 <style>
-	.users-list>li img {
-	    border-radius: 50%;
-	    height: 67px;
-	    width: 67px;
-	    object-fit: cover;
-	}
-	.users-list>li {
-		width: 33.33% !important
-	}
 	.truncate {
 		-webkit-line-clamp:1 !important;
+	}
+	.user-avatar-stack .member-avatar:first-child {
+        margin-left: 0px !important;
+    }
+	.card-body {
+		padding: 0;
+	}
+	.post .user-block img.img-bordered-sm {
+        width: 40px !important; 
+        height: 40px !important;
+        object-fit: cover;
+        margin-right: 10px !important; 
+    }
+	.post .user-block .flex-grow-1 {
+        margin-left: 0 !important;
+    }
+	.post .user-block .description {
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+		margin-left: 0 !important;
+        display: block;
 	}
 </style>
 
 <script>
-    // Pastikan start_load() dan end_load() sudah didefinisikan secara global
-    // Pastikan _conf() sudah didefinisikan secara global
-
     // =========================================================
     // MODAL HANDLER: uni_modal (Implementasi Opsi A)
     // =========================================================
@@ -444,7 +459,7 @@ $stat = array(
     // Fungsi helper untuk memicu Edit Task modal
     function edit_task(id, taskName = 'Task'){
         // Panggil uni_modal yang sudah diperbaiki
-        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
+        uni_modal("Edit Task", "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
     }
 
     // =========================================================

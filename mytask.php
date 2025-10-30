@@ -89,12 +89,12 @@ while ($proj = $projects->fetch_assoc()):
                     </colgroup>
                     <thead>
                         <tr>
-                            <th class="text-center">No</th>
-                            <th class="text-center">Task</th>
-                            <th class="">Due Date</th>
-                            <th class="text-center">Task Status</th>
-                            <th class="text-center">Assigned</th>
-                            <th class="text-center"></th>
+                            <th class="text-left">No</th>
+                            <th class="text-left">Task</th>
+                            <th class="text-left">Due Date</th>
+                            <th class="text-left">Task Status</th>
+                            <th class="text-left">Assignee</th>
+                            <th class="text-left"> </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -116,14 +116,14 @@ while ($proj = $projects->fetch_assoc()):
                             data-id="<?= $row['id'] ?>" 
                             data-pid="<?= $proj['id'] ?>" 
                             style="cursor:pointer;">
-                            <td class="text-center"><?php echo $i++ ?></td>
-                            <td class="text-center">
+                            <td class="text-left"><?php echo $i++ ?></td>
+                            <td class="text-left">
                                 <b><?php echo ucwords($row['task']) ?></b>
                                 <p class="truncate"><?php echo $desc ?></p>
                             </td>
                             <td><b><?php echo date("M d, Y", strtotime($row['end_date'])) ?></b></td>
                             
-                            <td class="text-center">
+                            <td class="text-left">
                                 <?php
                                 $status_code = (int)$row['status'];
                                 $tstatus = $stat[$status_code] ?? 'Pending';
@@ -143,7 +143,7 @@ while ($proj = $projects->fetch_assoc()):
                                 ?>
                             </td>
 
-                            <td class="text-center">
+                            <td class="text-left">
                                 <?php 
                                 // Hanya tampilkan user yang di-assign (termasuk diri sendiri)
                                 $task_assigned_users = [];
@@ -159,7 +159,7 @@ while ($proj = $projects->fetch_assoc()):
                                 }
                                 ?>
                                 <?php if (!empty($task_assigned_users)): ?>
-                                    <div class="d-flex justify-content-center">
+                                    <div class="d-flex justify-content-left">
                                         <?php foreach ($task_assigned_users as $au): ?>
                                             <img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
                                                  alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
@@ -173,7 +173,7 @@ while ($proj = $projects->fetch_assoc()):
                                 <?php endif; ?>
                             </td>
 
-                            <td class="text-center">
+                            <td class="text-left">
                                 <div class="dropdown">
                                     <button class="btn text-secondary" type="button" data-toggle="dropdown">
                                         <i class="fa fa-ellipsis-v"></i>
