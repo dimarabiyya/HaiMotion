@@ -85,9 +85,10 @@ if (session_status() == PHP_SESSION_NONE) {
                 } else {
                     $role_label = ' (Member)'; 
                 }
+                // === BARIS PHP YANG HILANG ===
             ?>
             <option value="<?php echo $row['id'] ?>" <?php echo isset($user_ids) && in_array($row['id'],explode(',',$user_ids)) ? "selected" : '' ?>><?php echo ucwords($row['name']) . $role_label ?></option>
-            <?php endwhile; ?>
+            <?php endwhile; // === AKHIR DARI LOOP PHP YANG HILANG === ?>
           </select>
         </div>
       </div>
@@ -113,8 +114,18 @@ if (session_status() == PHP_SESSION_NONE) {
 </form>
 
 <script>
+    // === PERBAIKAN BUG SUMMERNOTE/SELECT2 DI MODAL ===
+    // Mengatasi masalah fokus Summernote/Select2 di Bootstrap Modal
+    $(document).on('focusin', function(e) {
+        if ($(e.target).closest(".note-editor, .select2-container").length) {
+            e.stopImmediatePropagation();
+        }
+    });
+
     $(document).ready(function(){
+        
         // Pastikan select2 diinisialisasi, dan menggunakan parent modal
+        // PENTING: dropdownParent: $('#uni_modal') mengatasi z-index Select2
         $('.select2').select2({
             placeholder: "Select here",
             width: '100%',
@@ -148,15 +159,16 @@ if (session_status() == PHP_SESSION_NONE) {
                 type: 'POST',
                 success:function(resp){
                     if(resp == 1){
-                        // alert_toast('Data successfully saved',"success"); 
-                        alert('Project successfully saved');
+                        // 🎯 REVISI: Panggil alert_toast DAN tutup modal
+                        $('#uni_modal').modal('hide'); // Tutup modal
+                        alert_toast('Project successfully saved',"success"); // Tampilkan notifikasi
+                        
                         setTimeout(function(){
                             location.reload()
                         },1500)
                     } else {
                         alert('Error: ' + resp);
                     }
-                    // end_load() 
                 }
             })
         })

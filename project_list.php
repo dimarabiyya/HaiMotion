@@ -1,5 +1,6 @@
 <?php include 'db_connect.php' ?>
 
+<head>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
@@ -7,6 +8,14 @@
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css">
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> 
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap4-theme@1.0.0/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-bs4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
 
 <div class="col-lg-12">
     <div class="container-fluid pb-3">
@@ -53,7 +62,7 @@
     $stat = array("Pending","Started","On-Progress","On-Hold","Over Due","Done");
     $where = "";
     
-    // LOGIKA FILTER PROJECT BERDASARKAN ROLE
+    // LOGIKA FILTER PROJECT BERDASARKAN ROLE (sudah diperbaiki sebelumnya)
     if($_SESSION['login_type'] == 2){
       // Manager: Proyek yang ia kelola ATAU ia menjadi anggota
       $where = " WHERE manager_id = '{$_SESSION['login_id']}' OR FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
@@ -189,7 +198,8 @@
                   <i class="fa fa-eye mr-2"></i> View
                 </a>
                 <?php if($_SESSION['login_type'] != 3): ?>
-                <a class="dropdown-item" href="index.php?page=edit_project&id=<?= encode_id($row['id']) ?>">
+                <a class="dropdown-item edit_project_trigger" href="javascript:void(0)" 
+                    data-id="<?= $row['id'] ?>">
                   <i class="fa fa-solid fa-pen mr-2"></i> Edit
                 </a>
                 <a class="dropdown-item text-danger delete_project_trigger"
@@ -220,6 +230,21 @@
         </div>
     </div>
     </div>
+
+<div class="modal fade" id="uni_modal" role='dialog' aria-labelledby="uni_modalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="uni_modalLabel"></h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+      </div>
+    </div>
+  </div>
+</div>
 
 <div class="modal fade" id="deleteProjectModal" tabindex="-1" role="dialog" aria-labelledby="deleteProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -260,25 +285,38 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 /* ================================================= */
-/* CUSTOM CSS UNTUK MEMAKSA MODAL-XL JADI LEBIH LEBAR */
+/* 2. REVISI: Ukuran Modal-XL dikecilkan (sesuai permintaan) */
 /* ================================================= */
 .modal-xl {
-    max-width: 150% !important; 
+    max-width: 80% !important; /* Dikecilkan dari 90% */
     width: 100% !important;
 }
 
-#uni_modal .modal-body {
-    padding: 1.5rem; 
+/* ================================================= */
+/* 2. REVISI: CUSTOM CSS SELECT2 (Warna Biru) */
+/* ================================================= */
+/* Warna biru untuk garis border dan fokus */
+.select2-container--bootstrap4 .select2-selection--multiple:focus,
+.select2-container--bootstrap4.select2-container--focus .select2-selection--multiple {
+    border-color: #007bff !important; /* Biru Bootstrap Primary */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+/* Warna biru untuk badge yang dipilih */
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice {
+    background-color: #007bff !important; /* Biru Bootstrap Primary */
+    border-color: #007bff !important;
+    color: white !important;
+}
+/* Warna X (tombol hapus) pada badge */
+.select2-container--bootstrap4 .select2-selection--multiple .select2-selection__choice__remove {
+    color: rgba(255, 255, 255, 0.7) !important; 
 }
 
-/* ================================================= */
-/* (CSS lain yang sudah ada) */
-/* ================================================= */
 
+/* CSS LAIN */
 table p { margin: 0 !important; }
 table td { vertical-align: middle !important; }
 
@@ -311,22 +349,31 @@ table td { vertical-align: middle !important; }
 </style>
 
 <script>
-// PENTING: Anda harus memastikan fungsi encode_id() tersedia di global scope JS.
+// ========================================================================================
+// 3. REVISI: FUNGSI GLOBAL ALERT TOAST (agar bisa dipanggil dari new_project.php)
+// ========================================================================================
+function alert_toast(message, type = 'success') {
+    // Fungsi ini disimulasikan menggunakan alert, namun jika Anda memiliki
+    // implementasi toast/notifikasi yang sebenarnya, gunakan di sini.
+    console.log("Notifikasi:", message, type);
+    // Contoh sederhana notifikasi:
+    alert(`[${type.toUpperCase()}] ${message}`); 
+}
 
-// FUNGSI UNI_MODAL DIREVISI
-function uni_modal(title, url, size = 'xl') {
+
+// ========================================================================================
+// 3. REVISI FUNGSI UNI_MODAL (mengubah default size dan theme Select2)
+// ========================================================================================
+function uni_modal(title, url, size = 'lg') { // 🎯 REVISI: Default size diubah dari 'xl' ke 'lg'
     var $modal = $('#uni_modal');
     
-    // Hapus semua kelas ukuran modal yang mungkin ada, lalu tambahkan kelas yang diminta
     $modal.find('.modal-dialog')
         .removeClass('modal-sm modal-md modal-lg modal-xl')
         .addClass('modal-' + size); 
 
-    // --- START: CUSTOM STYLE HEADER ---
     $modal.find('.modal-header').css('color', '#B75301').removeClass('bg-primary');
     $modal.find('.modal-title').html(title);
-    $modal.find('.close').css('color', '#B75301 !important'); // Ganti warna tombol close
-    // --- END: CUSTOM STYLE HEADER ---
+    $modal.find('.close').css('color', 'white');
 
     $modal.find('.modal-body').html('Loading...');
     
@@ -335,13 +382,50 @@ function uni_modal(title, url, size = 'xl') {
         success: function(resp){
             if(resp){
                 $modal.find('.modal-body').html(resp);
+                
+                // Inisialisasi Summernote
+                if ($.fn.summernote) {
+                    $modal.find('.summernote').summernote({
+                        height: 200,
+                    });
+                }
+
+                // Inisialisasi Select2
+                if ($.fn.select2) {
+                    $modal.find('.select2').select2({
+                        placeholder: "Select an Option",
+                        width: '100%',
+                        theme: 'bootstrap4', 
+                        dropdownParent: $modal 
+                    });
+                }
+                
                 $modal.modal('show');
             }
         }
     });
 }
 
+// ========================================================================================
+// LOGIKA UMUM JAVASCRIPT
+// ========================================================================================
 $(document).ready(function(){
+
+    // Hapus instance Select2 dan Summernote saat modal uni_modal ditutup
+    $('#uni_modal').on('hidden.bs.modal', function (e) {
+        if ($.fn.summernote) {
+            $(this).find('.summernote').summernote('destroy');
+        }
+        
+        if ($.fn.select2) {
+            $(this).find('.select2-hidden-accessible').each(function() {
+                $(this).select2('destroy'); 
+            });
+            $(this).find('.select2-container').remove(); 
+        }
+        $(this).find('.modal-body').html(''); 
+    });
+
     
     // Klik card project → masuk ke view_project (Diubah menjadi klik row)
     $(document).on('click', '.project-row', function(e){
@@ -350,6 +434,23 @@ $(document).ready(function(){
             var encoded_pid = $(this).data('encoded-id'); 
             window.location.href = "index.php?page=view_project&id=" + encoded_pid;
         }
+    });
+    
+    // Aksi klik tombol "Add Project"
+    $('#new_project_btn').click(function(){
+        // Sekarang default size adalah 'lg', bukan 'xl' lagi
+        uni_modal("<span style='color:#B75301;'><i class='fa fa-plus mr-1'></i> Add New Project", "new_project.php", "lg"); 
+    });
+
+    // Aksi klik tombol "Edit Project" 
+    $(document).on('click', '.edit_project_trigger', function(){
+        var projectId = $(this).data('id');
+        // Sekarang default size adalah 'lg', bukan 'xl' lagi
+        uni_modal(
+            "<span style='color:#B75301;'><i class='fa fa-solid fa-pen mr-1'></i> Edit Project Details", 
+            "edit_project.php?id=" + projectId, 
+            "lg"
+        ); 
     });
 
     // Delete project logic
@@ -361,12 +462,10 @@ $(document).ready(function(){
             data: { id },
             success: function(resp){
                 if(resp == 1){
-                    // alert_toast("Project berhasil dihapus", "success");
-                    alert("Project berhasil dihapus");
+                    alert_toast("Project berhasil dihapus", "success");
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    // alert_toast("Gagal menghapus project", "danger");
-                    alert("Gagal menghapus project");
+                    alert_toast("Gagal menghapus project", "danger");
                 }
             }
         });
@@ -391,7 +490,7 @@ $(document).ready(function(){
 
 
     // =========================================================
-    // LOGIKA MODAL ALL ASSIGNED USERS
+    // LOGIKA MODAL ALL ASSIGNED USERS (sudah ada)
     // =========================================================
     $(document).on('click', '.view_all_users', function(){
         const users = $(this).data('users'); 
@@ -421,12 +520,6 @@ $(document).ready(function(){
         }
 
         modalBody.html(htmlContent);
-    });
-
-    // Aksi klik tombol "Add Project"
-    $('#new_project_btn').click(function(){
-        // Mengubah ke "xl" dan menggunakan CSS kustom di atas untuk memaksa lebar
-        uni_modal("<span style='color:#B75301;'><i class='fa fa-plus mr-1'></i> Add New Project", "new_project.php", "xl"); 
     });
 
     $('.dropdown-toggle').dropdown({ display: 'static' });

@@ -160,7 +160,7 @@ $stat = array(
 				</div>
 			</div>
 		</div>
-	</div>
+
 	<div class="row">
 		<div class="container-fluid">
 			<div class="card card-outline">
@@ -344,7 +344,7 @@ $stat = array(
 		</div>
 	</div>
 </div>
-
+</div>
 <style>
 	.truncate {
 		-webkit-line-clamp:1 !important;

@@ -12,11 +12,12 @@
 $current_user_id = $_SESSION['login_id'];
 
 // ===== FILTER PROJECT SESUAI USER YANG LOGIN =====
-// Manager (tipe 2) melihat semua proyeknya. User (tipe 3) melihat proyek yang ia masuki.
+// Manager (tipe 2) melihat semua proyeknya (baik yang dikelola maupun di-assign). User (tipe 3) melihat proyek yang ia masuki.
 $where = " WHERE 1=1 ";
 if ($_SESSION['login_type'] == 2) {
-    // Manager sees projects they manage
-    $where .= " AND p.manager_id = '{$current_user_id}' ";
+    // **PERUBAHAN DI SINI**: Manager sees projects they manage OR projects they are assigned to
+    $where .= " AND (p.manager_id = '{$current_user_id}' 
+                   OR CONCAT('[', REPLACE(p.user_ids, ',', '],['), ']') LIKE '%[{$current_user_id}]%') ";
 } elseif ($_SESSION['login_type'] == 3) {
     // User sees projects they are assigned to
     // Menggunakan LIKE pada string yang sudah diformat dengan kurung siku
@@ -60,11 +61,10 @@ $user_task_filter = " AND CONCAT('[', REPLACE(t.user_ids, ',', '],['), ']') LIKE
 if($projects->num_rows > 0):
 while ($proj = $projects->fetch_assoc()):
     
-    // Ambil task dengan filter user yang sedang login
     $tasks = $conn->query("SELECT * FROM task_list t 
-                           WHERE t.project_id = {$proj['id']} 
-                           $user_task_filter 
-                           ORDER BY t.end_date ASC");
+                       WHERE t.project_id = {$proj['id']} 
+                       $user_task_filter 
+                       ORDER BY t.date_created DESC");
 
     // Hanya tampilkan project yang memiliki task yang di-assign ke user ini
     if($tasks->num_rows == 0) continue;
@@ -236,7 +236,6 @@ while ($proj = $projects->fetch_assoc()):
   </div>
 </div>
 
-
 <style>
 .table-responsive {
     overflow-x: auto;
@@ -251,61 +250,54 @@ table td {
 
 <script>
 $(document).ready(function(){
+    // Fungsi untuk mendapatkan parameter URL
+    function getUrlParameter(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+        var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+        var results = regex.exec(location.search);
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+    };
 
-    // View Task (dropdown)
-    $('.view_task').click(function(){
-        // Memanggil modal detail menggunakan get_task_detail.php
-        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large")
-    })
-    
-    // Delete Task
-    $('.delete_task').click(function(){
-        var id = $(this).attr('data-id');
-        _conf("Are you sure to delete this task?", "delete_task", [id]);
-    });
+    const taskId = getUrlParameter('id');
+    const pageName = getUrlParameter('page'); 
 
-    // Add Productivity (modal-xl)
-    $('.new_productivity').click(function(){
-        uni_modal("<i class='fa fa-plus'></i> New Progress for: " + $(this).attr('data-task'),
-            "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
-            "modal-xl");
-    });
-    
-    // Edit Task (buka modal)
-    $('.edit_task').click(function(){
-        var id = $(this).data('id');
-        var pid = $(this).data('pid');
-        uni_modal("<i class='fa fa-edit'></i> Edit Task",
-            "manage_task.php?id=" + id + "&pid=" + pid,
-            "modal-xl");
-    });
-});
-
-// Klik seluruh row task untuk menampilkan modal detail
-$('.task-row').click(function(e){
-    // supaya klik tombol dropdown dll tidak ikut aksi ini
-    if($(e.target).closest('.dropdown').length || $(e.target).is('button') || $(e.target).is('a') || $(e.target).is('i')) return;
-
-    var taskId = $(this).data('id');
-    // Memanggil modal detail saat baris diklik
-    uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"mid-large"); 
-});
-
-// Function delete (Diperlukan oleh _conf)
-function delete_task(id){
-    start_load();
-    $.ajax({
-        url: 'ajax.php?action=delete_task',
-        method: 'POST',
-        data: { id: id },
-        success: function(resp){
-            if(resp == 1){
-                alert_toast("Task berhasil dihapus", "success");
-                setTimeout(() => location.reload(), 1500);
-            } else {
-                alert_toast("Gagal menghapus task", "danger");
-            }
+    // Cek apakah ID Tugas (numerik) ada di URL
+    if (taskId && $.isNumeric(taskId)) {
+        // Otomatis buka modal detail tugas
+        uni_modal("Task Details", "get_task_detail.php?id=" + taskId, "mid-large");
+        
+        // Opsional: Hapus parameter ID dari URL agar modal tidak muncul saat refresh halaman
+        if (history.replaceState) {
+            // URL target adalah index.php?page=mytask
+            let cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + (pageName ? '?page=' + pageName : '');
+            history.replaceState({path: cleanUrl}, '', cleanUrl);
         }
+    }
+    
+    // Pastikan event handler untuk baris tugas di mytask.php tetap berfungsi
+    $('.task-row').click(function(e){
+        // Mencegah aksi jika klik berasal dari dalam dropdown menu atau elemen interaktif lainnya
+        if($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .new_productivity, .edit_task, .delete_task').length) return;
+
+        var taskId = $(this).data('id');
+        // Memanggil modal detail saat baris diklik
+        uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"mid-large");
     });
+});
+
+// Cek jika URL mengandung ?id=...
+const params = new URLSearchParams(window.location.search);
+const taskId = params.get('id');
+
+if (taskId) {
+  setTimeout(() => {
+    uni_modal("Task Details", "get_task_detail.php?id=" + taskId, "mid-large");
+  }, 500);
 }
+
+// Fungsi `uni_modal` seharusnya didefinisikan di tempat lain (misalnya file script utama) untuk dipanggil di sini.
+// Pastikan fungsi uni_modal tersedia.
 </script>
+
+
+
