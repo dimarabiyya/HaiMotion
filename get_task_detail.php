@@ -2,7 +2,6 @@
 include 'db_connect.php';
 session_start();
 
-// Ambil login_type dari sesi untuk otorisasi tombol
 $login_type = $_SESSION['login_type'] ?? 0;
 
 if (!isset($_REQUEST['id'])) { 
@@ -10,7 +9,7 @@ if (!isset($_REQUEST['id'])) {
     exit;
 }
 
-// Update status overdue sebelum fetch (optional, tetapi ada di kode Anda)
+// Logic untuk update overdue juga di task detail (optional, tapi dipertahankan)
 $conn->query("
     UPDATE task_list 
     SET status = 4 
@@ -40,7 +39,6 @@ if ($qry->num_rows > 0) {
         }
     }
     
-    // Mapping status (Bootstrap 4 class)
     $statusArr = [
         0 => ['Pending', 'secondary'],
         1 => ['Started', 'info'],
@@ -49,6 +47,7 @@ if ($qry->num_rows > 0) {
         4 => ['Over Due', 'danger'],
         5 => ['Done', 'success']
     ];
+    // Menggunakan kelas badge-* Bootstrap 4
     $status = $statusArr[$row['status']] ?? ['Unknown', 'dark'];
     ?>
     
@@ -195,26 +194,23 @@ if ($qry->num_rows > 0) {
     </div>
 
     <script>
-        // FUNGSI JAVASCRIPT LAMA YANG DIMUAT ULANG OLEH AJAX
+        // FUNGSI JAVASCRIPT GLOBAL YANG DIGUNAKAN UNTUK KANBAN
 
-        // Fungsi Edit: Menutup modal detail dan membuka modal Edit baru
         function editTaskKanban(id, pid) {
-            // Menggunakan JQuery (sesuai environment task_list.php)
             $('#uni_modal').modal('hide'); 
             setTimeout(function(){
-                // Asumsi uni_modal global ada di index.php
+                // Memanggil uni_modal yang diasumsikan ada di index.php
                 uni_modal("<i class='fa fa-edit'></i> Edit Task",
                     "manage_task.php?id=" + id + "&pid=" + pid,
                     "modal-xl");
             }, 300);
         }
 
-        // Fungsi Delete: Menutup modal detail dan memanggil fungsi konfirmasi Hapus
         function confirmDeleteKanban(id) {
             $('#uni_modal').modal('hide');
             setTimeout(() => {
-                 // Memanggil _conf dari index.php, yang kemudian memanggil delete_kanban_task_ajax
-                _conf('Are you sure to delete this task?', 'deleteKanbanTaskFromModal', [id]); 
+                // Memanggil fungsi dari kanban.php untuk konfirmasi delete
+                window.deleteKanbanTaskFromModal(id); 
             }, 400);
         }
 
@@ -223,7 +219,6 @@ if ($qry->num_rows > 0) {
             // Sembunyikan footer default dan tampilkan footer kustom
             $('#uni_modal .modal-footer').hide(); 
             $('.custom-footer').show();
-            // Atur ukuran modal
             $('#uni_modal .modal-dialog').removeClass('modal-md').addClass("modal-lg");
         });
     </script>
@@ -237,7 +232,6 @@ if ($qry->num_rows > 0) {
         overflow-wrap: break-word;
         white-space: normal;
     }
-    /* #uni_modal .modal-footer disembunyikan di JS */
     .modal-footer.custom-footer {
         display: flex !important;
         justify-content: flex-start;

@@ -21,7 +21,6 @@ $login_type = $_SESSION['login_type'];
         </div>
         
         <div class="modal-body">
-          <!-- PROJECT -->
           <div class="form-group">
             <label for="project_id"><b>Project</b></label>
             <select name="project_id" id="project_id" class="form-control" required>
@@ -29,7 +28,9 @@ $login_type = $_SESSION['login_type'];
               <?php
               $project_where = " WHERE 1=1 ";
               if ($login_type == 2) {
-                  $project_where .= " AND manager_id = '$user_id' ";
+                  // **PERUBAHAN DI SINI**: Manager sees projects they manage OR projects they are assigned to
+                  // Menggunakan FIND_IN_SET untuk mengecek user_ids
+                  $project_where .= " AND (manager_id = '$user_id' OR FIND_IN_SET('$user_id', user_ids)) ";
               } elseif ($login_type == 3) {
                   $project_where .= " AND FIND_IN_SET('$user_id', user_ids) ";
               }
@@ -51,13 +52,11 @@ $login_type = $_SESSION['login_type'];
             </select>
           </div>
 
-          <!-- TASK NAME -->
           <div class="form-group">
             <label for="task"><b>Task</b></label>
             <input type="text" name="task" id="task" class="form-control" required>
           </div>
 
-          <!-- DATES -->
           <div class="form-row">
             <div class="form-group col-md-6">
               <label for="start_date"><b>Start Date</b></label>
@@ -69,13 +68,11 @@ $login_type = $_SESSION['login_type'];
             </div>
           </div>
 
-          <!-- DESCRIPTION -->
           <div class="form-group">
             <label for="description"><b>Description</b></label>
             <textarea name="description" id="description" class="summernote form-control"></textarea>
           </div>
 
-          <!-- CONTENT PILLAR -->
           <div class="form-group">
             <label><b>Content Pillar</b></label><br>
             <?php
@@ -89,7 +86,6 @@ $login_type = $_SESSION['login_type'];
             <?php endforeach; ?>
           </div>
 
-          <!-- PLATFORM -->
           <div class="form-group">
             <label><b>Platform</b></label><br>
             <?php
@@ -103,14 +99,12 @@ $login_type = $_SESSION['login_type'];
             <?php endforeach; ?>
           </div>
 
-          <!-- REFERENCE LINKS -->
           <div class="form-group">
             <label><b>Link Referensi</b></label>
             <textarea name="reference_links" id="reference_links" class="form-control" rows="3" placeholder="Pisahkan link dengan enter."></textarea>
             <small class="text-muted">Pisahkan link dengan enter.</small>
           </div>
 
-          <!-- STATUS -->
           <div class="form-group">
             <label><b>Status</b></label>
             <select name="status" id="status" class="form-control">
@@ -123,7 +117,6 @@ $login_type = $_SESSION['login_type'];
             </select>
           </div>
 
-          <!-- ASSIGN TO -->
           <div class="form-group">
             <label><b>Assign To</b></label>
             <select name="user_ids[]" id="user_ids" class="form-control select2" multiple="multiple" style="width:100%;" required>
@@ -143,14 +136,16 @@ $login_type = $_SESSION['login_type'];
 
 <script>
 $(document).ready(function(){
+    // Inisialisasi plugin/editor
     $('.summernote').summernote({ height: 200 });
     $('.select2').select2({ placeholder: "Select Employee" });
 
-    // Auto-load user list jika project aktif
+    // Auto-load user list jika project aktif saat modal dibuka
     if($('#project_id').val()){
         $('#project_id').trigger('change');
     }
 
+    // Event handler saat project berubah
     $('#project_id').change(function(){
         var pid = $(this).val();
         var userSelect = $('#user_ids');
@@ -159,11 +154,13 @@ $(document).ready(function(){
         userSelect.trigger('change');
 
         if(pid){
+            // AJAX untuk mengambil daftar user yang ter-assign di project yang dipilih
             $.ajax({
                 url: 'ajax.php?action=get_project_users',
                 method: 'POST',
                 data: {pid: pid},
                 success:function(resp){
+                    // Respons harus berupa opsi <option> untuk tag <select>
                     userSelect.html(resp);
                     userSelect.trigger('change');
                 }
@@ -174,9 +171,10 @@ $(document).ready(function(){
         }
     });
 
-    // Submit form
+    // Submit form menggunakan AJAX
     $('#add-task-form').submit(function(e){
         e.preventDefault();
+        // Cek apakah fungsi start_load/end_load ada (jika digunakan untuk loading screen)
         if (typeof start_load !== 'undefined') { start_load(); }
 
         $.ajax({

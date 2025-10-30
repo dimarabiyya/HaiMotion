@@ -12,11 +12,12 @@
 $current_user_id = $_SESSION['login_id'];
 
 // ===== FILTER PROJECT SESUAI USER YANG LOGIN =====
-// Manager (tipe 2) melihat semua proyeknya. User (tipe 3) melihat proyek yang ia masuki.
+// Manager (tipe 2) melihat semua proyeknya (baik yang dikelola maupun di-assign). User (tipe 3) melihat proyek yang ia masuki.
 $where = " WHERE 1=1 ";
 if ($_SESSION['login_type'] == 2) {
-    // Manager sees projects they manage
-    $where .= " AND p.manager_id = '{$current_user_id}' ";
+    // **PERUBAHAN DI SINI**: Manager sees projects they manage OR projects they are assigned to
+    $where .= " AND (p.manager_id = '{$current_user_id}' 
+                   OR CONCAT('[', REPLACE(p.user_ids, ',', '],['), ']') LIKE '%[{$current_user_id}]%') ";
 } elseif ($_SESSION['login_type'] == 3) {
     // User sees projects they are assigned to
     // Menggunakan LIKE pada string yang sudah diformat dengan kurung siku
@@ -295,4 +296,6 @@ if (taskId) {
   }, 500);
 }
 
+// Fungsi `uni_modal` seharusnya didefinisikan di tempat lain (misalnya file script utama) untuk dipanggil di sini.
+// Pastikan fungsi uni_modal tersedia.
 </script>

@@ -9,7 +9,7 @@ if (!isset($_SESSION['login_id']) || !isset($_SESSION['login_type'])) {
 $current_user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 
-// --- NEW STATUS MAP (6 Columns) --- (Definisi ini penting untuk logging)
+// --- NEW STATUS MAP (6 Columns) ---
 $status_map_labels = [
     0 => 'Pending',       
     1 => 'Started',       
@@ -19,35 +19,30 @@ $status_map_labels = [
     5 => 'Done'           
 ];
 
-// --- Handle Delete Task ---
+// --- Handle Delete Task (Activity Logging) ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
     header('Content-Type: application/json');
     $id = (int) $_POST['delete_task_id'];
     
     if ($login_type == 1 || $login_type == 2) {
-        // 1. Ambil detail task sebelum dihapus untuk logging
         $task_to_delete_q = $conn->query("SELECT task, project_id FROM task_list WHERE id = $id");
         $task_to_delete = $task_to_delete_q->fetch_assoc();
 
         $delete = $conn->query("DELETE FROM task_list WHERE id = $id");
 
         if ($delete) {
-            // 2. LOG ACTIVITY untuk penghapusan
             if ($task_to_delete) {
-                $user_id_log = $current_user_id;
                 $project_id_log = (int)$task_to_delete['project_id'];
-                $task_name = $task_to_delete['task'];
+                $task_name = $conn->real_escape_string($task_to_delete['task']); // Escaping untuk deskripsi
                 
                 $activity_type = "TASK_DELETED";
                 $description_log = "Menghapus tugas '{$task_name}' dari project ID: {$project_id_log}.";
 
-                // Menggunakan prepared statement untuk keamanan
                 $log_q = $conn->prepare("
                     INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
                     VALUES (?, ?, 0, ?, ?, NOW())
                 ");
-                // task_id di set 0 karena task sudah tidak ada
-                $log_q->bind_param("iiss", $user_id_log, $project_id_log, $activity_type, $description_log);
+                $log_q->bind_param("iiss", $current_user_id, $project_id_log, $activity_type, $description_log);
                 $log_q->execute();
             }
             echo json_encode(['status' => 'success']);
@@ -60,6 +55,94 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
     exit;
 }
 // -----------------------------
+
+// --- Update status drag & drop (Activity Logging) ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'])) {
+    $id = (int) $_POST['id'];
+    $new_status = (int) $_POST['status'];
+    
+    $old_task_q = $conn->query("SELECT task, project_id, status FROM task_list WHERE id = $id");
+    $old_task = $old_task_q->fetch_assoc();
+    $old_status = (int)$old_task['status'];
+
+    $update_success = $conn->query("UPDATE task_list SET status = $new_status WHERE id = $id");
+
+    if ($update_success && $old_status !== $new_status) {
+        $project_id_log = (int)$old_task['project_id'];
+        $task_id_log = $id;
+        $task_name = $conn->real_escape_string($old_task['task']);
+
+        $old_status_label = $status_map_labels[$old_status] ?? 'Unknown';
+        $new_status_label = $status_map_labels[$new_status] ?? 'Unknown';
+
+        $activity_type = "TASK_STATUS_UPDATE";
+        $description_log = "Mengubah status tugas '{$task_name}' dari '{$old_status_label}' menjadi '{$new_status_label}' via Kanban.";
+        
+        $log_q = $conn->prepare("
+            INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
+            VALUES (?, ?, ?, ?, ?, NOW())
+        ");
+        $log_q->bind_param("iiiss", $current_user_id, $project_id_log, $task_id_log, $activity_type, $description_log);
+        $log_q->execute();
+    }
+    
+    exit;
+}
+// -----------------------------
+
+// =========================================================================
+// LOGIC BARU: Mass Update Task Status ke Overdue sebelum fetch data
+// =========================================================================
+$today_date = date('Y-m-d');
+// Ambil task yang akan diupdate ke Overdue
+$overdue_tasks_q = $conn->query("
+    SELECT id, project_id, task 
+    FROM task_list 
+    WHERE DATE(end_date) < '{$today_date}'
+    AND status NOT IN (0, 3, 5)
+");
+
+$updated_tasks = [];
+if ($overdue_tasks_q) {
+    while ($task = $overdue_tasks_q->fetch_assoc()) {
+        // Lakukan update di DB
+        $conn->query("UPDATE task_list SET status = 4 WHERE id = {$task['id']}");
+        
+        // Catat aktivitas jika berhasil diupdate
+        if ($conn->affected_rows > 0) {
+            $updated_tasks[] = [
+                'id' => $task['id'],
+                'project_id' => $task['project_id'],
+                'task' => $task['task']
+            ];
+        }
+    }
+
+    // Logging untuk setiap task yang menjadi Overdue
+    if (!empty($updated_tasks)) {
+        $activity_type = "TASK_OVERDUE_AUTO";
+        $new_status_label = $status_map_labels[4]; // Overdue
+
+        foreach ($updated_tasks as $t) {
+            $project_id_log = (int)$t['project_id'];
+            $task_id_log = (int)$t['id'];
+            $task_name = $conn->real_escape_string($t['task']);
+
+            $description_log = "Tugas '{$task_name}' otomatis diubah menjadi '{$new_status_label}' karena Due Date terlampaui.";
+
+            $log_q = $conn->prepare("
+                INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
+                VALUES (?, ?, ?, ?, ?, NOW())
+            ");
+            $log_q->bind_param("iiiss", $current_user_id, $project_id_log, $task_id_log, $activity_type, $description_log);
+            $log_q->execute();
+        }
+    }
+}
+// =========================================================================
+// END NEW LOGIC
+// =========================================================================
+
 
 // Filter project sesuai role
 $where = "";
@@ -82,47 +165,9 @@ if (!in_array($project_id, $allowed_project_ids) && !empty($allowed_project_ids)
     $project_id = 0; // Tidak ada project yang diizinkan
 }
 
-// Update status drag & drop
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'])) {
-    $id = (int) $_POST['id'];
-    $new_status = (int) $_POST['status'];
-    
-    // 1. Ambil status lama dan detail task
-    $old_task_q = $conn->query("SELECT task, project_id, status FROM task_list WHERE id = $id");
-    $old_task = $old_task_q->fetch_assoc();
-    $old_status = (int)$old_task['status'];
-
-    $update_success = $conn->query("UPDATE task_list SET status = $new_status WHERE id = $id");
-
-    // 2. LOG ACTIVITY jika update berhasil dan status berubah
-    if ($update_success && $old_status !== $new_status) {
-        $user_id_log = $current_user_id;
-        $project_id_log = (int)$old_task['project_id'];
-        $task_id_log = $id;
-        $task_name = $old_task['task'];
-
-        $old_status_label = $status_map_labels[$old_status] ?? 'Unknown';
-        $new_status_label = $status_map_labels[$new_status] ?? 'Unknown';
-
-        $activity_type = "TASK_STATUS_UPDATE";
-        $description_log = "Mengubah status tugas '{$task_name}' dari '{$old_status_label}' menjadi '{$new_status_label}' via Kanban.";
-        
-        // Query untuk memasukkan log activity
-        $log_q = $conn->prepare("
-            INSERT INTO activity_log (user_id, project_id, task_id, activity_type, description, created_at) 
-            VALUES (?, ?, ?, ?, ?, NOW())
-        ");
-        $log_q->bind_param("iiiss", $user_id_log, $project_id_log, $task_id_log, $activity_type, $description_log);
-        $log_q->execute();
-    }
-    
-    exit;
-}
-
-// --- NEW STATUS MAP (6 Columns) ---
 $status_map = [
     0 => ['label' => 'Pending', 'color' => '#6c757d'],       
-    1 => ['label' => 'Started', 'color' => '#6f42c1'],       
+    1 => ['label' => 'Started', 'color' => '#0dcaf0'],       
     2 => ['label' => 'On Progress', 'color' => '#0d6efd'],   
     3 => ['label' => 'Hold', 'color' => '#ffc107'],          
     4 => ['label' => 'Overdue', 'color' => '#dc3545'],       
@@ -131,6 +176,7 @@ $status_map = [
 
 $tasks = [0 => [], 1 => [], 2 => [], 3 => [], 4 => [], 5 => []];
 if ($project_id) {
+    // Catatan: Karena kita sudah update di atas, query ini akan mendapatkan status yang benar.
     $query = $conn->query("
         SELECT t.*, p.name AS project_name, 
                GROUP_CONCAT(CONCAT(u.firstname,' ',u.lastname) SEPARATOR ', ') AS assigned_names,
@@ -146,11 +192,8 @@ if ($project_id) {
         if (isset($tasks[$row['status']])) {
             $tasks[$row['status']][] = $row;
         } else {
-             if ($row['status'] == 4) {
-                 $tasks[5][] = $row; 
-             } else {
-                 $tasks[0][] = $row; 
-             }
+             // Fallback untuk status yang tidak terdefinisi (seharusnya tidak terjadi karena update overdue)
+             $tasks[0][] = $row;
         }
     }
 }
@@ -164,7 +207,7 @@ if ($project_id) {
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
-/* --- Global Styles --- */
+/* --- KEMBALI KE BOOTSTRAP 4 / FONT AWESOME UNTUK KOMPATIBILITAS --- */
 body {
     background-color: #f4f5f7;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -175,6 +218,7 @@ body {
 }
 .container-fluid-custom {
     padding: 0 20px;
+    /* Lebar minimal agar 6 kolom terlihat */
     min-width: 1840px; 
 }
 .filter-area {
@@ -184,16 +228,6 @@ body {
     justify-content: space-between;
     align-items: center;
 }
-.dropdown-toggle {
-    background-color: #B75301!important; 
-    border: none;
-    font-weight: 500;
-}
-.dropdown-toggle:hover {
-    background-color: #A34A00 !important;
-}
-
-/* --- Kanban Board Styles (Main Area) --- */
 .kanban-board-wrapper {
     display: flex;
     flex-wrap: nowrap;
@@ -201,8 +235,6 @@ body {
     padding-bottom: 10px;
     align-items: flex-start;
 }
-
-/* --- Kanban Column Styles (List) --- */
 .kanban-column-container {
     flex: 0 0 300px; 
     max-height: 80vh;
@@ -237,8 +269,6 @@ body {
     font-weight: 500;
     color: #42526e;
 }
-
-/* --- Task Card Styles --- */
 .task-card {
     background: #fff;
     border-radius: 5px;
@@ -292,8 +322,6 @@ body {
     font-size: 11px;
     color: #5e6c84;
 }
-
-/* Delete Button */
 .delete-btn {
     position: absolute;
     top: 5px;
@@ -322,7 +350,7 @@ body {
         <h3 class="mb-3">Kanban Board</h3>
         <div class="dropdown">
             <button class="btn text-white dropdown-toggle" type="button" id="projectDropdown"
-                data-toggle="dropdown" aria-expanded="false" style="background-color: #0079bf !important;">
+                data-toggle="dropdown" aria-expanded="false" style="background-color: #B75301 !important;">
                 <i class="fas fa-folder"></i>
                 <?= htmlspecialchars(array_column($projects, 'name', 'id')[$project_id] ?? 'Pilih Project') ?>
             </button>
@@ -407,57 +435,60 @@ body {
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
 // =================================================================
-// ASUMSI: Fungsi uni_modal, start_load, end_load, dan _conf sudah ada
-// di file induk (index.php) atau di sini sebagai fallback.
-// Jika belum ada, Anda harus menambahkannya.
+// ASUMSI: uni_modal & _conf ada di file induk, jika tidak, fallback diperlukan
 // =================================================================
-
-// FALLBACK JIKA uni_modal TIDAK ADA
 if (typeof uni_modal === 'undefined') {
     window.uni_modal = function(title, url, size = 'mid-large') {
         $('#uni_modal .modal-title').html(title);
         $('#uni_modal .modal-dialog').removeClass('modal-lg modal-md modal-sm').addClass(size);
-        // start_load() // Jika ada
+        // start_load() 
         $.ajax({
             url: url,
             success: function(resp) {
                 if (resp) {
                     $('#uni_modal .modal-body').html(resp);
                     $('#uni_modal').modal('show');
-                    // end_load() // Jika ada
+                    // end_load() 
                 }
             },
             error: function(err) {
-                 // end_load() // Jika ada
+                 // end_load() 
                  console.log(err);
             }
         });
     }
 }
-// FALLBACK JIKA _conf TIDAK ADA
 if (typeof _conf === 'undefined') {
     window._conf = function(msg, func, params = []) {
         if(confirm(msg)) {
-            window[func](...params);
+            // Memanggil fungsi JS berdasarkan nama string
+            window[func].apply(null, params); 
         }
     }
 }
 
 
-// --- DELETE TASK FUNCTION (Untuk Tombol X di Kanban) ---
+// FUNGSI GLOBAL DELETE YANG DIPANGGIL DARI MODAL DAN TOMBOL X
 function deleteKanbanTask(id) {
-    _conf("Are you sure to delete this task?", "delete_kanban_task_ajax", [id]);
+    // Dipanggil dari tombol 'X' di card
+    _conf("Are you sure to delete this task?", "deleteKanbanTaskAjax", [id]);
 }
 
-function delete_kanban_task_ajax(id) {
-    // start_load() // Jika ada
+function deleteKanbanTaskFromModal(id) {
+    // Dipanggil dari dalam get_task_detail.php
+    _conf('Are you sure to delete this task?', 'deleteKanbanTaskAjax', [id]); 
+}
+
+
+function deleteKanbanTaskAjax(id) {
+    // start_load() 
     $.ajax({
-        url: window.location.href, // POST ke file ini sendiri
+        url: window.location.href, 
         method: 'POST',
         data: { delete_task_id: id },
         dataType: 'json',
         success: function(resp){
-            // end_load() // Jika ada
+            // end_load() 
             if(resp.status === 'success'){
                 alert("Task berhasil dihapus!");
                 $('.task-card[data-id="'+id+'"]').remove();
@@ -467,13 +498,12 @@ function delete_kanban_task_ajax(id) {
             }
         },
         error: function(jqXHR, textStatus, errorThrown) {
-             // end_load() // Jika ada
+             // end_load() 
              console.error("AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
-             alert("Terjadi kesalahan server saat menghapus task.");
+             alert("Terjadi kesalahan server saat menghapus task. Cek console log.");
         }
     });
 }
-
 
 // --- Drag & Drop dan Click ---
 $(document).ready(function() {
@@ -515,51 +545,12 @@ $(document).ready(function() {
 
     // Klik card buka detail modal (menggunakan uni_modal)
     $('.task-card').click(function(e) {
-        // Mencegah aksi jika klik berasal dari tombol delete
         if ($(e.target).closest('.delete-btn').length) return; 
 
         const id = $(this).data('id');
         uni_modal("Task Detail", "get_task_detail.php?id=" + id, "modal-lg");
     });
 });
-
-// ... (Di dalam tag <script> di kanban.php) ...
-
-// FUNGSI GLOBAL DELETE YANG DIPANGGIL DARI MODAL DETAIL
-function deleteKanbanTaskFromModal(id) {
-    // Memanggil fungsi AJAX untuk menghapus task
-    delete_kanban_task_ajax(id);
-}
-
-function deleteKanbanTask(id) {
-    // Dipanggil dari tombol 'X' di card
-    _conf("Are you sure to delete this task?", "delete_kanban_task_ajax", [id]);
-}
-
-function delete_kanban_task_ajax(id) {
-    // start_load() // Jika ada
-    $.ajax({
-        url: window.location.href, 
-        method: 'POST',
-        data: { delete_task_id: id },
-        dataType: 'json',
-        success: function(resp){
-            // end_load() // Jika ada
-            if(resp.status === 'success'){
-                alert("Task berhasil dihapus!");
-                $('.task-card[data-id="'+id+'"]').remove();
-                location.reload(); 
-            } else {
-                alert("Gagal menghapus task: " + (resp.message || "Unknown error."));
-            }
-        },
-        error: function(jqXHR, textStatus, errorThrown) {
-             // end_load() // Jika ada
-             console.error("AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
-             alert("Terjadi kesalahan server saat menghapus task.");
-        }
-    });
-}
 </script>
 </body>
 </html>
