@@ -46,7 +46,7 @@
 
     <!-- ===================== PROFILE ===================== -->
     <li class="nav-item ml-2 mr-4">
-      <a class="nav-link p-0 view_user" href="javascript:void(0)" data-id="<?php echo $_SESSION['login_id']; ?>" style="display: flex; align-items: center;">
+      <a class="nav-link p-0 view_profile" href="javascript:void(0)" data-id="<?php echo $_SESSION['login_id']; ?>" style="display: flex; align-items: center;">
         <img src="assets/uploads/<?php echo $_SESSION['login_avatar']; ?>" class="img-circle elevation-2" alt="User Avatar" style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
         <span class="ml-2"><b><?php echo ucwords($_SESSION['login_firstname']); ?></b></span>
       </a>
@@ -113,9 +113,9 @@ function extractTaskId(url) {
 $(document).ready(function(){
 
   // ====== Profile Modal ======
-  $('.view_user').click(function(){
+  $('.view_profile').click(function(){
     let userId = $(this).attr('data-id');
-    uni_modal("<i class='fa fa-id-card'></i> Profil Pengguna", "view_user.php?id=" + userId);
+    uni_modal("<i class='fa fa-id-card'></i> Profil Pengguna", "view_profile.php?id=" + userId);
   });
 
   // ====== Load Notifications ======

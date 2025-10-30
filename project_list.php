@@ -190,7 +190,7 @@
                 </a>
                 <?php if($_SESSION['login_type'] != 3): ?>
                 <a class="dropdown-item" href="index.php?page=edit_project&id=<?= encode_id($row['id']) ?>">
-                  <i class="fa fa-cog mr-2"></i> Edit
+                  <i class="fa fa-solid fa-pen mr-2"></i> Edit
                 </a>
                 <a class="dropdown-item text-danger delete_project_trigger"
                   data-id="<?= $row['id'] ?>"
@@ -246,7 +246,7 @@
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header" style="background-color:#B75301; color:white;">
-        <h5 class="modal-title" id="usersModalLabel">All Assigned Members</h5>
+        <h5 class="modal-title" id="usersModalLabel">All Assignee</h5>
         <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
           <span aria-hidden="true">&times;</span>
         </button>
@@ -343,13 +343,14 @@ function uni_modal(title, url, size = 'xl') {
 
 $(document).ready(function(){
     
-$(document).on('click', '.project-row', function(e){
-    if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
-        var encoded_pid = $(this).data('encoded-id'); 
-        // Langsung redirect ke halaman view_project
-        window.location.href = "index.php?page=view_project&id=" + encoded_pid;
-    }
-});
+    // Klik card project → masuk ke view_project (Diubah menjadi klik row)
+    $(document).on('click', '.project-row', function(e){
+        // Mencegah aksi jika klik berasal dari dalam dropdown menu, tombol view_all_users, atau elemen interaktif lainnya
+        if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
+            var encoded_pid = $(this).data('encoded-id'); 
+            window.location.href = "index.php?page=view_project&id=" + encoded_pid;
+        }
+    });
 
     // Delete project logic
     function delete_project(id){
