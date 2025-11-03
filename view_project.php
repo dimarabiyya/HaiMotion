@@ -61,315 +61,323 @@ $manager = $manager->num_rows > 0 ? $manager->fetch_array() : array();
 // mapping status sesuai DB
 $stat = array(
     0 => "Pending",
-	1 => "Started",
+    1 => "Started",
     2 => "On-Progress",
     3 => "On-Hold",
-	4 => "Over Due",
+    4 => "Over Due",
     5 => "Done"
 );
 ?>
 
 <div class="col-lg-12">
-	<div class="row">
-		<div class="col-md-12">
-			<div class="card border p-2">
-				<div class="col-md-12">	
-					<div class="row">
-						<div class="col-sm-6">
-							<dl>
-								<dt>Project Name</dt>
-								<dd><?php echo ucwords($name) ?></dd>
-								<dt>Description</dt>
-								<dd>
-									<?php $decoded_description = html_entity_decode(html_entity_decode($description)); echo strip_tags($decoded_description); 
-									?>
-								</dd>
-							</dl>
-							<dl>
-								<dt>Project Manager</dt>
-								<dd>
-									<?php if(isset($manager['id'])) : ?>
-									<div class="d-flex align-items-center mt-1">
-										<img class="img-circle img-thumbnail p-0 shadow-sm border-info img-sm mr-3" src="assets/uploads/<?php echo $manager['avatar'] ?>" alt="Avatar">
-										<?php echo ucwords($manager['name']) ?>
-									</div>
-									<?php else: ?>
-										<small><i>Manager Deleted from Database</i></small>
-									<?php endif; ?>
-								</dd>
-							</dl>
-						</div>
-						<div class="col-md-6">
-							<dl>
-								<dt>Start Date</dt>
-								<dd><?php echo date("F d, Y",strtotime($start_date)) ?></dd>
-							</dl>
-							<dl>
-								<dt>End Date</dt>
-								<dd><?php echo date("F d, Y",strtotime($end_date)) ?></dd>
-							</dl>
-							<dl>
-								<dt>Status</dt>
-								<dd>
-									<?php 
-									$badgeClass = [
-										0 => "secondary",  // Pending
-										1 => "info",
-										2 => "primary",    // On-Progress
-										3 => "warning",    // On-Hold
-										4 => "danger",
-										5 => "success"     // Done
-									];
-									$class = isset($badgeClass[$status]) ? $badgeClass[$status] : "dark";
-									echo "<span class='badge badge-{$class}'>".$stat[$status]."</span>";
-									?>
-								</dd>
-							</dlv>
-						</div>
-					</div>
-						<div class="p-2">
-							<div class="">
-								<span><b class="bold-warning">Assignee:</b></span>
-								<div class="card-tools">	
-								</div>
-							</div>
-							<div class="card-body">
-								<div class="d-flex align-items-center text-nowrap user-avatar-stack">
-									<?php 
-									if(!empty($user_ids)):
-										$members = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where id in ($user_ids) order by concat(firstname,' ',lastname) asc");
-										while($row=$members->fetch_assoc()):
-									?>
-											<img src="assets/uploads/<?php echo $row['avatar'] ?>" 
-												alt="<?php echo ucwords($row['name']) ?>" 
-												class="rounded-circle border border-white member-avatar" 
-												style="width:38px; height:38px; object-fit:cover; margin-left:-8px;"
-												title="<?php echo ucwords($row['name']) ?>">
-									<?php 
-										endwhile;
-									else:
-									?>
-										<span class="text-muted">No Team Member Assigned</span>
-									<?php
-									endif;
-									?>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card border p-2">
+                <div class="col-md-12"> 
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <dl>
+                                <dt>Project Name</dt>
+                                <dd><?php echo ucwords($name) ?></dd>
+                                <dt>Description</dt>
+                                <dd>
+                                    <?php $decoded_description = html_entity_decode(html_entity_decode($description)); echo strip_tags($decoded_description); 
+                                    ?>
+                                </dd>
+                            </dl>
+                            <dl>
+                                <dt>Project Manager</dt>
+                                <dd>
+                                    <?php if(isset($manager['id'])) : ?>
+                                    <div class="d-flex align-items-center mt-1">
+                                        <img class="img-circle img-thumbnail p-0 shadow-sm border-info img-sm mr-3" src="assets/uploads/<?php echo $manager['avatar'] ?>" alt="Avatar">
+                                        <?php echo ucwords($manager['name']) ?>
+                                    </div>
+                                    <?php else: ?>
+                                        <small><i>Manager Deleted from Database</i></small>
+                                    <?php endif; ?>
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl>
+                                <dt>Start Date</dt>
+                                <dd><?php echo date("F d, Y",strtotime($start_date)) ?></dd>
+                            </dl>
+                            <dl>
+                                <dt>End Date</dt>
+                                <dd><?php echo date("F d, Y",strtotime($end_date)) ?></dd>
+                            </dl>
+                            <dl>
+                                <dt>Status</dt>
+                                <dd>
+                                    <?php 
+                                    $badgeClass = [
+                                        0 => "secondary",  // Pending
+                                        1 => "info",
+                                        2 => "primary",    // On-Progress
+                                        3 => "warning",    // On-Hold
+                                        4 => "danger",
+                                        5 => "success"     // Done
+                                    ];
+                                    $class = isset($badgeClass[$status]) ? $badgeClass[$status] : "dark";
+                                    echo "<span class='badge badge-{$class}'>".$stat[$status]."</span>";
+                                    ?>
+                                </dd>
+                            </dlv>
+                        </div>
+                    </div>
+                        <div class="p-2">
+                            <div class="">
+                                <span><b class="bold-warning">Assignee:</b></span>
+                                <div class="card-tools">    
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center text-nowrap user-avatar-stack">
+                                    <?php 
+                                    if(!empty($user_ids)):
+                                        $members = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where id in ($user_ids) order by concat(firstname,' ',lastname) asc");
+                                        while($row=$members->fetch_assoc()):
+                                    ?>
+                                            <img src="assets/uploads/<?php echo $row['avatar'] ?>" 
+                                                alt="<?php echo ucwords($row['name']) ?>" 
+                                                class="rounded-circle border border-white member-avatar" 
+                                                style="width:38px; height:38px; object-fit:cover; margin-left:-8px;"
+                                                title="<?php echo ucwords($row['name']) ?>">
+                                    <?php 
+                                        endwhile;
+                                    else:
+                                    ?>
+                                        <span class="text-muted">No Team Member Assigned</span>
+                                    <?php
+                                    endif;
+                                    ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-	<div class="row">
-		<div class="container-fluid">
-			<div class="card card-outline">
-				<div class="card-header">
-					<span style="font-size: 20px;"><b>Task List</b></span>
-					<div class="card-tools">
-						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
-                        	<i class="fa fa-plus mr-1"></i> Add Task
-                    	</button>
-					</div>
-				</div>
-				<div class="card-body p-0">
-					<div class="table-responsive">
-					<table class="table table-condensed m-0 table-hover">
-						<colgroup>
-							<col width="5%">
-							<col width="20%">
-							<col width="37%">
-							<col width="10%">
-							<col width="20%">
-							<col width="5%">
-						</colgroup>
-						<thead>
-							<th class="text-left">No</th>
-							<th class="text-left">Task</th>
-							<th class="text-left">Description</th>
-							<th class="text-left">Status</th>
-							<th class="text-left">Assignee</th>
-							<th> </th>
-						</thead>
-						<tbody>
-							<?php 
-							$i = 1;
-							$today = strtotime(date("Y-m-d"));
-							$tasks = $conn->query("SELECT * FROM task_list WHERE project_id = {$id} ORDER BY task ASC");
-							while($row = $tasks->fetch_assoc()):
-								$trans = get_html_translation_table(HTML_ENTITIES,ENT_QUOTES);
-								unset($trans["\""], $trans["<"], $trans[">"], $trans["<h2"]);
-								$desc = strtr(html_entity_decode($row['description']),$trans);
-								$desc = str_replace(array("<li>","</li>"), array("",", "), $desc);
+    <div class="row">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-6">
+                    <span style="font-size: 20px;"><b>Task List</b></span>
+                </div>
+                <div class="col-md-6 text-right">
+                    <div class="card-tools">
+                        <button class="btn text-white" style="background-color:#B75301;" id="new_task">
+                            <i class="fa fa-plus mr-1"></i> Add Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-2">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                    <table class="table table-condensed m-0 table-hover">
+                        <colgroup>
+                            <col width="5%">
+                            <col width="20%">
+                            <col width="37%">
+                            <col width="10%">
+                            <col width="20%">
+                            <col width="5%">
+                        </colgroup>
+                        <thead>
+                            <th class="text-left">No</th>
+                            <th class="text-left">Task</th>
+                            <th class="text-left">Description</th>
+                            <th class="text-left">Status</th>
+                            <th class="text-left">Assignee</th>
+                            <th> </th>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            $i = 1;
+                            $today = strtotime(date("Y-m-d"));
+                            $tasks = $conn->query("SELECT * FROM task_list WHERE project_id = {$id} ORDER BY task ASC");
+                            while($row = $tasks->fetch_assoc()):
+                                $trans = get_html_translation_table(HTML_ENTITIES,ENT_QUOTES);
+                                unset($trans["\""], $trans["<"], $trans[">"], $trans["<h2"]);
+                                $desc = strtr(html_entity_decode($row['description']),$trans);
+                                $desc = str_replace(array("<li>","</li>"), array("",", "), $desc);
 
-								// Cek overdue
-								$endDate = strtotime($row['end_date']);
-								if($row['status'] != 5 && $row['status'] != 3 && $today > $endDate){
-									$row['status'] = 4; // paksa jadi Over Due
-								}
-							?>
-								<tr class="view_task_row" data-id="<?php echo $row['id'] ?>" style="cursor:pointer;">
-									<td class="text-left"><?php echo $i++ ?></td>
-									<td><b><?php echo ucwords($row['task']) ?></b></td>
-									<td><p class="truncate"><?php echo strip_tags($desc) ?></p></td>
-									<td>
-										<?php 
-										if($row['status'] == 0){
-												echo "<span class='badge badge-secondary'>Pending</span>";
-											}elseif($row['status'] == 1){
-												echo "<span class='badge badge-info'>Started</span>";
-											}elseif($row['status'] == 2){
-												echo "<span class='badge badge-primary'>On-Progress</span>";
-											}elseif($row['status'] == 3){
-												echo "<span class='badge badge-warning'>On-Hold</span>";
-											}elseif($row['status'] == 4){
-												echo "<span class='badge badge-danger'>Over Due</span>";
-											}elseif($row['status'] == 5){
-												echo "<span class='badge badge-success'>Done</span>";
-											}
-										?>
-									</td>
-									<?php 
-									// === Assigned Users ===
-									$task_assigned_users = [];
-									if (!empty($row['user_ids'])) {
-										$task_user_ids = explode(',', $row['user_ids']);
-										$task_user_ids = array_map('intval', $task_user_ids);
-										if (!empty($task_user_ids)) {
-											$ids_str = implode(',', $task_user_ids);
-											$task_users_q = $conn->query("SELECT id, avatar, firstname, lastname 
-																		FROM users 
-																		WHERE id IN ($ids_str)");
-											while ($u = $task_users_q->fetch_assoc()) {
-												$task_assigned_users[] = $u;
-											}
-										}
-									}
-									?>
-									<td class="text-left">
-										<?php if (!empty($task_assigned_users)): ?>
-											<div class="d-flex justify-content-left">
-												<?php foreach ($task_assigned_users as $au): ?>
-													<img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
-														alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
-														class="rounded-circle border border-secondary" 
-														style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
-														title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
-												<?php endforeach; ?>
-											</div>
-										<?php else: ?>
-											<span class="text-muted">No User</span>
-										<?php endif; ?>
-									</td>
+                                // Cek overdue
+                                $endDate = strtotime($row['end_date']);
+                                if($row['status'] != 5 && $row['status'] != 3 && $today > $endDate){
+                                    $row['status'] = 4; // paksa jadi Over Due
+                                }
+                            ?>
+                                <tr class="view_task_row" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>" style="cursor:pointer;">
+                                    <td class="text-left"><?php echo $i++ ?></td>
+                                    <td><b><?php echo ucwords($row['task']) ?></b></td>
+                                    <td><p class="truncate"><?php echo strip_tags($desc) ?></p></td>
+                                    <td>
+                                        <?php 
+                                        if($row['status'] == 0){
+                                                echo "<span class='badge badge-secondary'>Pending</span>";
+                                            }elseif($row['status'] == 1){
+                                                echo "<span class='badge badge-info'>Started</span>";
+                                            }elseif($row['status'] == 2){
+                                                echo "<span class='badge badge-primary'>On-Progress</span>";
+                                            }elseif($row['status'] == 3){
+                                                echo "<span class='badge badge-warning'>On-Hold</span>";
+                                            }elseif($row['status'] == 4){
+                                                echo "<span class='badge badge-danger'>Over Due</span>";
+                                            }elseif($row['status'] == 5){
+                                                echo "<span class='badge badge-success'>Done</span>";
+                                            }
+                                        ?>
+                                    </td>
+                                    <?php 
+                                    // === Assigned Users ===
+                                    $task_assigned_users = [];
+                                    if (!empty($row['user_ids'])) {
+                                        $task_user_ids = explode(',', $row['user_ids']);
+                                        $task_user_ids = array_map('intval', $task_user_ids);
+                                        if (!empty($task_user_ids)) {
+                                            $ids_str = implode(',', $task_user_ids);
+                                            $task_users_q = $conn->query("SELECT id, avatar, firstname, lastname 
+                                                                        FROM users 
+                                                                        WHERE id IN ($ids_str)");
+                                            while ($u = $task_users_q->fetch_assoc()) {
+                                                $task_assigned_users[] = $u;
+                                            }
+                                        }
+                                    }
+                                    ?>
+                                    <td class="text-left">
+                                        <?php if (!empty($task_assigned_users)): ?>
+                                            <div class="d-flex justify-content-left">
+                                                <?php foreach ($task_assigned_users as $au): ?>
+                                                    <img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
+                                                        alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
+                                                        class="rounded-circle border border-secondary" 
+                                                        style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
+                                                        title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
+                                                <?php endforeach; ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-muted">No User</span>
+                                        <?php endif; ?>
+                                    </td>
 
-									<td class="text-left">
-										<div class="dropdown">
-											<button class="btn text-secondary" type="button" id="dropdownMenu<?= $row['id'] ?>" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-												<i class="fa fa-ellipsis-v"></i>
-											</button>
-											<div class="dropdown-menu">
-												<a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-eye mr-3"></i>View</a>
-												<a class="dropdown-item edit_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-pen mr-3"></i>Edit</a>
-												<a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"><i class="fa fa-trash mr-3"></i>Delete</a>
-											</div>
-										</div>
-									</td>
-								</tr>
-							<?php endwhile; ?>
-							</tbody>
+                                    <td class="text-left">
+                                        <div class="dropdown">
+                                            <button class="btn text-secondary" type="button" id="dropdownMenu<?= $row['id'] ?>" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                                <i class="fa fa-ellipsis-v"></i>
+                                            </button>
+                                            <div class="dropdown-menu">
+                                                <a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-eye mr-3"></i>View</a>
+                                                <a class="dropdown-item edit_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>"><i class="fa fa-pen mr-3"></i>Edit</a>
+                                                <a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"><i class="fa fa-trash mr-3"></i>Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endwhile; ?>
+                            </tbody>
 
-					</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="row">
-		<div class="col-md-12">
-			<div class="card">
-				<div class="card-header">
-					<span style="font-size: 20px;"><b>Comments</b></span>
-					<div class="card-tools">
-						<button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
-                        	<i class="fa fa-plus mr-1"></i> Add Comment
-                    	</button>
-					</div>
-				</div>
-				<div class="card-body p-4">
-					<?php $progress = $conn->query("SELECT p.*,concat(u.firstname,' ',u.lastname) as uname,u.avatar,t.task FROM user_productivity p inner join users u on u.id = p.user_id inner join task_list t on t.id = p.task_id where p.project_id = $id order by unix_timestamp(p.date_created) desc ");
-					while($row = $progress->fetch_assoc()): ?>
-						<div class="post mb-3 border-bottom comment-item"> 
-							<div class="user-block d-flex align-items-left">
-								
-								<img class="img-circle img-bordered-sm" src="assets/uploads/<?php echo $row['avatar'] ?>" alt="user image">
-								
-								<div class="flex-grow-1"> 
-									<div class="d-flex justify-content-between align-items-center mb-0">
-										<span class="username font-weight-bold">
-											<a href="#"><?php echo ucwords($row['uname']) ?></a>
-										</span>
-										
-										<small class="text-muted text-right comment-time">
-											<?php echo date('M d, Y - h:i A',strtotime($row['date_created'])) ?> 
-										</small>
-									</div>
-									
-									<span class="description text-muted mt-0 pt-0">
-										Task: <?php echo ucwords($row['task']) ?>
-									</span>
-								</div>
+                    </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="row">
+                <div class="col-md-6">
+                    <span style="font-size: 20px;"><b>Comments</b></span>
+                </div>
+                <div class="col-md-6 text-right">
+                    <div class="card-tools">
+                        <button class="btn text-white" style="background-color:#B75301;" id="new_productivity">
+                            <i class="fa fa-plus mr-1"></i> Add Comment
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-2">
+                <div class="card-body p-4">
+                    <?php $progress = $conn->query("SELECT p.*,concat(u.firstname,' ',u.lastname) as uname,u.avatar,t.task FROM user_productivity p inner join users u on u.id = p.user_id inner join task_list t on t.id = p.task_id where p.project_id = $id order by unix_timestamp(p.date_created) desc ");
+                    while($row = $progress->fetch_assoc()): ?>
+                        <div class="post mb-3 border-bottom comment-item"> 
+                            <div class="user-block d-flex align-items-left">
+                                
+                                <img class="img-circle img-bordered-sm" src="assets/uploads/<?php echo $row['avatar'] ?>" alt="user image">
+                                
+                                <div class="flex-grow-1"> 
+                                    <div class="d-flex justify-content-between align-items-center mb-0">
+                                        <span class="username font-weight-bold">
+                                            <a href="#"><?php echo ucwords($row['uname']) ?></a>
+                                        </span>
+                                        
+                                        <small class="text-muted text-right comment-time">
+                                            <?php echo date('M d, Y - h:i A',strtotime($row['date_created'])) ?> 
+                                        </small>
+                                    </div>
+                                    
+                                    <span class="description text-muted mt-0 pt-0">
+                                        Task: <?php echo ucwords($row['task']) ?>
+                                    </span>
+                                </div>
 
-								<?php if($_SESSION['login_id'] == $row['user_id']): ?>
-								<span class="btn-group dropleft ml-2">
-									<span class="btndropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-										<i class="fa fa-ellipsis-v"></i>
-									</span>
-									<div class="dropdown-menu">
-										<h6 class="dropdown-header">Action</h6>
-										<a class="dropdown-item manage_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"  data-task="<?php echo $row['task'] ?>">Edit</a>
-										<a class="dropdown-item delete_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">Delete</a>
-									</div>
-								</span>
-								<?php endif; ?>
-							</div>
-							
-							<div class="mt-2 comment-content-body"> 
-								<?php echo html_entity_decode($row['comment']) ?>
-							</div>
-						</div>
-						
-					<?php endwhile; ?>
-				</div>
-			</div>
-		</div>
-	</div>
+                                <?php if($_SESSION['login_id'] == $row['user_id']): ?>
+                                <span class="btn-group dropleft ml-2">
+                                    <span class="btndropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
+                                        <i class="fa fa-ellipsis-v"></i>
+                                    </span>
+                                    <div class="dropdown-menu">
+                                        <h6 class="dropdown-header">Action</h6>
+                                        <a class="dropdown-item manage_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>"  data-task="<?php echo $row['task'] ?>">Edit</a>
+                                        <a class="dropdown-item delete_progress" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">Delete</a>
+                                    </div>
+                                </span>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="mt-2 comment-content-body"> 
+                                <?php echo html_entity_decode($row['comment']) ?>
+                            </div>
+                        </div>
+                        
+                    <?php endwhile; ?>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </div>
 <style>
-	.truncate {
-		-webkit-line-clamp:1 !important;
-	}
-	.user-avatar-stack .member-avatar:first-child {
+    .truncate {
+        -webkit-line-clamp:1 !important;
+    }
+    .user-avatar-stack .member-avatar:first-child {
         margin-left: 0px !important;
     }
-	.card-body {
-		padding: 0;
-	}
-	.post .user-block img.img-bordered-sm {
+    .card-body {
+        padding: 0;
+    }
+    .post .user-block img.img-bordered-sm {
         width: 40px !important; 
         height: 40px !important;
         object-fit: cover;
         margin-right: 10px !important; 
     }
-	.post .user-block .flex-grow-1 {
+    .post .user-block .flex-grow-1 {
         margin-left: 0 !important;
     }
-	.post .user-block .description {
+    .post .user-block .description {
         margin-top: 0 !important;
         margin-bottom: 0 !important;
-		margin-left: 0 !important;
+        margin-left: 0 !important;
         display: block;
-	}
+    }
 </style>
 
 <script>
@@ -378,13 +386,11 @@ $stat = array(
     // =========================================================
     function uni_modal(title, url, size = "mid-large") {
         // 1. CLEANUP (PENTING): Hancurkan instance Summernote yang ada
-        // Ini dijalankan SEBELUM konten baru dimuat, yang mencegah konflik inisialisasi ganda.
         if ($('#uni_modal .summernote').length) {
             $('#uni_modal .summernote').summernote('destroy');
         }
 
         // 2. Load Content
-        // Asumsi: Anda memiliki fungsi start_load()
         if (typeof start_load !== 'undefined') { start_load(); } 
         
         $.ajax({
@@ -394,24 +400,31 @@ $stat = array(
                     // Isi modal
                     $('#uni_modal .modal-title').html(title);
                     $('#uni_modal .modal-body').html(resp);
-                    // Pastikan kelas ukuran modal dihandle dengan benar
                     $('#uni_modal .modal-dialog').removeClass('mid-large large').addClass(size); 
 
                     // 3. RE-INITIALIZE: Inisialisasi ulang SETELAN konten dimuat
+                    
+                    // A. Inisialisasi Select2
+                    // PENTING: Lakukan ini sebelum Summernote, dan set dropdownParent
+                    if ($('#uni_modal .select2').length) {
+                        $('#uni_modal .select2').select2({
+                            dropdownParent: $('#uni_modal'), 
+                            width: '100%'
+                        });
+                    }
+
+                    // B. Inisialisasi Summernote
                     if ($('#uni_modal .summernote').length) {
                         $('#uni_modal .summernote').summernote({ 
                             height: 200,
-                            // Tambahkan opsi Select2 jika manage_task.php menggunakannya
-                            callbacks: {
-                                onInit: function() {
-                                    if ($('.select2').length) {
-                                        $('.select2').select2({
-                                            dropdownParent: $('#uni_modal'),
-                                            width: '100%'
-                                        });
-                                    }
-                                }
-                            }
+                            toolbar: [
+                                ['style', ['style']],
+                                ['font', ['bold', 'italic', 'underline', 'clear']],
+                                ['color', ['color']],
+                                ['para', ['ul', 'ol', 'paragraph']],
+                                ['insert', ['link', 'picture']],
+                                ['view', ['codeview']]
+                            ]
                         });
                     }
 
@@ -458,8 +471,8 @@ $stat = array(
     
     // Fungsi helper untuk memicu Edit Task modal
     function edit_task(id, taskName = 'Task'){
-        // Panggil uni_modal yang sudah diperbaiki
-        uni_modal("Edit Task", "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
+        // Memanggil manage_task.php untuk edit
+        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
     }
 
     // =========================================================
@@ -468,7 +481,8 @@ $stat = array(
     
     // 1. New Task
     $('#new_task').click(function(){
-        edit_task(0, "New Task For <?php echo ucwords($name) ?>"); // ID 0 untuk task baru
+        // Memanggil manage_task.php untuk tambah baru (id=0)
+        uni_modal("New Task For <?php echo ucwords($name) ?>", "manage_task.php?pid=<?php echo $id ?>&id=0", "mid-large");
     })
     
     // 2. Edit Task (Dropdown)
@@ -499,16 +513,20 @@ $stat = array(
         _conf("Are you sure to delete this progress?","delete_progress",[$(this).attr('data-id')])
     })
 
-    // 6. Klik Baris Task -> MENGEDIT
-    $('.view_task_row').click(function(e){
-        if(!$(e.target).closest('.dropdown').length && !$(e.target).is('button') && !$(e.target).is('a')){
+    // 6. Klik Baris Task -> Tampilkan Detail Task via Modal
+    $('.view_task_row').click(function(e) {
+        if (
+            !$(e.target).closest('.dropdown').length &&
+            !$(e.target).is('button') &&
+            !$(e.target).is('a')
+        ) {
             const taskId = $(this).data('id');
             const taskName = $(this).data('task'); 
-            edit_task(taskId, taskName);
+            // Panggil modal dengan halaman detail
+            uni_modal("Task: " + taskName, "get_task_detail.php?id=" + taskId, "mid-large");
         }
     });
 
     // 7. PENTING: Hapus listener hidden.bs.modal lama
-    // Logika cleanup sekarang berada di uni_modal, jadi handler ini dihapus
     $('#uni_modal').off('hidden.bs.modal');
 </script>

@@ -152,7 +152,7 @@
     background-size: contain;
     padding: 10px;
 ">
-    <strong>&copy; 2025 
+    <strong style="color:#B75301;">&copy; 2025 
         <a style="color:#B75301;">PT HAI MOTION KREATIF</a>
     </strong>
     All rights reserved.

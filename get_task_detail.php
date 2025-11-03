@@ -180,7 +180,6 @@ if ($qry->num_rows > 0) {
       </div>
     </div>
     <div class="modal-footer display p-0 m-0 custom-footer">
-        <?php if ($login_type == 1 || $login_type == 2): ?> 
         <button class="btn btn-primary mr-2" 
                 onclick="editTaskKanban(<?= $id ?>, <?= $project_id ?>)">
           <i class="fa fa-edit"></i> Edit Task
@@ -189,7 +188,6 @@ if ($qry->num_rows > 0) {
                 onclick="confirmDeleteKanban(<?= $id ?>)">
           <i class="fa fa-trash"></i> Delete
         </button>
-        <?php endif; ?>
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
     </div>
 

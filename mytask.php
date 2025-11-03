@@ -38,15 +38,11 @@ $stat = [
 <div class="container-fluid mb-3">
     <div class="d-flex justify-content-between align-items-center">
         <h3 class="m-0">My Task</h3>
-        
-        <?php if($_SESSION['login_type'] != 3): // Biasanya user biasa (tipe 3) tidak bisa menambah task ?>
         <button class="btn text-white" style="background-color:#B75301;" data-toggle="modal" data-target="#addTaskModal">
             <i class="fa fa-plus"></i> Add Task
         </button>
-        <?php endif; ?>
     </div>
 </div>
-
 
 <?php
 // Query project yang melibatkan user yang login
@@ -183,20 +179,18 @@ while ($proj = $projects->fetch_assoc()):
                                         <a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?= $row['id'] ?>">
                                             <i class="fa fa-eye mr-2"></i> View
                                         </a>
-                                        
-                                        <?php if($_SESSION['login_type'] != 3): ?>
+                                    
                                            <a class="dropdown-item edit_task" href="javascript:void(0)" 
                                                 data-id="<?= $row['id'] ?>" data-pid="<?= $proj['id'] ?>">
                                                 <i class="fa fa-edit mr-2"></i> Edit
                                             </a>
-                                        <?php endif; ?>
 
                                         <a class="dropdown-item new_productivity" 
                                            data-pid="<?php echo $proj['id'] ?>" 
                                            data-tid="<?php echo $row['id'] ?>" 
                                            data-task="<?php echo ucwords($row['task']) ?>" 
                                            href="javascript:void(0)">
-                                            <i class="fa fa-plus mr-2"></i> Add Productivity
+                                            <i class="fa fa-plus mr-2"></i> Add Comment
                                         </a>
                                         
                                         <?php if($_SESSION['login_type'] != 3): ?>

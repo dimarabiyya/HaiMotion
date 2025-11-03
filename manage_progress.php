@@ -60,7 +60,7 @@ if(isset($_GET['id'])){
 			<hr>
 			<div class="text-right">
 				<button class="btn btn-primary mr-2">Save</button>
-				<a href="index.php?page=project_view" class="btn btn-secondary">Cancel</a>
+				<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
 			</div>
 		</div>
 	</form>
