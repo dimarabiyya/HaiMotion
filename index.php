@@ -141,6 +141,13 @@
     </div>
   </div>
   </div>
+
+  <?php include 'new_task.php'; ?>
+  <a href="#addTaskModal" class="float" data-toggle="modal" 
+       title="Tambah Task Baru">
+        <i class="fa fa-plus my-float"></i>
+  </a>
+
   <aside class="control-sidebar control-sidebar-dark">
     </aside>
   <footer class="main-footer" style="
@@ -158,6 +165,42 @@
     All rights reserved.
 </footer>
 </div>
+
+<style>
+  .float{
+        position:fixed;
+        width:60px;
+        height:60px;
+        bottom:60px;
+        right:40px;
+        background-color:#B75301; 
+        color:#FFF;
+        border-radius:50px;
+        text-align:center;
+        box-shadow: 2px 2px 3px #999;
+        z-index:1000;
+        transition: all 0.3s;
+    }
+
+    .float:hover {
+        background-color: #B75301;
+        color: #fff;
+        text-decoration: none;
+    }
+
+    .my-float{
+        margin-top:22px;
+        font-size: 20px;
+    }
+
+    /* Ini hanya opsional jika Font Awesome Anda versi 5+ */
+    .fa-plus:before {
+        content: "\f067"; 
+        font-family: "Font Awesome 5 Free";
+        font-weight: 900;
+        display: block;
+    }
+</style>
 
 <script>
 	 window.start_load = function(){
@@ -214,6 +257,14 @@ window._conf = function($msg='',$func='',$params = []){
         $(this).remove();
       })
   })
+
+  // PENTING: Lakukan ini sebelum Summernote, dan set dropdownParent
+                    if ($('#uni_modal .select2').length) {
+                        $('#uni_modal .select2').select2({
+                            dropdownParent: $('#uni_modal'), 
+                            width: '100%'
+                        });
+                    }
 </script>	
 
 

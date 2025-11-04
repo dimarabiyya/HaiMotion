@@ -289,6 +289,12 @@ if (taskId) {
   }, 500);
 }
 
+// Add Productivity (modal-xl)
+    $('.new_productivity').click(function(){
+        uni_modal("<i class='fa fa-plus'></i> New Progress for: " + $(this).attr('data-task'),
+            "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
+            "modal-xl");
+    });
 // Fungsi `uni_modal` seharusnya didefinisikan di tempat lain (misalnya file script utama) untuk dipanggil di sini.
 // Pastikan fungsi uni_modal tersedia.
 </script>

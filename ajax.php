@@ -134,46 +134,26 @@ if ($action == 'check_email') {
 }
 
 /* ========== GET PROJECT USERS FOR TASK ASSIGNMENT ========== */
-if ($action == 'get_project_users') {
-    $pid = intval($_POST['pid'] ?? 0);
-    $options = '<option value="">Select Employee(s)</option>'; // Default option
+if(isset($_GET['action']) && $_GET['action'] == 'get_project_users'){
+    include 'db_connect.php';
+    $pid = intval($_POST['pid']);
 
-    if ($pid > 0) {
-        // 1. Ambil string user_ids (e.g., '5,12,8') dari project_list
-        $project_query = $conn->query("SELECT user_ids FROM project_list WHERE id = $pid");
-        
-        if ($project_query->num_rows > 0) {
-            $project = $project_query->fetch_assoc();
-            $user_ids_string = $project['user_ids']; // Ini adalah string user ID yang dipisahkan koma
-
-            if (!empty($user_ids_string)) {
-                // 2. Query tabel users berdasarkan user_ids yang ditemukan
-                // Asumsi tabel user Anda bernama 'users' dan memiliki kolom 'id', 'firstname', 'lastname'.
-                $users_query = $conn->query("
-                    SELECT 
-                        id, 
-                        CONCAT(firstname, ' ', lastname) AS name 
-                    FROM 
-                        users 
-                    WHERE 
-                        id IN ($user_ids_string) 
-                    ORDER BY 
-                        name ASC
-                ");
-                
-                if ($users_query) {
-                    while ($row = $users_query->fetch_assoc()) {
-                        $options .= "<option value='{$row['id']}'>" . ucwords($row['name']) . "</option>";
-                    }
-                }
-            } else {
-                $options .= '<option value="" disabled>No users are assigned to this project yet.</option>';
-            }
-        }
+    // Ambil user dari project
+    $qry = $conn->query("SELECT user_ids FROM project_list WHERE id = $pid");
+    $user_ids = '';
+    if($qry->num_rows > 0){
+        $user_ids = $qry->fetch_assoc()['user_ids'];
     }
-    
-    // Kirimkan HTML options kembali ke frontend
-    echo $options;
+
+    if(!empty($user_ids)){
+        $users = $conn->query("SELECT id, CONCAT(firstname,' ',lastname) AS name FROM users WHERE id IN ($user_ids) ORDER BY name ASC");
+        while($row = $users->fetch_assoc()){
+            echo '<option value="'.$row['id'].'">'.htmlspecialchars($row['name']).'</option>';
+        }
+    }else{
+        echo '<option value="">No users assigned to this project</option>';
+    }
+    exit;
 }
 
 // Di dalam switch($_GET['action'])

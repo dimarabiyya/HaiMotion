@@ -1,6 +1,6 @@
 <?php
 ini_set('display_errors', 1);
-require_once 'phpmailer_config.php'; // TAMBAHKAN BARIS INI
+require_once 'phpmailer_config.php'; // Pastikan file ini berisi konfigurasi SMTP dan fungsi send_task_notification_email & record_notification
 
 class Action {
     private $db;
@@ -11,7 +11,7 @@ class Action {
         $this->db = $conn;
     }
 
-    // === LOG AKTIVITAS (fixed) ===
+    // === LOG AKTIVITAS ===
     function log_activity($user_id, $project_id = null, $task_id = null, $activity_type = '', $description = '') {
         if (!$this->db) {
             error_log("log_activity: no db connection");
@@ -71,6 +71,8 @@ class Action {
     function save_user() {
         extract($_POST);
         $data = "";
+        
+        // 1. ITERASI DATA POST (Termasuk 'notification_email')
         foreach ($_POST as $k => $v) {
             if (!in_array($k, array('id', 'cpass', 'password')) && !is_numeric($k)) {
                 $v = $this->db->real_escape_string($v);
@@ -78,35 +80,47 @@ class Action {
             }
         }
 
+        // 2. Tambahkan Password
         if (!empty($password)) {
             $pwd = md5($password);
             $data .= ", password='{$pwd}' ";
         }
 
+        // 3. Cek Duplikasi Email Login
         $email = $this->db->real_escape_string($email ?? '');
         $check = $this->db->query("SELECT * FROM users WHERE email ='{$email}' " . (!empty($id) ? " AND id != {$id} " : ''))->num_rows;
-        if ($check > 0) return 2;
+        if ($check > 0) return 2; // Error 2: Email sudah digunakan
 
+        // 4. Proses Upload Avatar
         if (isset($_FILES['img']) && $_FILES['img']['tmp_name'] != '') {
-            // Amankan nama file
             $original_name = preg_replace("/[^a-zA-Z0-9\._-]/", "_", $_FILES['img']['name']);
             $fname = time() . '_' . $original_name;
             $upload_path = 'assets/uploads/' . $fname;
 
-            // Pastikan folder ada
             if (!is_dir('assets/uploads')) {
                 mkdir('assets/uploads', 0777, true);
             }
 
-            // Pindahkan file
             if (move_uploaded_file($_FILES['img']['tmp_name'], $upload_path)) {
                 $data .= ", avatar = '{$fname}' ";
+                
+                // Hapus avatar lama saat update
+                if(!empty($id)){
+                    $old_avatar_qry = $this->db->query("SELECT avatar FROM users WHERE id = $id");
+                    if($old_avatar_qry->num_rows > 0){
+                        $old_avatar = $old_avatar_qry->fetch_assoc()['avatar'];
+                        if(!empty($old_avatar) && file_exists('assets/uploads/'.$old_avatar)){
+                            @unlink('assets/uploads/'.$old_avatar);
+                        }
+                    }
+                }
             } else {
                 error_log("Gagal upload avatar: " . $_FILES['img']['error']);
             }
         }
 
 
+        // 5. Jalankan Query
         if (empty($id)) {
             $save = $this->db->query("INSERT INTO users SET $data");
         } else {
@@ -114,8 +128,11 @@ class Action {
         }
 
         if ($save) return 1;
+        
+        error_log("save_user SQL Error: " . $this->db->error);
+        return 0; // Gagal simpan
     }
-
+    
     function delete_user() {
         extract($_POST);
         $delete = $this->db->query("DELETE FROM users WHERE id = " . intval($id));
@@ -170,7 +187,7 @@ class Action {
         return 0;
     }
 
-    // === TASK MANAGEMENT ===
+    // === TASK MANAGEMENT (REVISI PENTING DI SINI) ===
     function save_task() {
         // ambil dari $_POST tapi tidak menggunakan extract() untuk keamanan
         $task = $this->db->real_escape_string($_POST['task'] ?? '');
@@ -217,7 +234,6 @@ class Action {
         $reference_links = $this->db->real_escape_string($_POST['reference_links'] ?? '');
 
         if (empty($task) || $project_id <= 0) {
-            // missing required
             return 0;
         }
 
@@ -225,7 +241,6 @@ class Action {
         $sql = '';
 
         if ($is_new) {
-            // gunakan created_by dari session (lebih aman dibanding rely on form input)
             $created_by = isset($_SESSION['login_id']) ? intval($_SESSION['login_id']) : 0;
 
             $sql = "INSERT INTO task_list 
@@ -264,7 +279,7 @@ class Action {
         $log_desc = $action_type == 'task_add' ? "Menambahkan task baru: {$task} pada project: {$project_name}" : "Mengupdate task: {$task}";
         $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $task_id, $action_type, $log_desc);
 
-        // push notifikasi seperti sebelumnya (tetap gunakan user_ids_array)
+        // push notifikasi
         $link = "index.php?page=view_task&id=" . (function_exists('encode_id') ? encode_id($task_id) : $task_id);
         $message_prefix = $action_type == 'task_add' ? "baru ditugaskan" : "diupdate";
         $message = "Task {$task} telah {$message_prefix} di project {$project_name}.";
@@ -272,11 +287,17 @@ class Action {
 
         if (!empty($user_ids_array)) {
             $ids_str = implode(',', $user_ids_array);
-            $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+            // REVISI: Ambil kolom notification_email
+            $users_q = $this->db->query("SELECT id, email, notification_email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+            
             while ($user = $users_q->fetch_assoc()) {
                 $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
+                
+                // Prioritaskan notification_email, fallback ke email login
+                $target_email = !empty($user['notification_email']) ? $user['notification_email'] : $user['email'];
+
                 $email_details = [
-                    'email' => $user['email'],
+                    'email' => $target_email, // GUNAKAN $target_email
                     'name'  => $full_name,
                     'subject' => $email_subject
                 ];
@@ -289,22 +310,20 @@ class Action {
 
 
     public function delete_task() {
-        // Memastikan koneksi database tersedia (seperti yang dilakukan oleh include 'db_connect.php')
+        // Memastikan koneksi database tersedia
         global $conn; 
         
         // 1. Ambil ID tugas
         extract($_POST);
         $id = intval($id);
         
-        // 2. HAPUS NOTIFIKASI TERKAIT (SOLUSI BUG)
-        // Notifikasi merujuk ke link: view_task.php?id=[ID_TUGAS]
+        // 2. HAPUS NOTIFIKASI TERKAIT
         $delete_notification = $conn->query("
             DELETE FROM notification_list 
             WHERE link = 'view_task.php?id=$id' 
         ");
 
         if (!$delete_notification) {
-            // Log error jika penghapusan notifikasi gagal
             error_log("Gagal menghapus notifikasi terkait tugas $id: " . $conn->error);
         }
         
@@ -315,15 +334,13 @@ class Action {
         ");
 
         if ($delete_task) {
-            // Jika tugas utama berhasil dihapus
-            return 1; // Success
+            return 1;
         } else {
-            // Jika tugas utama gagal dihapus
             return "Gagal menghapus tugas: " . $conn->error;
         }
     }
 
-// === PROGRESS (TASK ACTIVITY) ===
+    // === PROGRESS (TASK ACTIVITY) (REVISI PENTING DI SINI) ===
     function save_progress() {
         extract($_POST);
         $data = "";
@@ -335,14 +352,12 @@ class Action {
             }
         }
         
-        // ... kode perhitungan durasi (Line 324)
         $dur = abs(strtotime("2020-01-01 " . ($end_time ?? '00:00'))) - abs(strtotime("2020-01-01 " . ($start_time ?? '00:00')));
         $dur = $dur / (60 * 60);
         $data .= ", time_rendered='{$dur}' ";
-        // ...
+        
 
         if (empty($id)) {
-            // ensure task_id present
             $data .= ", user_id=" . intval($_SESSION['login_id']) . " ";
             $sql = "INSERT INTO user_productivity SET $data";
             $save = $this->db->query($sql);
@@ -372,7 +387,9 @@ class Action {
                     // Notification Logic (Comment Added)
                     if (!empty($recipients_ids)) {
                         $ids_str = implode(',', array_map('intval', $recipients_ids));
-                        $users_q = $this->db->query("SELECT id, email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
+                        
+                        // REVISI: Ambil kolom notification_email
+                        $users_q = $this->db->query("SELECT id, email, notification_email, firstname, lastname FROM users WHERE id IN ({$ids_str})");
                         
                         $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
                         $link = "index.php?page=view_task&id=" . encode_id($task_id);
@@ -380,10 +397,12 @@ class Action {
                         $email_subject = "[KOMENTAR BARU] Task: {$task_name}";
                         
                         while ($user = $users_q->fetch_assoc()) {
-                            // record_notification() akan mengabaikan notifikasi jika user_id == login_id
+                            // Prioritaskan notification_email, fallback ke email login
+                            $target_email = !empty($user['notification_email']) ? $user['notification_email'] : $user['email'];
+
                             $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
                             $email_details = [
-                                'email' => $user['email'], 
+                                'email' => $target_email, // GUNAKAN $target_email
                                 'name' => $full_name,
                                 'subject' => $email_subject
                             ];
