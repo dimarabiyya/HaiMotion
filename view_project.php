@@ -34,11 +34,18 @@ $today = strtotime(date("Y-m-d"));
 // LOGIKA UTAMA ANDA DIMULAI DI SINI (aman)
 // =======================================================
 
-$tprog = $conn->query("SELECT * FROM task_list where project_id = {$id}")->num_rows;
-$cprog = $conn->query("SELECT * FROM task_list where project_id = {$id} and status = 3")->num_rows;
+// Pastikan sub-query aman
+$tprog_qry = $conn->query("SELECT id FROM task_list where project_id = {$id}");
+$tprog = ($tprog_qry === false) ? 0 : $tprog_qry->num_rows;
+
+$cprog_qry = $conn->query("SELECT id FROM task_list where project_id = {$id} and status = 5"); // Status 5 = Done
+$cprog = ($cprog_qry === false) ? 0 : $cprog_qry->num_rows;
+
+$prod_qry = $conn->query("SELECT id FROM user_productivity where project_id = {$id}");
+$prod = ($prod_qry === false) ? 0 : $prod_qry->num_rows;
+
 $prog = $tprog > 0 ? ($cprog/$tprog) * 100 : 0;
 $prog = $prog > 0 ?  number_format($prog,2) : $prog;
-$prod = $conn->query("SELECT * FROM user_productivity where project_id = {$id}")->num_rows;
 
 // Cek overdue
 $endDate = strtotime($row['end_date']);
@@ -46,14 +53,23 @@ if($row['status'] != 5 && $row['status'] != 3 && $row['status'] != 0 && $today >
     $row['status'] = 4; // Over Due
 }
 
-if($status == 0 && strtotime(date('Y-m-d')) >= strtotime($start_date)):
-if($prod  > 0  || $cprog > 0)
-  $status = 2;
-else
-  $status = 1;
-elseif($status == 0 && strtotime(date('Y-m-d')) > strtotime($end_date)):
-$status = 4;
-endif;
+// =======================================================
+// ✅ REVISI LOGIKA STATUS OTOMATIS (BARIS INI YANG MEMBUAT PERUBAHAN)
+// =======================================================
+
+// Jika status masih Pending (0) dan tanggal mulai sudah tiba/lewat
+if($status == 0 && $today >= strtotime($start_date)){
+    if($prod > 0 || $cprog > 0){
+        $status = 2; // Ubah menjadi On-Progress jika ada aktivitas
+    } else {
+        $status = 0; // Biarkan tetap Pending (0) jika tidak ada aktivitas
+    }
+} 
+// Jika status Pending (0) dan tanggal berakhir sudah lewat
+elseif($status == 0 && $today > $endDate) {
+    $status = 4; // Over Due
+}
+
 
 $manager = $conn->query("SELECT *,concat(firstname,' ',lastname) as name FROM users where id = $manager_id");
 $manager = $manager->num_rows > 0 ? $manager->fetch_array() : array();
@@ -120,11 +136,12 @@ $stat = array(
                                         4 => "danger",
                                         5 => "success"     // Done
                                     ];
-                                    $class = isset($badgeClass[$status]) ? $badgeClass[$status] : "dark";
-                                    echo "<span class='badge badge-{$class}'>".$stat[$status]."</span>";
+                                    $current_status = $status; // Gunakan variabel $status yang sudah dihitung
+                                    $class = isset($badgeClass[$current_status]) ? $badgeClass[$current_status] : "dark";
+                                    echo "<span class='badge badge-{$class}'>".$stat[$current_status]."</span>";
                                     ?>
                                 </dd>
-                            </dlv>
+                            </dl> <!-- ✅ PERBAIKAN: Mengubah tag penutup <dlv> menjadi </dl> -->
                         </div>
                     </div>
                         <div class="p-2">
@@ -206,10 +223,11 @@ $stat = array(
                                 $desc = strtr(html_entity_decode($row['description']),$trans);
                                 $desc = str_replace(array("<li>","</li>"), array("",", "), $desc);
 
-                                // Cek overdue
+                                // Cek overdue untuk Task (hanya untuk tampilan)
+                                $task_status = $row['status'];
                                 $endDate = strtotime($row['end_date']);
-                                if($row['status'] != 5 && $row['status'] != 3 && $today > $endDate){
-                                    $row['status'] = 4; // paksa jadi Over Due
+                                if($task_status != 5 && $task_status != 3 && $today > $endDate){
+                                    $task_status = 4; // paksa jadi Over Due
                                 }
                             ?>
                                 <tr class="view_task_row" data-id="<?php echo $row['id'] ?>" data-task="<?php echo $row['task'] ?>" style="cursor:pointer;">
@@ -218,17 +236,17 @@ $stat = array(
                                     <td><p class="truncate"><?php echo strip_tags($desc) ?></p></td>
                                     <td>
                                         <?php 
-                                        if($row['status'] == 0){
+                                        if($task_status == 0){
                                                 echo "<span class='badge badge-secondary'>Pending</span>";
-                                            }elseif($row['status'] == 1){
+                                            }elseif($task_status == 1){
                                                 echo "<span class='badge badge-info'>Started</span>";
-                                            }elseif($row['status'] == 2){
+                                            }elseif($task_status == 2){
                                                 echo "<span class='badge badge-primary'>On-Progress</span>";
-                                            }elseif($row['status'] == 3){
+                                            }elseif($task_status == 3){
                                                 echo "<span class='badge badge-warning'>On-Hold</span>";
-                                            }elseif($row['status'] == 4){
+                                            }elseif($task_status == 4){
                                                 echo "<span class='badge badge-danger'>Over Due</span>";
-                                            }elseif($row['status'] == 5){
+                                            }elseif($task_status == 5){
                                                 echo "<span class='badge badge-success'>Done</span>";
                                             }
                                         ?>
@@ -261,7 +279,7 @@ $stat = array(
                                                         title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
                                                 <?php endforeach; ?>
                                             </div>
-                                        <?php else: ?>
+                                        <? else: ?>
                                             <span class="text-muted">No User</span>
                                         <?php endif; ?>
                                     </td>

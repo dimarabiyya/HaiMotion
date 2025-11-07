@@ -50,7 +50,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
           <dd class="col-sm-8"><?php echo $type_arr[$type] ?></dd>
           <dt class="col-sm-4">Staff ID</dt>
           <dd class="col-sm-8"><?php echo $nik ?></dd>
-          <dt class="col-sm-4">Jabatan</dt>
+          <dt class="col-sm-4">Bio</dt>
           <dd class="col-sm-8"><?php echo $address ?></dd>
         </dl>
       </div>

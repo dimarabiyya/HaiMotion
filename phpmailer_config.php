@@ -66,15 +66,15 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
         // ========== TEMPLATE EMAIL ==========
         $email_template = "
             <div style='font-family: Arial, sans-serif; color: #333; max-width:600px; margin:auto; border:1px solid #eee; border-radius:10px; overflow:hidden;'>
-                <div style='background:#007bff; color:#fff; padding:15px 20px;'>
-                    <h2 style='margin:0;'>HaiMotion Dashboard</h2>
+                <div style='background:##B75301; color:#fff; padding:15px 20px;'>
+                    <h2 style='margin:0;'>Hai Motion Dashboard</h2>
                 </div>
                 <div style='padding:20px;'>
                     <p>Halo <strong>{$recipient_name}</strong>,</p>
                     <p>{$body_html}</p>
                     <p style='margin-top:20px;'>
                         <a href='" . APP_BASE_URL . "' 
-                           style='background:#007bff; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;'>
+                           style='background:##B75301; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;'>
                            Buka Dashboard
                         </a>
                     </p>

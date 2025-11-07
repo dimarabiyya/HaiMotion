@@ -86,7 +86,7 @@ while($row = $all_users_q->fetch_assoc()){
 
         <div class="form-group">
             <label>Platform</label><br>
-            <?php $platforms = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'LinkedIn', 'Website', 'Lainnya'];
+            <?php $platforms = ['Instagram', 'TikTok', 'YouTube', 'Facebook', 'Twitter', 'LinkedIn', 'Website','IGs','Reels','Feeds', 'Lainnya'];
             $selected_platforms = isset($platform) ? explode(',', $platform) : [];
             foreach($platforms as $plat): ?>
             <div class="form-check form-check-inline">
@@ -171,7 +171,7 @@ while($row = $all_users_q->fetch_assoc()){
 });
 
     
-    $('#manage-task').submit(function(e){
+    $('#manage-task').off('submit').submit(function(e){
     e.preventDefault();
     start_load(); // fungsi loading spinner, kalau kamu pakai
     $.ajax({

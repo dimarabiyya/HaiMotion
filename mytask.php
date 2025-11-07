@@ -153,16 +153,29 @@ while ($proj = $projects->fetch_assoc()):
                                         }
                                     }
                                 }
+                                
+                                // Tentukan batas tampilan
+                                $max_display = 5;
+                                $total_assigned = count($task_assigned_users);
+                                $displayed_users = array_slice($task_assigned_users, 0, $max_display);
+                                $remaining_count = $total_assigned - $max_display;
                                 ?>
                                 <?php if (!empty($task_assigned_users)): ?>
-                                    <div class="d-flex justify-content-left">
-                                        <?php foreach ($task_assigned_users as $au): ?>
+                                    <div class="d-flex justify-content-left align-items-center">
+                                        <?php $margin = 0; foreach ($displayed_users as $au): ?>
                                             <img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
-                                                 alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
-                                                 class="rounded-circle border border-secondary" 
-                                                 style="width:35px; height:35px; object-fit:cover; margin-left:-8px;" 
-                                                 title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
-                                        <?php endforeach; ?>
+                                                alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
+                                                class="rounded-circle border border-secondary" 
+                                                style="width:35px; height:35px; object-fit:cover; margin-left:<?php echo $margin; ?>px;" 
+                                                title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
+                                        <?php $margin = -8; endforeach; ?>
+
+                                        <?php if ($remaining_count > 0): ?>
+                                            <span class="badge badge-info rounded-pill p-2 ml-1" 
+                                                style="margin-left:-8px; background-color:#818181; color:#fff;">
+                                                +<?php echo $remaining_count; ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                 <?php else: ?>
                                     <span class="text-muted">No User</span>
@@ -193,11 +206,9 @@ while ($proj = $projects->fetch_assoc()):
                                             <i class="fa fa-plus mr-2"></i> Add Comment
                                         </a>
                                         
-                                        <?php if($_SESSION['login_type'] != 3): ?>
                                             <a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?= $row['id'] ?>">
                                                 <i class="fa fa-trash mr-2"></i> Delete
-                                            </a>
-                                        <?php endif; ?>
+                                            </a>    
                                     </div>
                                 </div>
                             </td>
@@ -279,6 +290,15 @@ $(document).ready(function(){
     });
 });
 
+// Edit Task (buka modal)
+    $('.edit_task').click(function(){
+        var id = $(this).data('id');
+        var pid = $(this).data('pid');
+        uni_modal("<i class='fa fa-edit'></i> Edit Task",
+            "manage_task.php?id=" + id + "&pid=" + pid,
+            "mid-large");
+    });
+
 // Cek jika URL mengandung ?id=...
 const params = new URLSearchParams(window.location.search);
 const taskId = params.get('id');
@@ -291,12 +311,36 @@ if (taskId) {
 
 // Add Productivity (modal-xl)
     $('.new_productivity').click(function(){
-        uni_modal("<i class='fa fa-plus'></i> New Progress for: " + $(this).attr('data-task'),
+        uni_modal("<i class='fa fa-plus'></i> New Comment for: " + $(this).attr('data-task'),
             "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
-            "modal-xl");
+            "mid-large");
     });
-// Fungsi `uni_modal` seharusnya didefinisikan di tempat lain (misalnya file script utama) untuk dipanggil di sini.
-// Pastikan fungsi uni_modal tersedia.
+
+// Delete Task
+    $('.delete_task').click(function(){
+        var id = $(this).attr('data-id');
+        _conf("Are you sure to delete this task?", "delete_task", [id]);
+    });
+
+// Function delete (assuming it is globally defined or defined here)
+function delete_task(id){
+    // start_load() jika ada
+    $.ajax({
+        url: 'ajax.php?action=delete_task',
+        method: 'POST',
+        data: { id: id },
+        success: function(resp){
+            if(resp == 1){
+                // alert_toast("Task berhasil dihapus", "success"); // Ganti dengan fungsi alert_toast yang sebenarnya
+                alert("Task berhasil dihapus");
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                // alert_toast("Gagal menghapus task", "danger"); // Ganti dengan fungsi alert_toast yang sebenarnya
+                alert("Gagal menghapus task");
+            }
+        }
+    });
+}
 </script>
 
 

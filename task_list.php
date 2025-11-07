@@ -25,7 +25,7 @@ $stat = [
     5 => "Done"
 ];
 $status_options = $stat;
-$status_options[-1] = "Semua Status";
+$status_options[-1] = "All Status";
 ksort($status_options);
 
 
@@ -84,17 +84,17 @@ $projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDE
                             data-toggle="dropdown" aria-expanded="false" style="background-color:#B75301;">
                         <?php 
                             if($selected_project_id){
-                                $proj_name = array_column($all_projects, 'name', 'id')[$selected_project_id] ?? "Pilih Project";
+                                $proj_name = array_column($all_projects, 'name', 'id')[$selected_project_id] ?? "Choose Project";
                                 echo "Project: " . htmlspecialchars($proj_name);
                             } else {
-                                echo "Semua Project";
+                                echo "All Projects";
                             }
                         ?>
                     </button>
                     <div class="dropdown-menu" aria-labelledby="projectDropdown">
                         <a class="dropdown-item <?= $selected_project_id == 0 ? 'active' : '' ?>" 
                            href="index.php?page=task_list<?= $selected_user_id > 0 ? '&user_id=' . $selected_user_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
-                           Semua Project
+                           All Projects
                         </a>
                         <div class="dropdown-divider"></div>
                         <?php foreach($all_projects as $p): ?>
@@ -137,9 +137,9 @@ $projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDE
                                             break;
                                         }
                                     }
-                                    echo "User: " . htmlspecialchars($user_name ?: "Pilih User");
+                                    echo "User: " . htmlspecialchars($user_name ?: "Choose User");
                                 } else {
-                                    echo "Semua User";
+                                    echo "All Users";
                                 }
                             ?>
                         </button>
@@ -147,7 +147,7 @@ $projects = $conn->query("SELECT * FROM project_list p $project_query_where ORDE
                         <div class="dropdown-menu" aria-labelledby="userDropdown">
                             <a class="dropdown-item <?= $selected_user_id == 0 ? 'active' : '' ?>" 
                             href="index.php?page=task_list<?= $selected_project_id > 0 ? '&project_id=' . $selected_project_id : '' ?><?= $selected_status != -1 ? '&status=' . $selected_status : '' ?>">
-                            Semua User
+                            All Users
                             </a>
                             <div class="dropdown-divider"></div>
                             <?php foreach($all_users as $u): ?>
@@ -195,9 +195,6 @@ while ($proj = $projects->fetch_assoc()):
         $proj['status'] = 4; // Over Due
     }
 
-    // ==========================
-    // PERBAIKAN QUERY TASK DENGAN SEMUA FILTER
-    // ==========================
     $task_query = "
     SELECT t.* FROM task_list t 
     WHERE t.project_id = {$proj['id']}
@@ -297,6 +294,7 @@ while ($proj = $projects->fetch_assoc()):
 
                             <td class="text-left">
                                 <?php 
+                                // Hanya tampilkan user yang di-assign (termasuk diri sendiri)
                                 $task_assigned_users = [];
                                 if (!empty($row['user_ids'])) {
                                     $task_user_ids = array_map('intval', explode(',', $row['user_ids']));
@@ -308,31 +306,27 @@ while ($proj = $projects->fetch_assoc()):
                                         }
                                     }
                                 }
+                                
+                                // Tentukan batas tampilan
+                                $max_display = 5;
+                                $total_assigned = count($task_assigned_users);
+                                $displayed_users = array_slice($task_assigned_users, 0, $max_display);
+                                $remaining_count = $total_assigned - $max_display;
                                 ?>
                                 <?php if (!empty($task_assigned_users)): ?>
-                                    <div class="d-flex justify-content-left">
-                                        <?php 
-                                        $max_show_avatars = 3;
-                                        $displayed_count = 0;
-                                        foreach (array_slice($task_assigned_users, 0, $max_show_avatars) as $au): 
-                                            $avatar = !empty($au['avatar']) ? 'assets/uploads/'.$au['avatar'] : 'assets/uploads/default.png';
-                                        ?>
-                                            <img src="<?php echo $avatar; ?>" 
-                                                 alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
-                                                 class="rounded-circle border border-secondary" 
-                                                 style="width:35px; height:35px; object-fit:cover; margin-left:-8px;" 
-                                                 title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
-                                        <?php 
-                                            $displayed_count++;
-                                        endforeach; 
-                                        
-                                        $more_count = count($task_assigned_users) - $max_show_avatars;
-                                        if ($more_count > 0):
-                                        ?>
-                                             <span class="d-flex align-items-center justify-content-center text-secondary" 
-                                                   style="width:35px; height:35px; font-size:12px; padding:0; margin-left:-8px; border-radius: 50%; background-color: #f8f9fa; border: 1px solid #ccc;"
-                                                   title="and <?= $more_count ?> more members">
-                                                +<?= $more_count ?>
+                                    <div class="d-flex justify-content-left align-items-center">
+                                        <?php $margin = 0; foreach ($displayed_users as $au): ?>
+                                            <img src="assets/uploads/<?php echo !empty($au['avatar']) ? $au['avatar'] : 'default.png'; ?>" 
+                                                alt="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>" 
+                                                class="rounded-circle border border-secondary" 
+                                                style="width:35px; height:35px; object-fit:cover; margin-left:<?php echo $margin; ?>px;" 
+                                                title="<?php echo ucwords($au['firstname'].' '.$au['lastname']); ?>">
+                                        <?php $margin = -8; endforeach; ?>
+
+                                        <?php if ($remaining_count > 0): ?>
+                                            <span class="badge badge-info rounded-pill p-2 ml-1" 
+                                                style="margin-left:-8px; background-color:#818181; color:#fff;">
+                                                +<?php echo $remaining_count; ?> 
                                             </span>
                                         <?php endif; ?>
                                     </div>
@@ -390,17 +384,6 @@ while ($proj = $projects->fetch_assoc()):
     </div>
 <?php endif; ?>
 
-
-<div class="modal fade" id="taskModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-body" id="task_detail_content">
-        </div>
-    </div>
-  </div>
-</div>
-
-
 <style>
 .table-responsive {
     overflow-x: auto;
@@ -408,15 +391,13 @@ while ($proj = $projects->fetch_assoc()):
 </style>
 
 <script>
-// Fungsi uni_modal, start_load, alert_toast, dan _conf harus tersedia di file lain (misalnya header.php atau script global Anda)
-// Karena tidak disertakan, saya asumsikan mereka ada.
 
 $(document).ready(function(){
 
     // View Task (dropdown)
     $('.view_task').click(function(){
-        // Menggunakan parent().parent() untuk memastikan tidak ada event propagation dari tr
-        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large")
+        // ✅ REVISI: Menggunakan ukuran modal XL
+        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large");
     })
     
     // Delete Task
@@ -427,9 +408,9 @@ $(document).ready(function(){
 
     // Add Productivity (modal-xl)
     $('.new_productivity').click(function(){
-        uni_modal("<i class='fa fa-plus'></i> New Progress for: " + $(this).attr('data-task'),
+        uni_modal("<i class='fa fa-plus'></i> New Comment for: " + $(this).attr('data-task'),
             "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
-            "modal-xl");
+            "mid-large");
     });
     
     // Edit Task (buka modal)
@@ -438,7 +419,7 @@ $(document).ready(function(){
         var pid = $(this).data('pid');
         uni_modal("<i class='fa fa-edit'></i> Edit Task",
             "manage_task.php?id=" + id + "&pid=" + pid,
-            "modal-xl");
+            "mid-large");
     });
     
     // FIX: Klik seluruh row task untuk menampilkan modal detail
@@ -447,7 +428,6 @@ $(document).ready(function(){
         if($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .new_productivity, .edit_task, .delete_task').length) return;
 
         var taskId = $(this).data('id');
-        // Memanggil modal detail saat baris diklik
         uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"mid-large");
     });
 });

@@ -1,11 +1,22 @@
-<?php include 'db_connect.php' ?>
+<?php 
+// Asumsi 'db_connect.php' sudah ada dan berisi koneksi database ($conn)
+include 'db_connect.php'; 
+
+// --- FUNGSI ENCODE_ID SIMULASI ---
+// Jika fungsi ini belum didefinisikan di tempat lain, Anda bisa menggunakan ini sementara.
+if (!function_exists('encode_id')) {
+    function encode_id($id) {
+        return base64_encode($id);
+    }
+}
+// Tambahkan Font Awesome versi terbaru (seperti yang Anda gunakan di code terakhir)
+?>
 
 <head>
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.5/css/dataTables.bootstrap4.min.css">
 
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" /> 
@@ -28,7 +39,7 @@
 
             <div class="col-md-6">
                   <div class="d-flex justify-content-end">
-                      <?php if($_SESSION['login_type'] != 3): ?>
+                      <?php if(isset($_SESSION['login_type']) && $_SESSION['login_type'] != 3): ?>
                           <div class="card-tools">
                             <button type="button" class="btn text-white" style="background-color:#B75301;" id="new_project_btn">
                               <i class="fa fa-plus mr-2"></i> Add Project
@@ -62,167 +73,193 @@
     $stat = array("Pending","Started","On-Progress","On-Hold","Over Due","Done");
     $where = "";
     
-    // LOGIKA FILTER PROJECT BERDASARKAN ROLE (sudah diperbaiki sebelumnya)
-    if($_SESSION['login_type'] == 2){
-      // Manager: Proyek yang ia kelola ATAU ia menjadi anggota
-      $where = " WHERE manager_id = '{$_SESSION['login_id']}' OR FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
-    } elseif($_SESSION['login_type'] == 3){
-      // User: Proyek yang ia menjadi anggota
-      $where = " WHERE FIND_IN_SET('{$_SESSION['login_id']}', user_ids) ";
+    // =========================================================
+    // ✅ LOGIKA FILTER PROJECT BERDASARKAN ROLE (Ditambah issets check)
+    // =========================================================
+    if(isset($_SESSION['login_type']) && isset($_SESSION['login_id'])) {
+        $login_id = $_SESSION['login_id']; 
+        
+        if($_SESSION['login_type'] == 2){
+          // Manager (Role 2): Proyek yang ia kelola ATAU ia menjadi anggota
+          $where = " WHERE manager_id = '{$login_id}' OR FIND_IN_SET('{$login_id}', user_ids) ";
+        } elseif($_SESSION['login_type'] == 3){
+          // User (Role 3): Proyek yang ia menjadi anggota
+          $where = " WHERE FIND_IN_SET('{$login_id}', user_ids) ";
+        } else {
+            // Admin (Role 1) atau lainnya: Tampilkan semua
+            $where = "";
+        }
     } else {
-        // Admin (login_type = 1) atau lainnya, tidak ada filter spesifik
-        $where = "";
+        // Jika sesi login_type atau login_id tidak ada, tidak tampilkan apa-apa.
+        $where = " WHERE 1 = 0 "; 
     }
 
     $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
     
-    if($qry->num_rows > 0):
-    while($row= $qry->fetch_assoc()):
-      $prog= 0;
-      $tprog = $conn->query("SELECT * FROM task_list where project_id = {$row['id']}")->num_rows;
-      $cprog = $conn->query("SELECT * FROM task_list where project_id = {$row['id']} and status = 5")->num_rows;
-      $prog = $tprog > 0 ? ($cprog/$tprog) * 100 : 0;
-      $prog = $prog > 0 ?  number_format($prog,2) : $prog;
-      $prod = $conn->query("SELECT * FROM user_productivity where project_id = {$row['id']}")->num_rows;
-
-      // === Cek deadline untuk status Over Due ===
-      $today = strtotime(date('Y-m-d'));
-      $end   = strtotime($row['end_date']);
-
-      if ($today > $end) {
-          // Kalau sudah lewat deadline
-          if ($row['status'] != 0 && $row['status'] != 3 && $row['status'] != 5) {
-              // Hanya update ke Over Due jika BUKAN Pending, On-Hold, atau Done
-              $row['status'] = 4;
-          }
-      }
-
-      // === Persiapan data user untuk Assignment UI ===
-      $uids = !empty($row['user_ids']) ? explode(",", $row['user_ids']) : [];
-      $total_users = count($uids);
-      $max_show = 5; // Maksimal avatar yang ditampilkan
-      $users_to_show = array_slice($uids, 0, $max_show);
-      $more_count = $total_users - $max_show;
+    // =========================================================
+    // ✅ BLOK LOOP & ERROR CHECKING (Menggunakan Kurung Kurawal {})
+    // =========================================================
+    if($qry === false) {
+         // Error pada Query Utama
+         echo "<tr><td colspan='5'><p class='text-center text-danger'>SQL Error pada Query Utama: " . htmlspecialchars($conn->error) . "</p></td></tr>";
+    } elseif($qry->num_rows > 0) {
+        
+        while($row= $qry->fetch_assoc()) {
       
-      $assigned_users = [];
-      if(!empty($uids)){
-        $users_qry = $conn->query("SELECT id, firstname, lastname, avatar 
-                                   FROM users 
-                                   WHERE id IN (".implode(",", $uids).")");
-        while($u = $users_qry->fetch_assoc()){
-          // Simpan semua user di array untuk JSON encoding
-          $assigned_users[$u['id']] = $u; 
-        }
-      }
-?>
+          $prog= 0;
+          
+          // Sub-Query 1: Total Tasks (dengan error checking yang robust)
+          $tprog_qry = $conn->query("SELECT id FROM task_list where project_id = {$row['id']}");
+          $tprog = ($tprog_qry === false) ? 0 : $tprog_qry->num_rows;
+          
+          // Sub-Query 2: Completed Tasks (dengan error checking yang robust)
+          $cprog_qry = $conn->query("SELECT id FROM task_list where project_id = {$row['id']} and status = 5");
+          $cprog = ($cprog_qry === false) ? 0 : $cprog_qry->num_rows;
+          
+          $prog = $tprog > 0 ? ($cprog/$tprog) * 100 : 0;
+          $prog = $prog > 0 ?  number_format($prog,2) : $prog;
+          
+          // Sub-Query 3: User Productivity Count (dengan error checking yang robust)
+          $prod_qry = $conn->query("SELECT id FROM user_productivity where project_id = {$row['id']}");
+          $prod = ($prod_qry === false) ? 0 : $prod_qry->num_rows;
 
-<tr class="project-row" 
-    data-id="<?php echo $row['id'] ?>" 
-    data-encoded-id="<?= encode_id($row['id']) ?>" 
-    style="cursor:pointer;">
+          // === Cek deadline untuk status Over Due ===
+          $today = strtotime(date('Y-m-d'));
+          $end   = strtotime($row['end_date']);
 
-    <td class="text-left">
-        <b><?php echo ucwords($row['name']) ?></b>
-        <p class="text-muted"><small>Due: <?php echo date("Y-m-d",strtotime($row['end_date'])) ?></small></p>
-    </td>
+          if ($row['status'] < 5 && $today > $end) { 
+              if ($row['status'] != 0 && $row['status'] != 3) {
+                  $row['status'] = 4; // Over Due
+              }
+          }
 
-    <td class="project-state text-left">
-        <?php
-          $status = (int)$row['status'];
-          $label = isset($stat[$status]) ? $stat[$status] : "Unknown";
-          $badgeClass = [
-            0=>'badge-secondary',
-            1=>'badge-info',
-            2=>'badge-primary',
-            3=>'badge-warning',
-            4=>'badge-danger',
-            5=>'badge-success'
-          ][$status] ?? 'badge-dark';
-          echo "<span class='badge {$badgeClass} p-2'>{$label}</span>";
-        ?>
-    </td>
+          // === Persiapan data user untuk Assignment UI ===
+          $uids = !empty($row['user_ids']) ? explode(",", $row['user_ids']) : [];
+          $total_users = count($uids);
+          $max_show = 5; 
+          $users_to_show = array_slice($uids, 0, $max_show);
+          $more_count = $total_users - $max_show;
+          
+          $assigned_users = [];
+          if(!empty($uids)){
+            $valid_uids = array_filter($uids, 'is_numeric');
+            if (!empty($valid_uids)) {
+                $users_qry = $conn->query("SELECT id, firstname, lastname, avatar 
+                                           FROM users 
+                                           WHERE id IN (".implode(",", $valid_uids).")");
+                while($u = $users_qry->fetch_assoc()){
+                  $assigned_users[$u['id']] = $u; 
+                }
+            }
+          }
+    ?>
 
-    <td class="project_progress text-left">
-        <div class="progress progress-sm mb-1 progress-custom"> 
-          <div class="progress-bar progress-bar-custom" role="progressbar" style="width: <?php echo $prog ?>%"></div>
-        </div>
-        <small><?php echo $prog ?>% Complete</small>
-    </td>
+    <tr class="project-row" 
+        data-id="<?php echo $row['id'] ?>" 
+        data-encoded-id="<?= encode_id($row['id']) ?>" 
+        style="cursor:pointer;">
 
-    <td class="project-assignment text-left">
-        <?php if(!empty($uids)): 
-          echo '<div class="d-flex align-items-center text-nowrap">'; 
-          $displayed_count = 0;
-          foreach($users_to_show as $uid):
-            if(isset($assigned_users[$uid])):
-              $u = $assigned_users[$uid];
-              $avatar = !empty($u['avatar']) ? 'assets/uploads/'.$u['avatar'] : 'assets/uploads/default.png';
-        ?>
-            <img src="<?= $avatar ?>" 
-                 class="rounded-circle border border-white" 
-                 style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
-                 title="<?= ucwords($u['firstname'].' '.$u['lastname']) ?>">
-        <?php 
-              $displayed_count++;
-            endif;
-          endforeach; 
+        <td class="text-left">
+            <b><?php echo ucwords($row['name']) ?></b>
+            <p class="text-muted"><small>Due: <?php echo date("Y-m-d",strtotime($row['end_date'])) ?></small></p>
+        </td>
 
-          // Tombol (+.. more)
-          if ($more_count > 0):
-        ?>
-            <button type="button" 
-                    class="btn btn-sm btn-info rounded-circle border border-white view_all_users"
-                    data-id="<?= $row['id'] ?>"
-                    data-users='<?= htmlspecialchars(json_encode(array_values($assigned_users)), ENT_QUOTES, 'UTF-8') ?>'
-                    style="width:30px; height:30px; font-size:10px; padding:0; line-height:30px; margin-left:-8px;"
-                    title="View all <?= $total_users ?> members"
-                    data-toggle="modal" 
-                    data-target="#usersModal">
-              +<?= $more_count ?>
-            </button>
-        <?php
-          endif;
-          echo '</div>'; 
-        else: ?>
-          <span class="text-muted">No assignment</span>
-        <?php endif; ?>
-    </td>
+        <td class="project-state text-left">
+            <?php
+              $status = (int)$row['status'];
+              $label = isset($stat[$status]) ? $stat[$status] : "Unknown";
+              $badgeClass = [
+                0=>'badge-secondary',
+                1=>'badge-info',
+                2=>'badge-primary',
+                3=>'badge-warning',
+                4=>'badge-danger',
+                5=>'badge-success'
+              ][$status] ?? 'badge-dark';
+              echo "<span class='badge {$badgeClass} p-2'>{$label}</span>";
+            ?>
+        </td>
 
-    <td class="text-left">
-        <div class="dropdown">
-            <button class="btn text-secondary" type="button" data-toggle="dropdown">
-                <i class="fa fa-ellipsis-v"></i>
-            </button>
-            <div class="dropdown-menu">
-                <a class="dropdown-item" href="index.php?page=view_project&id=<?= encode_id($row['id']) ?>">
-                  <i class="fa fa-eye mr-2"></i> View
-                </a>
-                <?php if($_SESSION['login_type'] != 3): ?>
-                <a class="dropdown-item edit_project_trigger" href="javascript:void(0)" 
-                    data-id="<?= $row['id'] ?>">
-                  <i class="fa fa-solid fa-pen mr-2"></i> Edit
-                </a>
-                <a class="dropdown-item text-danger delete_project_trigger"
-                  data-id="<?= $row['id'] ?>"
-                  data-name="<?= ucwords($row['name']) ?>"
-                  data-toggle="modal"
-                  data-target="#deleteProjectModal">
-                  <i class="fa fa-trash mr-2"></i> Delete
-                </a>
-                <?php endif; ?>
+        <td class="project_progress text-left">
+            <div class="progress progress-sm mb-1 progress-custom"> 
+              <div class="progress-bar progress-bar-custom" role="progressbar" style="width: <?php echo $prog ?>%"></div>
             </div>
-        </div>
-    </td> 
-</tr>
+            <small><?php echo $prog ?>% Complete</small>
+        </td>
 
-    <?php endwhile; ?>
-    <?php else: ?>
+        <td class="project-assignment text-left">
+            <?php if(!empty($assigned_users)): 
+              echo '<div class="d-flex align-items-center text-nowrap">'; 
+              $displayed_count = 0;
+              
+              foreach($users_to_show as $uid):
+                if(isset($assigned_users[$uid])):
+                  $u = $assigned_users[$uid];
+                  $avatar = !empty($u['avatar']) ? 'assets/uploads/'.$u['avatar'] : 'assets/uploads/default.png';
+            ?>
+                <img src="<?= $avatar ?>" 
+                     class="rounded-circle border border-white" 
+                     style="width:30px; height:30px; object-fit:cover; margin-left:-8px;" 
+                     title="<?= ucwords($u['firstname'].' '.$u['lastname']) ?>">
+            <?php 
+                  $displayed_count++;
+                endif;
+              endforeach; 
+
+              if ($more_count > 0):
+            ?>
+                <button type="button" 
+                        class="rounded-circle border border-secondary view_all_users"
+                        data-id="<?= $row['id'] ?>"
+                        data-users='<?= htmlspecialchars(json_encode(array_values($assigned_users)), ENT_QUOTES, 'UTF-8') ?>'
+                        style="width:30px; height:30px; font-size:10px; padding:0; line-height:30px; margin-left:-8px;"
+                        title="View all <?= $total_users ?> members"
+                        data-toggle="modal" 
+                        data-target="#usersModal">
+                  +<?= $more_count ?>
+                </button>
+            <?php
+              endif;
+              echo '</div>'; 
+            else: ?>
+              <span class="text-muted">No assignment</span>
+            <?php endif; ?>
+        </td>
+
+        <td class="text-left">
+            <div class="dropdown">
+                <button class="btn text-secondary" type="button" data-toggle="dropdown">
+                    <i class="fa fa-ellipsis-v"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a class="dropdown-item" href="index.php?page=view_project&id=<?= encode_id($row['id']) ?>">
+                      <i class="fa fa-eye mr-2"></i> View
+                    </a>
+                    <?php if(isset($_SESSION['login_type']) && $_SESSION['login_type'] != 3): ?>
+                    <a class="dropdown-item" href="index.php?page=edit_project&id=<?= encode_id($row['id']) ?>">
+                        <i class="fa fa-solid fa-pen mr-2"></i> Edit
+                    </a>
+                    <a class="dropdown-item text-danger delete_project_trigger"
+                      data-id="<?= $row['id'] ?>"
+                      data-name="<?= ucwords($row['name']) ?>"
+                      data-toggle="modal"
+                      data-target="#deleteProjectModal">
+                      <i class="fa fa-trash mr-2"></i> Delete
+                    </a>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </td> 
+    </tr>
+
+    <?php $i++; } // Penutup while ?>
+    <?php } else { // Menutup elseif dan membuka else ?>
         <tr>
             <td colspan="5">
                 <p class="text-center">Tidak ada proyek yang sesuai dengan role Anda.</p>
             </td>
         </tr>
-    <?php endif; ?>
+    <?php } // Penutup else ?>
     
                     </tbody>  
                 </table>
@@ -349,30 +386,20 @@ table td { vertical-align: middle !important; }
 </style>
 
 <script>
-// ========================================================================================
-// 3. REVISI: FUNGSI GLOBAL ALERT TOAST (agar bisa dipanggil dari new_project.php)
-// ========================================================================================
 function alert_toast(message, type = 'success') {
-    // Fungsi ini disimulasikan menggunakan alert, namun jika Anda memiliki
-    // implementasi toast/notifikasi yang sebenarnya, gunakan di sini.
     console.log("Notifikasi:", message, type);
-    // Contoh sederhana notifikasi:
     alert(`[${type.toUpperCase()}] ${message}`); 
 }
 
-
-// ========================================================================================
-// 3. REVISI FUNGSI UNI_MODAL (mengubah default size dan theme Select2)
-// ========================================================================================
-function uni_modal(title, url, size = 'lg') { // 🎯 REVISI: Default size diubah dari 'xl' ke 'lg'
+function uni_modal(title, url, size = 'lg') { 
     var $modal = $('#uni_modal');
     
     $modal.find('.modal-dialog')
         .removeClass('modal-sm modal-md modal-lg modal-xl')
         .addClass('modal-' + size); 
 
-    $modal.find('.modal-header').css('color', '#B75301').removeClass('bg-primary');
-    $modal.find('.modal-title').html(title);
+    $modal.find('.modal-header').css('background-color', '#B75301').css('color', 'white');
+    $modal.find('.modal-title').html(title).css('color', 'white'); 
     $modal.find('.close').css('color', 'white');
 
     $modal.find('.modal-body').html('Loading...');
@@ -383,14 +410,12 @@ function uni_modal(title, url, size = 'lg') { // 🎯 REVISI: Default size diuba
             if(resp){
                 $modal.find('.modal-body').html(resp);
                 
-                // Inisialisasi Summernote
                 if ($.fn.summernote) {
                     $modal.find('.summernote').summernote({
                         height: 200,
                     });
                 }
 
-                // Inisialisasi Select2
                 if ($.fn.select2) {
                     $modal.find('.select2').select2({
                         placeholder: "Select an Option",
@@ -406,12 +431,8 @@ function uni_modal(title, url, size = 'lg') { // 🎯 REVISI: Default size diuba
     });
 }
 
-// ========================================================================================
-// LOGIKA UMUM JAVASCRIPT
-// ========================================================================================
 $(document).ready(function(){
 
-    // Hapus instance Select2 dan Summernote saat modal uni_modal ditutup
     $('#uni_modal').on('hidden.bs.modal', function (e) {
         if ($.fn.summernote) {
             $(this).find('.summernote').summernote('destroy');
@@ -427,41 +448,25 @@ $(document).ready(function(){
     });
 
     
-    // Klik card project → masuk ke view_project (Diubah menjadi klik row)
     $(document).on('click', '.project-row', function(e){
-        // Mencegah aksi jika klik berasal dari dalam dropdown menu, tombol view_all_users, atau elemen interaktif lainnya
         if ($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .view_all_users').length === 0) {
             var encoded_pid = $(this).data('encoded-id'); 
             window.location.href = "index.php?page=view_project&id=" + encoded_pid;
         }
     });
     
-    // Aksi klik tombol "Add Project"
     $('#new_project_btn').click(function(){
-        // Sekarang default size adalah 'lg', bukan 'xl' lagi
-        uni_modal("<span style='color:#B75301;'><i class='fa fa-plus mr-1'></i> Add New Project", "new_project.php", "lg"); 
+        uni_modal("<span style='color:white;'><i class='fa fa-plus mr-1'></i> Add New Project</span>", "manage_project.php", "lg"); 
     });
 
-    // Aksi klik tombol "Edit Project" 
-    $(document).on('click', '.edit_project_trigger', function(){
-        var projectId = $(this).data('id');
-        // Sekarang default size adalah 'lg', bukan 'xl' lagi
-        uni_modal(
-            "<span style='color:#B75301;'><i class='fa fa-solid fa-pen mr-1'></i> Edit Project Details", 
-            "edit_project.php?id=" + projectId, 
-            "lg"
-        ); 
-    });
 
-    // Delete project logic
     function delete_project(id){
-        // start_load() jika ada
         $.ajax({
             url: 'ajax.php?action=delete_project',
             method: 'POST',
             data: { id },
             success: function(resp){
-                if(resp == 1){
+                if(resp.trim() == 1){
                     alert_toast("Project berhasil dihapus", "success");
                     setTimeout(() => location.reload(), 1500);
                 } else {
@@ -471,9 +476,8 @@ $(document).ready(function(){
         });
     }
 
-    // Trigger delete modal
     $(document).on('click', '.delete_project_trigger', function(e){
-        e.preventDefault();
+        e.stopPropagation();
         var id = $(this).data('id'); 
         var name = $(this).data('name');
 
@@ -481,7 +485,6 @@ $(document).ready(function(){
         $('#projectToDeleteName').text(name);
     });
 
-    // Confirm delete action
     $(document).on('click', '#confirmDeleteProjectBtn', function(){
         var id = $(this).data('id');
         $('#deleteProjectModal').modal('hide'); 
@@ -489,10 +492,8 @@ $(document).ready(function(){
     });
 
 
-    // =========================================================
-    // LOGIKA MODAL ALL ASSIGNED USERS (sudah ada)
-    // =========================================================
-    $(document).on('click', '.view_all_users', function(){
+    $(document).on('click', '.view_all_users', function(e){
+        e.stopPropagation();
         const users = $(this).data('users'); 
         const modalBody = $('#usersModalBody');
         let htmlContent = '';

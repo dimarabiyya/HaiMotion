@@ -182,7 +182,7 @@ $(document).ready(function(){
 
 
     // Submit form menggunakan AJAX
-    $('#add-task-form').submit(function(e){
+    $('#add-task-form').off('submit').submit(function(e){
         e.preventDefault();
         // Cek apakah fungsi start_load/end_load ada (jika digunakan untuk loading screen)
         if (typeof start_load !== 'undefined') { start_load(); }

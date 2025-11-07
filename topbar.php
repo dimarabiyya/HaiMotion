@@ -1,5 +1,16 @@
 <?php include 'db_connect.php'; ?>
-<?php $type_arr = array('', "Admin", "Project Manager", "Employee"); ?>
+<?php 
+// Pastikan sesi dimulai dan variabel sesi ada
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+// Untuk menghindari Notice Undefined Index jika sesi belum diset
+$login_id = isset($_SESSION['login_id']) ? $_SESSION['login_id'] : '';
+$login_avatar = isset($_SESSION['login_avatar']) ? $_SESSION['login_avatar'] : 'default.png';
+$login_firstname = isset($_SESSION['login_firstname']) ? $_SESSION['login_firstname'] : 'Guest';
+
+$type_arr = array('', "Admin", "Project Manager", "Employee"); 
+?>
 
 <nav class="main-header navbar navbar-expand navbar-light">
   <ul class="navbar-nav">
@@ -44,13 +55,43 @@
       </a>
     </li>
 
-    <!-- ===================== PROFILE ===================== -->
-    <li class="nav-item ml-2 mr-4">
-      <a class="nav-link p-0 view_profile" href="javascript:void(0)" data-id="<?php echo $_SESSION['login_id']; ?>" style="display: flex; align-items: center;">
-        <img src="assets/uploads/<?php echo $_SESSION['login_avatar']; ?>" class="img-circle elevation-2" alt="User Avatar" style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
-        <span class="ml-2"><b><?php echo ucwords($_SESSION['login_firstname']); ?></b></span>
-      </a>
+    <!-- ===================== PROFILE DROPDOWN (REVISI) ===================== -->
+    <li class="nav-item dropdown ml-2 mr-4">
+        
+        <!-- Tombol/Toggle yang memicu Dropdown -->
+        <a class="nav-link p-0" href="#" id="navbarDropdownProfile" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: flex; align-items: center;">
+            <img src="assets/uploads/<?php echo $login_avatar; ?>" 
+                 class="img-circle elevation-2" 
+                 alt="User Avatar" 
+                 style="width: 38px; height: 38px; object-fit: cover; border-radius: 50%;">
+            <span class="ml-2"><b><?php echo ucwords($login_firstname); ?></b></span>
+        </a>
+
+        <!-- Isi Dropdown Menu -->
+        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownProfile">
+            
+            <!-- View Profile (Membuka Modal) -->
+            <a class="dropdown-item view_profile_trigger" 
+               href="javascript:void(0)" 
+               data-id="<?php echo $login_id; ?>">
+                <i class="fa fa-user mr-2"></i> View Profile
+            </a>
+            
+            <!-- Setting (Navigasi Langsung ke edit_user.php) -->
+            <a class="dropdown-item" href="index.php?page=edit_user&id=<?php echo $login_id; ?>">
+                <i class="fa fa-cog mr-2"></i> Settings
+            </a>
+            
+            <div class="dropdown-divider"></div>
+            
+            <!-- Logout -->
+            <a class="dropdown-item" href="ajax.php?action=logout">
+                <i class="fa fa-sign-out-alt mr-2"></i> Log Out
+            </a>
+        </div>
     </li>
+    <!-- ===================== END PROFILE DROPDOWN ===================== -->
+
   </ul>
 </nav>
 
@@ -101,7 +142,6 @@
 }
 </style>
 
-
 <script>
 // Fungsi untuk mengekstrak ID numerik dari URL notifikasi (Robust)
 function extractTaskId(url) {
@@ -110,12 +150,26 @@ function extractTaskId(url) {
     return match ? match[1] : null; 
 }
 
+
 $(document).ready(function(){
 
-  // ====== Profile Modal ======
-  $('.view_profile').click(function(){
-    let userId = $(this).attr('data-id');
-    uni_modal("<i class='fa fa-id-card'></i> Profil Pengguna", "view_profile.php?id=" + userId);
+  // ====== Profile Dropdown JS (view_profile_trigger) ======
+  $(document).on('click', '.view_profile_trigger', function(){
+      let userId = $(this).attr('data-id');
+      if(userId) {
+          // Memanggil uni_modal untuk menampilkan view_profile.php
+          // Catatan: uni_modal harus didefinisikan secara global
+          uni_modal(
+              "<span style='color:white;'>User Profile</span>", 
+              "view_profile.php?id=" + userId,
+              "md" // Ukuran modal medium
+          );
+      } else {
+          // Catatan: alert_toast harus didefinisikan secara global
+          alert_toast("User ID tidak ditemukan.", "danger");
+      }
+      // Tutup dropdown setelah klik
+      $(this).closest('.dropdown-menu').removeClass('show');
   });
 
   // ====== Load Notifications ======
@@ -131,6 +185,12 @@ $(document).ready(function(){
   }
 
   function load_notifications() {
+    // Pastikan jQuery dimuat dan dapat menjalankan AJAX
+    if (typeof $ === 'undefined' || !$.ajax) {
+        console.error("jQuery (AJAX) is not available.");
+        return;
+    }
+    
     $.ajax({
       url: 'ajax.php?action=fetch_notifications',
       method: 'GET',
@@ -163,7 +223,6 @@ $(document).ready(function(){
               const time = `<small class="text-muted d-block">${timeAgo(n.date_created)}</small>`;
               
               // Simpan link asli di data-href dan buat href menjadi # (untuk intercept)
-              const linkIsTask = n.link.includes('get_task_detail.php?id=') || n.link.includes('view_task&id=');
               const taskLink = n.task_id 
                 ? `index.php?page=mytask&id=${n.task_id}`
                 : (n.link && n.link.trim() !== '' ? n.link : '#');
@@ -245,6 +304,7 @@ $(document).ready(function(){
       }
   });
 
+  // Panggil load_notifications dan atur interval HANYA setelah DOM siap
   load_notifications();
   setInterval(load_notifications, 30000);
 });
