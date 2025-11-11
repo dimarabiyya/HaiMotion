@@ -1,12 +1,6 @@
 <?php 
-// FILE: db_connect.php - KODE KONEKSI DAN KEAMANAN ID (FINAL FIX)
-
-// 1. KONEKSI DATABASE (Variabel $conn)
 $conn = new mysqli('localhost','root','','tsm_db') or die("Could not connect to mysql".mysqli_error($conn)); 
 
-// =======================================================
-// FUNGSI KEAMANAN ID (Obfuscation) - FIX REDECLARE
-// =======================================================
 
 // 2. DEKLARASI KONSTANTA (ID_SALT)
 if (!defined('ID_SALT')) {

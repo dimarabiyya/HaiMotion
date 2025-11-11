@@ -31,6 +31,7 @@
             header("Location: index.php?page=404");
             exit;
         }
+        
 
         // C. Verifikasi Otorisasi
         $is_member = isset($proj_check['user_ids']) && in_array($user_login_id, explode(',', $proj_check['user_ids']));
@@ -60,7 +61,7 @@
     }
   }
   ob_end_flush();
-  include 'header.php'  
+  include 'header.php'
 ?>
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
