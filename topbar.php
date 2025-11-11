@@ -157,10 +157,8 @@ $(document).ready(function(){
   $(document).on('click', '.view_profile_trigger', function(){
       let userId = $(this).attr('data-id');
       if(userId) {
-          // Memanggil uni_modal untuk menampilkan view_profile.php
-          // Catatan: uni_modal harus didefinisikan secara global
           uni_modal(
-              "<span style='color:white;'>User Profile</span>", 
+              "", 
               "view_profile.php?id=" + userId,
               "md" // Ukuran modal medium
           );

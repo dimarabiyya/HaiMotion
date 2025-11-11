@@ -250,7 +250,7 @@ if ($qry->num_rows > 0) {
             <?php endwhile; ?>
         <?php else: ?>
             <div class="alert alert-info text-center small">
-                Belum ada aktivitas atau komentar untuk tugas ini.
+                No comments/progress updates yet.
             </div>
         <?php endif; ?>
         </div>
@@ -386,10 +386,6 @@ if ($qry->num_rows > 0) {
     .comment-content {
         line-height: 1.4;
     }
-    /* Menghapus style yang tidak perlu karena tidak ada card pembungkus */
-    /* .pr-2 { padding-right: 0.5rem !important; }
-    .pl-2 { padding-left: 0.5rem !important; }
-    .p-3 .row { margin-left: -0.5rem; margin-right: -0.5rem; } */
     </style>
     
     <?php

@@ -1,4 +1,6 @@
 <?php
+// FILE: view_project.php (REVISI LENGKAP - KPI TIM)
+
 ini_set('display_errors', 1);
 require_once 'phpmailer_config.php'; // Pastikan file ini berisi konfigurasi SMTP dan fungsi send_task_notification_email & record_notification
 
@@ -317,10 +319,29 @@ class Action {
         extract($_POST);
         $id = intval($id);
         
+        // ✅ REVISI: Ambil Task dan Project ID sebelum menghapus
+        $task_info_qry = $conn->query("
+            SELECT t.task, t.project_id, p.name as project_name
+            FROM task_list t
+            INNER JOIN project_list p ON p.id = t.project_id
+            WHERE t.id = $id
+        ");
+
+        $project_id = null;
+        $task_name = "ID Task: {$id}";
+        $project_name = "Unknown Project";
+
+        if ($task_info_qry && $task_info_qry->num_rows > 0) {
+            $info = $task_info_qry->fetch_assoc();
+            $project_id = intval($info['project_id']);
+            $task_name = $this->db->real_escape_string($info['task']);
+            $project_name = $this->db->real_escape_string($info['project_name']);
+        }
+        
         // 2. HAPUS NOTIFIKASI TERKAIT
         $delete_notification = $conn->query("
             DELETE FROM notification_list 
-            WHERE link = 'view_task.php?id=$id' 
+            WHERE link LIKE '%view_task.php?id=$id%' 
         ");
 
         if (!$delete_notification) {
@@ -334,9 +355,13 @@ class Action {
         ");
 
         if ($delete_task) {
+            // ✅ REVISI LOG_ACTIVITY: Menggunakan info yang sudah diambil
+            $log_desc = "Menghapus task: '{$task_name}' dari Project: '{$project_name}'";
+            $this->log_activity($_SESSION['login_id'] ?? 0, $project_id, $id, 'task_delete', $log_desc);
             return 1;
         } else {
-            return "Gagal menghapus tugas: " . $conn->error;
+            error_log("Gagal menghapus tugas: " . $conn->error);
+            return 0; // Mengembalikan 0 atau kode error.
         }
     }
 
@@ -412,7 +437,7 @@ class Action {
                     }
                 }
                 
-                $this->log_activity($_SESSION['login_id'], $project_id, $task_id, 'progress_add', 'Menambahkan progress pada task: ' . $task_name);
+                $this->log_activity($_SESSION['login_id'], $project_id, $task_id, 'progress_add', 'Menambahkan Komentar pada task: ' . $task_name);
                 return 1;
             } else {
                 error_log("save_progress insert error: " . $this->db->error . " -- SQL: " . $sql);

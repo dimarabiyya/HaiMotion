@@ -100,7 +100,7 @@ $login_type = $_SESSION['login_type'];
           </div>
 
           <div class="form-group">
-            <label><b>Link Referensi</b></label>
+            <label><b>Refrence</b></label>
             <textarea name="reference_links" id="reference_links" class="form-control" rows="3" placeholder="Pisahkan link dengan enter."></textarea>
             <small class="text-muted">Pisahkan link dengan enter.</small>
           </div>
@@ -120,7 +120,7 @@ $login_type = $_SESSION['login_type'];
           <div class="form-group">
             <label><b>Assign To</b></label>
             <select name="user_ids[]" id="user_ids" class="form-control select2" multiple="multiple" style="width:100%;" required>
-              <option value="">-- Select project first --</option>
+              <option value=""> Select project first </option>
             </select>
           </div>
 

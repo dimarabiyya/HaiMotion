@@ -29,12 +29,10 @@ if (!function_exists('encode_id')) {
 </head>
 
 <div class="col-lg-12">
-    <div class="container-fluid pb-3">
+    <div class="pb-3">
         <div class="row">
             <div class="col-md-6">
-                <div class="d-flex justify-content-start">
-                    <h4>Project Progress</h4>
-                </div>
+                <h3 class="m-0">Project Progress</h3>
             </div>
 
             <div class="col-md-6">
@@ -95,10 +93,6 @@ if (!function_exists('encode_id')) {
     }
 
     $qry = $conn->query("SELECT * FROM project_list $where ORDER BY name ASC");
-    
-    // =========================================================
-    // ✅ BLOK LOOP & ERROR CHECKING (Menggunakan Kurung Kurawal {})
-    // =========================================================
     if($qry === false) {
          // Error pada Query Utama
          echo "<tr><td colspan='5'><p class='text-center text-danger'>SQL Error pada Query Utama: " . htmlspecialchars($conn->error) . "</p></td></tr>";
@@ -456,9 +450,8 @@ $(document).ready(function(){
     });
     
     $('#new_project_btn').click(function(){
-        uni_modal("<span style='color:white;'><i class='fa fa-plus mr-1'></i> Add New Project</span>", "manage_project.php", "lg"); 
+        uni_modal("<span style='color:white;'><i class='fa fa-plus mr-1'></i> Add New Project</span>", "new_project.php", "mid-large"); 
     });
-
 
     function delete_project(id){
         $.ajax({

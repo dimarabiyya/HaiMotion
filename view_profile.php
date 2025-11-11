@@ -57,12 +57,6 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     </div>
   </div>
 </div>
-
-<div class="modal-footer display p-0 m-0">
-  <a href="./index.php?page=edit_user&id=<?php echo $row['id'] ?>" class="btn text-white font-weight-bold" style="background-color:#B75301;">Edit Profile</a>
-  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-</div>
-
 <style>
   #uni_modal .modal-footer { display: none; }
   #uni_modal .modal-footer.display { display: flex; }
