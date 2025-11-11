@@ -46,7 +46,7 @@
       height: 30px;
     }
     .fc-day-header {
-      background-color: #f78923;
+      background-color: #B75301;
       padding: 10px 0;
       font-weight: bold;
       color: white;

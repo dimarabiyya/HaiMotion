@@ -36,25 +36,25 @@ include 'header.php';
     }
 
     .fc-day-header {
-      background-color: #f78923ff;
+      background-color: #B75301;
       padding: 10px 0;
       font-weight: bold;
       color: white;
     }
 
     .fc-event {
-        background-color: #ffffff !important; /* putih bersih */
-        border: 1px solid #e5e7eb !important; /* abu muda */
-        border-radius: 8px; /* lebih halus */
+        background-color: #ffffff !important; 
+        border: 1px solid #e5e7eb !important; 
+        border-radius: 8px; 
         padding: 6px 10px;
         font-weight: 500;
         font-size: 14px;
-        color: #111827; /* teks abu gelap */
-        text-align: left; /* seperti Notion */
+        color: #111827;
+        text-align: left; 
         box-shadow: 0 1px 3px rgba(0,0,0,0.1); /* efek card */
         cursor: pointer;
         transition: all 0.2s ease-in-out;
-        height: auto !important; /* biar menyesuaikan isi */
+        height: auto !important; 
         line-height: 1.4;
 
     }
@@ -88,7 +88,7 @@ include 'header.php';
 
 <body>
   <div class="text-right mb-3">
-    <button id="printCalendar" class="btn text-white" style="background-color: #f78923ff;">
+    <button id="printCalendar" class="btn text-white" style="background-color: #B75301">
       <i class="fa fa-file-pdf-o"></i> Export Calendar
     </button>
   </div>
