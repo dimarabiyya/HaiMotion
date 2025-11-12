@@ -52,15 +52,6 @@
             </a>
           </li>  
 
-          <li class="nav-item">
-              <a href="index.php?page=file_manager" class="nav-link nav-file_manager">
-                  <i class="nav-icon fas fa-folder-open"></i>
-                  <p>
-                      File 
-                  </p>
-              </a>
-          </li>
-
           <?php if($_SESSION['login_type'] != 3): ?>
            <li class="nav-item mb-2">
                 <a href="./index.php?page=reports" class="nav-link nav-reports">

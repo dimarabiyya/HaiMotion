@@ -272,7 +272,20 @@ if ($qry->num_rows > 0) {
     
 
     <script>
-        // FUNGSI JAVASCRIPT GLOBAL YANG DIGUNAKAN UNTUK KANBAN
+        function delete_progress($id){
+            if (typeof start_load !== 'undefined') { start_load(); }
+            $.ajax({
+                url:'ajax.php?action=delete_progress',
+                method:'POST',
+                data:{id:$id},
+                success:function(resp){
+                    if(resp==1){
+                        alert_toast("Data successfully deleted",'success')
+                        setTimeout(function(){ location.reload() },1500)
+                    }
+                }
+            })
+        }
 
         function editTaskKanban(id, pid) {
             $('#uni_modal').modal('hide'); 
