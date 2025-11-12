@@ -548,7 +548,7 @@ $(document).ready(function() {
         if ($(e.target).closest('.delete-btn').length) return; 
 
         const id = $(this).data('id');
-        uni_modal("Task Detail", "get_task_detail.php?id=" + id, "modal-lg");
+        uni_modal("Task Detail", "get_task_detail.php?id=" + id, "mid-large");
     });
 });
 </script>

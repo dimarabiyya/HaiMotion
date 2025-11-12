@@ -198,7 +198,22 @@ switch($action){
         }
         exit;
 
-    // ... sisa existing cases ...
+    
+    // --- Tambahkan di dalam switch statement di ajax.php ---
+    case 'get_all_users_for_chat':
+        echo $crud->get_all_users_for_chat();
+        break;
+    case 'get_or_create_thread_id':
+        echo $crud->get_or_create_thread_id();
+        break;
+    case 'save_personal_chat_message':
+        echo $crud->save_personal_chat_message();
+        break;
+    case 'get_personal_chat_messages':
+        echo $crud->get_personal_chat_messages();
+        break;
+    // ...
+    
 }
 
 ob_end_flush();
