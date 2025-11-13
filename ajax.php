@@ -20,6 +20,10 @@ if ($action == 'signup') echo $crud->signup();
 if ($action == 'save_user') echo $crud->save_user();
 if ($action == 'update_user') echo $crud->update_user();
 if ($action == 'delete_user') echo $crud->delete_user();
+if ($action == 'get_all_users_for_chat') echo $crud->get_all_users_for_chat();
+if ($action == 'get_or_create_thread_id') echo $crud->get_or_create_thread_id();
+if ($action == 'save_personal_chat_message') echo $crud->save_personal_chat_message();
+if ($action == 'get_personal_chat_messages') echo $crud->get_personal_chat_messages(); // 💡 Revisi penting di sini
 
 /* ========== PROJECT MANAGEMENT ========== */
 if ($action == 'save_project') {
@@ -198,22 +202,20 @@ switch($action){
         }
         exit;
 
-    
-    // --- Tambahkan di dalam switch statement di ajax.php ---
-    case 'get_all_users_for_chat':
-        echo $crud->get_all_users_for_chat();
-        break;
-    case 'get_or_create_thread_id':
-        echo $crud->get_or_create_thread_id();
-        break;
-    case 'save_personal_chat_message':
-        echo $crud->save_personal_chat_message();
-        break;
-    case 'get_personal_chat_messages':
-        echo $crud->get_personal_chat_messages();
-        break;
+        case 'get_all_users_for_chat':
+            echo $crud->get_all_users_for_chat();
+            break;
+        case 'get_or_create_thread_id':
+            echo $crud->get_or_create_thread_id();
+            break;
+        case 'save_personal_chat_message':
+            echo $crud->save_personal_chat_message();
+            break;
+        case 'get_personal_chat_messages':
+            // Pastikan memanggil fungsi yang sudah dimodifikasi
+            echo $crud->get_personal_chat_messages(); 
+            break;
     // ...
-    
 }
 
 ob_end_flush();

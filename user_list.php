@@ -69,18 +69,22 @@
                      <i class="fa fa-ellipsis-v"></i>
                   </button>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item view_user" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">
-                      <i class="fa fa-eye mr-2"></i> View
+                    <?php 
+                      $encoded_id = encode_id($row['id']); 
+                    ?>
+
+                    <a class="dropdown-item view_user" href="javascript:void(0)" 
+                       data-id="<?php echo $encoded_id ?>"> <i class="fa fa-eye mr-2"></i> View
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="./index.php?page=edit_user&id=<?php echo $row['id'] ?>">
-                      <i class="fa fa-cog mr-2"></i> Edit
+
+                    <a class="dropdown-item" href="./index.php?page=edit_user&id=<?php echo $encoded_id ?>"> <i class="fa fa-cog mr-2"></i> Edit
                     </a>
                     <div class="dropdown-divider"></div>
+
                     <a class="dropdown-item text-danger delete_user_trigger" 
                        href="javascript:void(0)" 
-                       data-id="<?php echo $row['id'] ?>" 
-                       data-name="<?php echo ucwords($row['name']) ?>">
+                       data-id="<?php echo $encoded_id ?>"  data-name="<?php echo ucwords($row['name']) ?>">
                       <i class="fa fa-trash mr-2"></i> Delete
                     </a>
                   </div>

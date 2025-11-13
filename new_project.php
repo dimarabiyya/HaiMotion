@@ -8,9 +8,7 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 // Logika untuk mengisi variabel $id, $name, $status, dll. (biasanya di sini jika ini edit)
 ?>
-
 <form action="" id="manage-project">
-
     <input type="hidden" name="id" value="<?php echo isset($id) ? $id : '' ?>">
     
     <div class="row">

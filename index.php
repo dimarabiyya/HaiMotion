@@ -92,6 +92,7 @@
             }
           ?>
       </div></section>
+
     <div class="modal fade" id="confirm_modal" role='dialog'>
     <div class="modal-dialog modal-md" role="document">
       <div class="modal-content">
@@ -119,28 +120,7 @@
       </div>
     </div>
   </div>
-  <div class="modal fade" id="uni_modal_right" role='dialog'>
-    <div class="modal-dialog modal-full-height  modal-md" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-        <h5 class="modal-title"></h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span class="fa fa-arrow-right"></span>
-        </button>
-      </div>
-      <div class="modal-body">
-      </div>
-      </div>
-    </div>
-  </div>
-  <div class="modal fade" id="viewer_modal" role='dialog'>
-    <div class="modal-dialog modal-md" role="document">
-      <div class="modal-content">
-              <button type="button" class="btn-close" data-dismiss="modal"><span class="fa fa-times"></span></button>
-              <img src="" alt="">
-      </div>
-    </div>
-  </div>
+  
   </div>
 
   <?php include 'new_task.php'; ?>
@@ -259,13 +239,12 @@ window._conf = function($msg='',$func='',$params = []){
       })
   })
 
-  // PENTING: Lakukan ini sebelum Summernote, dan set dropdownParent
                     if ($('#uni_modal .select2').length) {
                         $('#uni_modal .select2').select2({
                             dropdownParent: $('#uni_modal'), 
                             width: '100%'
                         });
-                    }
+                        }
 </script>	
 
 

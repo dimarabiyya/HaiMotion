@@ -7,6 +7,13 @@ if (!isset($_REQUEST['id'])) { // Diubah dari $_POST ke $_REQUEST untuk kompatib
     exit;
 }
 
+// ID sudah didekode dan diverifikasi di index.php (Project ID numerik)
+$id = $_GET['id'] ?? 0; 
+if ($id === 0) {
+    header("Location: index.php?page=404");
+    exit;
+}
+
 // Update status overdue sebelum fetch
 $conn->query("
     UPDATE task_list 
