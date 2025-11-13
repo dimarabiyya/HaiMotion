@@ -22,10 +22,9 @@ if ($initial_thread_id && !$initial_recipient_id) {
 ?>
 
 <style>
-    /* Styling dasar untuk tampilan chat */
     .chat-container {
         display: flex;
-        height: 80vh; /* Sesuaikan tinggi */
+        height: 80vh; 
     }
     .user-list-sidebar {
         width: 300px;
@@ -68,7 +67,7 @@ if ($initial_thread_id && !$initial_recipient_id) {
         text-align: left;
     }
     .outgoing-message {
-        background-color: #007bff;
+        background-color: #B75301;
         color: white;
         margin-left: auto;
         text-align: left;
@@ -76,7 +75,7 @@ if ($initial_thread_id && !$initial_recipient_id) {
     .sender-name {
         font-weight: bold;
         margin-bottom: 3px;
-        font-size: 0.85em;
+        font-size: 0.95em;
     }
     .timestamp {
         font-size: 0.7em;
@@ -91,8 +90,8 @@ if ($initial_thread_id && !$initial_recipient_id) {
         opacity: 0.8;
     }
     .mention-tag {
-        background-color: #ffc107; 
-        color: #333;
+        background-color: #077bffff; 
+        color: #ffffffff;
         padding: 1px 4px;
         border-radius: 4px;
         font-weight: bold;
@@ -113,85 +112,111 @@ if ($initial_thread_id && !$initial_recipient_id) {
         margin-right: 10px;
     }
 </style>
-
-<div class="container-fluid h-100">
-    <div class="card card-outline card-info h-100">
-        <div class="card-header">
-            <h3 class="card-title">Chat Personal (DM)</h3>
-        </div>
-        <div class="card-body p-0 chat-container">
+    <h3 class="m-0 mb-3">Massanger</h3>
+    <div class="p-0 chat-container container-fluid border rounded-0 shadow-sm">
             <div class="user-list-sidebar">
                 <div class="p-3 border-bottom">
-                    <h5 class="m-0">Kontak</h5>
+                    <h5 class="m-0">Contact</h5>
                 </div>
-                <div id="user_list_display">
-                    </div>
+                <div id="user_list_display"></div>
             </div>
 
             <div class="chat-area">
                 <div class="p-3 border-bottom" id="recipient_header">
-                    <h5 class="m-0 text-muted">Pilih kontak di sebelah kiri untuk memulai chat.</h5>
+                    <h5 class="m-0 text-muted">Choose contact to chat</h5>
                 </div>
                 <div class="chat-box" id="chat_display">
-                    <div class="text-center p-5 text-muted">Pilih kontak di sebelah kiri untuk memulai percakapan.</div>
+                    <div class="text-center p-5 text-muted">Choose contact to chat</div>
                 </div>
                 
                 <div class="p-3 border-top bg-light" id="chat_input_container" style="display: none;">
                     <form id="chat_form">
                         <input type="hidden" name="thread_id" id="form_thread_id">
                         <div class="input-group">
-                            <input type="text" name="message_content" id="message_content" class="form-control" placeholder="Ketik pesan Anda (@user-ID, #project-ID, !task-ID untuk mention)" required>
+                            <input type="text" name="message_content" id="message_content" class="form-control" placeholder="Start conversation here!" required>
                             <div class="input-group-append">
-                                <button class="btn btn-primary" type="submit">Kirim</button>
+                                <button class="btn text-white" style="background-color:#B75301" type="submit">Send</button>
                             </div>
                         </div>
-                        <small class="form-text text-muted">Fitur mention tag: Gunakan `@user-ID`, `#project-ID`, atau `!task-ID` untuk menyertakan tautan di pesan.</small>
+                        <small class="form-text text-muted">Use Metion Tag : '@user', '#project', '!task'</small>
                     </form>
                 </div>
             </div>
-        </div>
     </div>
-</div>
 
 <script>
-    let lookupData = { users: {}, projects: {}, tasks: {} };
+    // Struktur data untuk memetakan ID ke Nama dan Nama ke ID
+    let lookupData = { users: {}, projects: {}, tasks: {} }; // ID -> Name
+    let reverseLookup = { users: {}, projects: {}, tasks: {} }; // Name -> ID
+    
     let currentThreadId = '<?php echo $initial_thread_id; ?>';
     let currentRecipientId = '<?php echo $initial_recipient_id; ?>';
     let currentRecipientName = '';
     const currentUserId = <?php echo $current_user_id; ?>;
     
-    // 1. Fungsi untuk memformat sintaks mention menjadi HTML tag (Client-Side Rendering)
+    // Helper function untuk menghindari masalah pada regex jika nama mengandung karakter khusus
+    function escapeRegExp(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    // 1. Fungsi untuk memformat sintaks mention menjadi HTML tag
     function formatMessage(message) {
+        // Mapping entitas ke URL dasar (sesuaikan dengan URL view anda)
         const links = {
             'user': 'index.php?page=view_user&id=',
             'project': 'index.php?page=view_project&id=',
             'task': 'index.php?page=view_task&id='
         };
         
-        const regex = /(@user-(\d+))|(#project-(\d+))|(!task-(\d+))/gi;
-        
-        return message.replace(regex, (match, p1, p2, p3, p4, p5, p6) => {
-            let type, id, name, link;
+        let formattedMessage = message;
 
-            if (p2) { 
-                type = 'user';
-                id = p2;
-                name = lookupData.users[id] || `User ID:${id}`;
-                link = links.user + id;
-            } else if (p4) { 
-                type = 'project';
-                id = p4;
-                name = lookupData.projects[id] || `Project ID:${id}`;
-                link = links.project + id;
-            } else if (p6) { 
-                type = 'task';
-                id = p6;
-                name = lookupData.tasks[id] || `Task ID:${id}`;
-                link = links.task + id;
+        // Urutkan nama berdasarkan panjangnya (terpanjang lebih dulu)
+        // Ini untuk memastikan nama yang lebih panjang (misal: "Sample Project 102") di-match sebelum nama yang lebih pendek (misal: "Sample Project")
+        const sortedUserNames = Object.keys(reverseLookup.users).sort((a, b) => b.length - a.length);
+        const sortedProjectNames = Object.keys(reverseLookup.projects).sort((a, b) => b.length - a.length);
+        const sortedTaskNames = Object.keys(reverseLookup.tasks).sort((a, b) => b.length - a.length);
+
+        // A. Parse User Mentions (@Nama User)
+        // Pola: @<Nama> diikuti spasi atau akhir string
+        sortedUserNames.forEach(name => {
+            const escapedName = escapeRegExp(name);
+            const userRegex = new RegExp(`@(${escapedName})(?=\\s|$)`, 'gi');
+            
+            if (userRegex.test(formattedMessage)) {
+                const id = reverseLookup.users[name];
+                // Mengganti hanya teks mentah dengan tag yang menunjukkan nama yang sama
+                const replacement = `<a href="${links.user}${id}" class="mention-tag" target="_blank">@${name}</a>`;
+                formattedMessage = formattedMessage.replace(userRegex, replacement);
             }
-            // Mengganti match dengan link HTML
-            return `<a href="${link}" class="mention-tag" target="_blank">${match} (${name.split(' ')[0]})</a>`;
         });
+        
+        // B. Parse Project Mentions (#Nama Project)
+        // Pola: #<Nama> diikuti spasi atau akhir string
+        sortedProjectNames.forEach(name => {
+            const escapedName = escapeRegExp(name);
+            const projectRegex = new RegExp(`#(${escapedName})(?=\\s|$)`, 'gi');
+            
+            if (projectRegex.test(formattedMessage)) {
+                const id = reverseLookup.projects[name];
+                const replacement = `<a href="${links.project}${id}" class="mention-tag" target="_blank">#${name}</a>`;
+                formattedMessage = formattedMessage.replace(projectRegex, replacement);
+            }
+        });
+
+        // C. Parse Task Mentions (!Nama Task)
+        // Pola: !<Nama> diikuti spasi atau akhir string
+        sortedTaskNames.forEach(name => {
+            const escapedName = escapeRegExp(name);
+            const taskRegex = new RegExp(`!(${escapedName})(?=\\s|$)`, 'gi');
+            
+            if (taskRegex.test(formattedMessage)) {
+                const id = reverseLookup.tasks[name];
+                const replacement = `<a href="${links.task}${id}" class="mention-tag" target="_blank">!${name}</a>`;
+                formattedMessage = formattedMessage.replace(taskRegex, replacement);
+            }
+        });
+
+        return formattedMessage;
     }
 
     // 2. Memuat pesan chat untuk thread aktif
@@ -202,10 +227,9 @@ if ($initial_thread_id && !$initial_recipient_id) {
         }
 
         var chatBox = $('#chat_display');
-        chatBox.html('<div class="text-center p-3 text-muted">Memuat pesan...</div>');
+        chatBox.html('<div class="text-center p-3 text-muted">Loading...</div>');
         
-        // Update header dan tampilkan input
-        $('#recipient_header h5').html('<i class="fas fa-comment-dots mr-2"></i> Chat dengan ' + currentRecipientName);
+        $('#recipient_header h5').html('<i class="fas fa-comment-dots mr-2"></i> Chat with ' + currentRecipientName);
         $('#chat_input_container').show();
 
         $.ajax({
@@ -214,10 +238,26 @@ if ($initial_thread_id && !$initial_recipient_id) {
             data: { thread_id: currentThreadId },
             dataType: 'json',
             success: function(response) {
-                // Update lookup data
+                
+                // --- BAGIAN PENTING: MEMBANGUN REVERSE LOOKUP MAP (Name -> ID) ---
                 lookupData.users = response.users || {};
                 lookupData.projects = response.projects || {};
                 lookupData.tasks = response.tasks || {};
+                
+                reverseLookup.users = {};
+                for (const id in lookupData.users) {
+                    // Simpan nama yang sudah di-trim untuk pencarian
+                    reverseLookup.users[lookupData.users[id].trim()] = id;
+                }
+                reverseLookup.projects = {};
+                for (const id in lookupData.projects) {
+                    reverseLookup.projects[lookupData.projects[id].trim()] = id;
+                }
+                reverseLookup.tasks = {};
+                for (const id in lookupData.tasks) {
+                    reverseLookup.tasks[lookupData.tasks[id].trim()] = id;
+                }
+                // -----------------------------------------------------------
                 
                 chatBox.empty();
 
@@ -227,6 +267,7 @@ if ($initial_thread_id && !$initial_recipient_id) {
                         var messageClass = isOutgoing ? 'outgoing-message' : 'incoming-message';
                         var senderName = isOutgoing ? 'Anda' : msg.sender_name;
                         
+                        // Gunakan formatMessage untuk memproses mention nama
                         var formattedContent = formatMessage(msg.message_content);
 
                         var html = `
@@ -239,26 +280,24 @@ if ($initial_thread_id && !$initial_recipient_id) {
                         chatBox.append(html);
                     });
                 } else {
-                    chatBox.html('<div class="text-center p-5 text-muted">Belum ada pesan. Kirim pesan pertama Anda!</div>');
+                    chatBox.html('<div class="text-center p-5 text-muted">Start firts Conversation</div>');
                 }
                 
                 chatBox.scrollTop(chatBox[0].scrollHeight);
             },
             error: function() {
-                chatBox.html('<div class="text-center p-5 text-danger">Gagal memuat pesan.</div>');
+                chatBox.html('<div class="text-center p-5 text-danger">Error</div>');
             }
         });
     }
     
     // 3. Mendapatkan ID thread atau membuat yang baru
     function getOrCreateThread() {
-        // start_load(); // Jika tidak ingin overlay, bisa diabaikan
         $.ajax({
             url: 'ajax.php?action=get_or_create_thread_id',
             method: 'POST',
             data: { user2_id: currentRecipientId },
             success: function(threadId) {
-                // end_load();
                 if (threadId > 0) {
                     currentThreadId = threadId;
                     $('#form_thread_id').val(threadId);
@@ -268,7 +307,6 @@ if ($initial_thread_id && !$initial_recipient_id) {
                 }
             },
             error: function() {
-                // end_load();
                 alert_toast("Terjadi kesalahan koneksi saat membuat thread.", "error");
             }
         });
@@ -283,7 +321,8 @@ if ($initial_thread_id && !$initial_recipient_id) {
             success: function(users) {
                 $('#user_list_display').empty();
                 users.forEach(function(user) {
-                    lookupData.users[user.id] = user.name; 
+                    // Simpan mapping ID ke Nama untuk lookup
+                    lookupData.users[user.id] = user.name.trim(); 
                     
                     var activeClass = (user.id == currentRecipientId) ? 'active' : '';
                     var avatarHtml;
@@ -295,7 +334,7 @@ if ($initial_thread_id && !$initial_recipient_id) {
                     }
 
                     var userHtml = `
-                        <div class="user-item d-flex align-items-center ${activeClass}" data-user-id="${user.id}" data-user-name="${user.name}">
+                        <div class="user-item d-flex align-items-center ${activeClass}" data-user-id="${user.id}" data-user-name="${user.name.trim()}">
                             ${avatarHtml}
                             <span class="text-dark">${user.name}</span>
                         </div>
@@ -311,7 +350,6 @@ if ($initial_thread_id && !$initial_recipient_id) {
                     currentRecipientId = $(this).data('user-id');
                     currentRecipientName = $(this).data('user-name');
                     
-                    // Panggil fungsi untuk mendapatkan thread ID atau membuat yang baru
                     getOrCreateThread();
                 });
                 
@@ -325,6 +363,10 @@ if ($initial_thread_id && !$initial_recipient_id) {
                      // Jika tidak ada recipient awal, nonaktifkan input chat
                     $('#chat_input_container').hide();
                 }
+                
+                // NOTE: Setelah user list dimuat, kita perlu memuat data Project dan Task 
+                // untuk inisialisasi reverseLookup Project/Task yang digunakan di formatMessage.
+                loadProjectTaskLookup();
             },
             error: function() {
                 $('#user_list_display').html('<div class="text-center p-3 text-danger">Gagal memuat daftar pengguna.</div>');
@@ -332,7 +374,40 @@ if ($initial_thread_id && !$initial_recipient_id) {
         });
     }
 
-    // 5. Tangani pengiriman pesan
+    // Fungsi tambahan untuk memuat data Project dan Task
+    function loadProjectTaskLookup() {
+        // Ambil data Project dan Task dari backend untuk lookup
+        $.ajax({
+            url: 'ajax.php?action=get_personal_chat_messages', // Gunakan endpoint yang sama untuk ambil lookup data
+            method: 'POST',
+            data: { thread_id: 0 }, // Kirim thread_id 0 atau null untuk ambil lookup data saja
+            dataType: 'json',
+            success: function(response) {
+                
+                lookupData.projects = response.projects || {};
+                lookupData.tasks = response.tasks || {};
+                
+                reverseLookup.projects = {};
+                for (const id in lookupData.projects) {
+                    reverseLookup.projects[lookupData.projects[id].trim()] = id;
+                }
+                reverseLookup.tasks = {};
+                for (const id in lookupData.tasks) {
+                    reverseLookup.tasks[lookupData.tasks[id].trim()] = id;
+                }
+                
+                // Jika ada chat yang diinisialisasi dari URL, load pesan
+                if (currentThreadId) {
+                    loadChatMessages();
+                }
+            },
+            error: function() {
+                console.error("Gagal memuat data Project/Task untuk lookup.");
+            }
+        });
+    }
+    
+    // 5. Tangani pengiriman pesan (Tidak Berubah)
     $('#chat_form').submit(function(e) {
         e.preventDefault();
         
@@ -344,6 +419,8 @@ if ($initial_thread_id && !$initial_recipient_id) {
         var messageContent = $('#message_content').val().trim();
         if (messageContent === '') return;
 
+        // Di sini, pesan dengan nama mentah dikirim ke server.
+        // Server hanya menyimpan, dan frontend yang memproses display.
         var formData = $(this).serialize();
         
         $.ajax({
@@ -366,11 +443,4 @@ if ($initial_thread_id && !$initial_recipient_id) {
 
     // Panggil fungsi awal
     loadUserList();
-    
-    // Atur interval untuk memuat pesan baru secara otomatis (contoh: setiap 3 detik)
-    // setInterval(function() {
-    //     if (currentThreadId) {
-    //         loadChatMessages();
-    //     }
-    // }, 3000); 
-</script>
+</script>   

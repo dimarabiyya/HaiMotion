@@ -347,11 +347,10 @@ body {
 
 <div class="container-fluid-custom">
     <div class="filter-area">
-        <h3 class="mb-3">Kanban Board</h3>
         <div class="dropdown">
             <button class="btn text-white dropdown-toggle" type="button" id="projectDropdown"
                 data-toggle="dropdown" aria-expanded="false" style="background-color: #B75301 !important;">
-                <i class="fas fa-folder"></i>
+                <i class="fas fa-clipboard"></i>
                 <?= htmlspecialchars(array_column($projects, 'name', 'id')[$project_id] ?? 'Pilih Project') ?>
             </button>
             <div class="dropdown-menu" aria-labelledby="projectDropdown">

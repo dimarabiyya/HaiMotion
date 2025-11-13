@@ -48,7 +48,7 @@
           <li class="nav-item">
             <a href="index.php?page=chat" class="nav-link nav-chat">
               <i class="nav-icon fas fa-comments"></i>
-              <p>Chat</p>
+              <p>Massanger</p>
             </a>
           </li>
 
