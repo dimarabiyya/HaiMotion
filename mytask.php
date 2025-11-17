@@ -263,6 +263,15 @@ $(document).ready(function(){
         return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
     };
 
+    $('.summernote').summernote({ height: 200 });
+
+   
+    $('#user_ids').select2({
+        placeholder: "Select users",
+        dropdownParent: $('#addTaskModal')
+    });
+    // >>> END SOLUSI SELECT2 BARU DITAMBAHKAN DI SINI <<<
+
     const taskId = getUrlParameter('id');
     const pageName = getUrlParameter('page'); 
 
@@ -341,6 +350,8 @@ function delete_task(id){
         }
     });
 }
+
+
 
 </script>
 

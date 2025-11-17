@@ -125,7 +125,7 @@
 
   <?php include 'new_task.php'; ?>
   <a href="#addTaskModal" class="float" data-toggle="modal" 
-       title="Tambah Task Baru">
+       title="New Task">
         <i class="fa fa-plus my-float"></i>
   </a>
 
@@ -239,12 +239,6 @@ window._conf = function($msg='',$func='',$params = []){
       })
   })
 
-                    if ($('#uni_modal .select2').length) {
-                        $('#uni_modal .select2').select2({
-                            dropdownParent: $('#uni_modal'), 
-                            width: '100%'
-                        });
-                        }
 </script>	
 
 

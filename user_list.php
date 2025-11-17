@@ -141,6 +141,16 @@ $(document).ready(function(){
     window.location.href = "index.php?page=new_user";
   });
 
+    $('.summernote').summernote({ height: 200 });
+
+    // >>> START SOLUSI SELECT2 BARU DITAMBAHKAN DI SINI <<<
+    // Inisialisasi Select2 untuk elemen 'Assign To'
+    // Menggunakan dropdownParent untuk memastikan dropdown Select2 muncul di atas modal Bootstrap.
+    $('#user_ids').select2({
+        placeholder: "Select users",
+        dropdownParent: $('#addTaskModal')
+    });
+    // >>> END SOLUSI SELECT2 BARU DITAMBAHKAN DI SINI <<<
 
   // View User
   $('.view_user').click(function(){
