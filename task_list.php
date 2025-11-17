@@ -397,7 +397,7 @@ $(document).ready(function(){
     // View Task (dropdown)
     $('.view_task').click(function(){
         // ✅ REVISI: Menggunakan ukuran modal XL
-        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"mid-large");
+        uni_modal("Task Details","get_task_detail.php?id="+$(this).attr('data-id'),"large");
     })
     
     // Delete Task
@@ -419,7 +419,7 @@ $(document).ready(function(){
         var pid = $(this).data('pid');
         uni_modal("<i class='fa fa-edit'></i> Edit Task",
             "manage_task.php?id=" + id + "&pid=" + pid,
-            "mid-large");
+            "large");
     });
     
     // FIX: Klik seluruh row task untuk menampilkan modal detail
@@ -428,7 +428,7 @@ $(document).ready(function(){
         if($(e.target).closest('.dropdown, .dropdown-toggle, .dropdown-menu, .new_productivity, .edit_task, .delete_task').length) return;
 
         var taskId = $(this).data('id');
-        uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"mid-large");
+        uni_modal("Task Details","get_task_detail.php?id="+ taskId ,"large");
     });
 });
 

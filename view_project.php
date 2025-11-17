@@ -514,9 +514,24 @@ $bar_data_done = json_encode($bar_data_done);
 </div>
 </div>
 <style>
-    /* ... CSS Styles (tetap sama) ... */
     .truncate {
         -webkit-line-clamp:1 !important;
+    }
+    .user-avatar-stack {
+        white-space: nowrap;
+        overflow-x: auto;
+        padding-left: 10px;
+        padding-bottom: 5px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+    }
+    .user-avatar-stack .member-avatar{
+        width: 38px;
+        height: 38px;
+        object-fit: cover;
+        margin-left: -8px;
+        flex-shrink: 0;
     }
     .user-avatar-stack .member-avatar:first-child {
         margin-left: 0px !important;
@@ -542,7 +557,7 @@ $bar_data_done = json_encode($bar_data_done);
     // =========================================================
     // MODAL HANDLER dan AJAX DELETE (tetap sama)
     // =========================================================
-    function uni_modal(title, url, size = "mid-large") {
+    function uni_modal(title, url, size = "large") {
         if ($('#uni_modal .summernote').length) {
             $('#uni_modal .summernote').summernote('destroy');
         }
@@ -554,7 +569,7 @@ $bar_data_done = json_encode($bar_data_done);
                 if (resp) {
                     $('#uni_modal .modal-title').html(title);
                     $('#uni_modal .modal-body').html(resp);
-                    $('#uni_modal .modal-dialog').removeClass('mid-large large').addClass(size); 
+                    $('#uni_modal .modal-dialog').removeClass('large large').addClass(size).addClass('modal-dialog-centered');; 
                     if ($('#uni_modal .select2').length) {
                         $('#uni_modal .select2').select2({
                             dropdownParent: $('#uni_modal'), 
@@ -614,14 +629,14 @@ $bar_data_done = json_encode($bar_data_done);
     }
     
     function edit_task(id, taskName = 'Task'){
-        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
+        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=<?php echo $id ?>&id=" + id, "large");
     }
 
     // =========================================================
     // EVENT HANDLERS (tetap sama)
     // =========================================================
     $('#new_task').click(function(){
-        uni_modal("New Task For <?php echo ucwords($name) ?>", "manage_task.php?pid=<?php echo $id ?>&id=0", "mid-large");
+        uni_modal("New Task For <?php echo ucwords($name) ?>", "manage_task.php?pid=<?php echo $id ?>&id=0", "large");
     })
     $('.edit_task').click(function(){
         const taskId = $(this).attr('data-id');
@@ -629,7 +644,7 @@ $bar_data_done = json_encode($bar_data_done);
         edit_task(taskId, taskName);
     });
     $('.view_task').click(function(){
-        uni_modal("Task Details","view_task.php?id="+$(this).attr('data-id'),"mid-large")
+        uni_modal("Task Details","view_task.php?id="+$(this).attr('data-id'),"large")
     })
     $('.delete_task').click(function(){
         _conf("Are you sure to delete this task?", "delete_task", [$(this).attr('data-id')])
@@ -651,7 +666,7 @@ $bar_data_done = json_encode($bar_data_done);
         ) {
             const taskId = $(this).data('id');
             const taskName = $(this).data('task'); 
-            uni_modal("Task: " + taskName, "get_task_detail.php?id=" + taskId, "mid-large");
+            uni_modal("Task: " + taskName, "get_task_detail.php?id=" + taskId, "large");
         }
     });
     $('#uni_modal').off('hidden.bs.modal');

@@ -2,6 +2,11 @@
 include 'db_connect.php';
 session_start();
 
+// Asumsi fungsi decode_id() ada di file include/di tempat lain
+if (!function_exists('decode_id')) {
+    function decode_id($id) { return is_numeric($id) ? (int)$id : 0; }
+}
+
 if (!isset($_REQUEST['id'])) { 
     echo "ID tidak ditemukan.";
     exit;
@@ -66,7 +71,7 @@ if ($qry->num_rows > 0) {
 
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
-      <h4 class="font-weight-bold mb-1"><?= htmlspecialchars($row['task']) ?></h4>
+      <h4 class="font-weight-bold mb-1" style="word-break: break-word;"><?= htmlspecialchars($row['task']) ?></h4>
       <span class="badge badge-<?= $status[1] ?> px-3 py-2" style="font-size:13px;">
         <?= $status[0] ?>
       </span>
@@ -77,11 +82,11 @@ if ($qry->num_rows > 0) {
 
   <div class="mb-3">
     <h6 class="text-muted mb-1">Project</h6>
-    <h5 class="font-weight-bold mb-0"><?= htmlspecialchars($project_name) ?></h5>
+    <h5 class="font-weight-bold mb-0" style="word-break: break-word;"><?= htmlspecialchars($project_name) ?></h5>
   </div>
 
   <div class="row mb-4">
-    <div class="col-md-6 mb-3">
+    <div class="col-12 col-md-6 mb-3">
       <h6 class="text-muted">Created By</h6>
       <?php if ($creator): ?>
       <div class="d-flex align-items-center flex-wrap mt-2">
@@ -97,7 +102,7 @@ if ($qry->num_rows > 0) {
       <?php endif; ?>
     </div>
 
-    <div class="col-md-6 mb-3">
+    <div class="col-12 col-md-6 mb-3">
       <h6 class="text-muted">Assignment User</h6>
       <?php 
       $task_assigned_users = [];
@@ -113,26 +118,27 @@ if ($qry->num_rows > 0) {
       }
       ?>
       <?php if (!empty($task_assigned_users)): ?>
-      <div class="d-flex align-items-center flex-wrap mt-2">
-        <?php foreach ($task_assigned_users as $au): ?>
-          <img 
-            src="assets/uploads/<?= !empty($au['avatar']) ? htmlspecialchars($au['avatar']) : 'default.png'; ?>" 
-            alt="<?= ucwords($au['firstname'].' '.$au['lastname']); ?>" 
-            class="rounded-circle border border-secondary" 
-            style="width:40px; height:40px; object-fit:cover; margin-right:-8px;" 
-            title="<?= ucwords($au['firstname'].' '.$au['lastname']); ?>">
-        <?php endforeach; ?>
+      <div class="avatar-stack-container mt-2">
+        <div class="d-flex align-items-center avatar-stack">
+          <?php foreach ($task_assigned_users as $au): ?>
+            <img 
+              src="assets/uploads/<?= !empty($au['avatar']) ? htmlspecialchars($au['avatar']) : 'default.png'; ?>" 
+              alt="<?= ucwords($au['firstname'].' '.$au['lastname']); ?>" 
+              class="rounded-circle border border-secondary avatar-item" 
+              title="<?= ucwords($au['firstname'].' '.$au['lastname']); ?>">
+          <?php endforeach; ?>
+        </div>
       </div>
       <?php else: ?>
       <p class="text-muted mb-0">No User</p>
       <?php endif; ?>
     </div>
 
-    <div class="col-md-6 mb-3">
+    <div class="col-12 col-md-6 mb-3">
       <h6 class="text-muted mb-1">Start Date</h6>
       <p class="mb-0"><?= date('F d, Y', strtotime($row['start_date'])) ?></p>
     </div>
-    <div class="col-md-6 mb-3">
+    <div class="col-12 col-md-6 mb-3">
       <h6 class="text-muted mb-1">End Date</h6>
       <p class="mb-0"><?= date('F d, Y', strtotime($row['end_date'])) ?></p>
     </div>
@@ -140,51 +146,56 @@ if ($qry->num_rows > 0) {
 
   <div class="mb-3">
     <h6 class="text-muted">Description</h6>
-    <div class="p-2 bg-light rounded border">
+    <div class="p-2 bg-light rounded border description-content">
       <?= html_entity_decode($row['description']) ?>
     </div>
   </div>
 
   <div class="mb-3">
     <h6 class="text-muted">Content Pillar</h6>
-    <?php 
-    $pillars = array_filter(array_map('trim', explode(',', $row['content_pillar'])));
-    if (!empty($pillars)) {
-        foreach ($pillars as $p) {
-            echo "<span class='badge badge-pill badge-primary mr-1 mb-1 px-3 py-2' style='font-size:13px;'>".ucwords($p)."</span>";
-        }
-    } else {
-        echo "<span class='text-muted'>-</span>";
-    }
-    ?>
+    <div class="pillar-container"> 
+      <?php 
+      $pillars = array_filter(array_map('trim', explode(',', $row['content_pillar'])));
+      if (!empty($pillars)) {
+          foreach ($pillars as $p) {
+              echo "<span class='badge badge-pill badge-primary mr-1 mb-1 px-3 py-2' style='font-size:13px;'>".ucwords($p)."</span>";
+          }
+      } else {
+          echo "<span class='text-muted'>-</span>";
+      }
+      ?>
+    </div>
   </div>
 
   <div class="mb-3">
     <h6 class="text-muted">Platform</h6>
-    <?php 
-    $platforms = array_filter(array_map('trim', explode(',', $row['platform'])));
-    if (!empty($platforms)) {
-        foreach ($platforms as $plat) {
-            echo "<span class='badge badge-pill badge-success mr-1 mb-1 px-3 py-2' style='font-size:13px;'>$plat</span>";
-        }
-    } else {
-        echo "<span class='text-muted'>-</span>";
-    }
-    ?>
+    <div class="pillar-container">
+      <?php 
+      $platforms = array_filter(array_map('trim', explode(',', $row['platform'])));
+      if (!empty($platforms)) {
+          foreach ($platforms as $plat) {
+              echo "<span class='badge badge-pill badge-success mr-1 mb-1 px-3 py-2' style='font-size:13px;'>$plat</span>";
+          }
+      } else {
+          echo "<span class='text-muted'>-</span>";
+      }
+      ?>
+    </div>
   </div>
 
   <div class="mb-3">
     <h6 class="text-muted">Reference Links</h6>
-    <ul class="pl-3 reference-links">
+    <ul class="pl-3 links-container"> 
       <?php 
       $links = array_filter(array_map('trim', explode("\n", $row['reference_links'])));
       if (!empty($links)) {
           foreach ($links as $link) {
               $safe_link = htmlspecialchars($link);
-              echo "<p><a href='{$safe_link}' target='_blank'>{$safe_link}</a></p>";
+              // Ubah <p> menjadi <li>
+              echo "<li><a href='{$safe_link}' target='_blank'>{$safe_link}</a></li>";
           }
       } else {
-          echo "<p class='text-muted'>No links</p>";
+          echo "<li class='text-muted'>No links</li>"; // Ubah <p> menjadi <li>
       }
       ?>
     </ul>
@@ -192,51 +203,35 @@ if ($qry->num_rows > 0) {
 </div>
 
 <div class="modal-footer display p-0 m-0">
-    <button class="btn btn-primary mr-2" onclick="editTask(<?= $id ?>, <?= $project_id ?>)">
-      <i class="fa fa-edit"></i> Edit Task
-    </button>
-    <button type="button" class="btn btn-danger mr-auto" onclick="confirmDelete(<?= $id ?>)">
-      <i class="fa fa-trash"></i> Delete
-    </button>
+    <button class="btn mr-2" style="background-color: #2a80b9;" onclick="editTask(<?= $id ?>, <?= $project_id ?>)">Edit Task</button>
+    <button type="button" class="btn btn-danger mr-auto" onclick="confirmDelete(<?= $id ?>)">Delete</button>
   <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 </div>
 
     
 <script>
     function editTask(id, pid) {
-      // Sembunyikan modal detail task saat ini
       $('#uni_modal').modal('hide');
       
-      // Beri sedikit jeda lalu buka modal edit task (manage_task.php)
       setTimeout(function(){
-          // 💡 PENTING: ID Task dan Project harus dienkripsi saat memanggil AJAX/URL baru
-          // Karena fungsi encode_id tidak tersedia di JS, kita asumsikan ID numerik
-          // yang kita kirim ke manage_task.php AKAN didekode/di-handle di manage_task.php
-          // Namun, jika manage_task.php diakses langsung dari URL, ia harus didekode.
-          // Agar konsisten, kita akan mengirim ID numerik karena sudah diverifikasi
-          // dan asumsikan manage_task.php TIDAK melakukan decoding lagi.
-          
+          // Gunakan ukuran modal yang lebih lebar (large) untuk edit task
+          // Agar manage_task.php yang biasanya punya banyak field input bisa tampil maksimal.
           uni_modal("<i class='fa fa-edit'></i> Edit Task",
               "manage_task.php?id=" + id + "&pid=" + pid,
-              "modal-xl");
+              "large"); 
       }, 300); 
     }
     
     function confirmDelete(id) {
-      // Tutup modal utama dulu
       $('#uni_modal').modal('hide');
 
-      // Tunggu sampai animasi modal selesai baru panggil konfirmasi
       setTimeout(() => {
-        // ID yang dikirim ke delete_task (AJAX) adalah ID numerik ($id)
         _conf('Are you sure to delete this task?', 'delete_task', [id]);
       }, 400);
     }
-
-    // Sembunyikan footer default dan tampilkan footer kustom
+    
     $('#uni_modal .modal-footer').hide(); 
     $('.modal-footer.display').show();
-    $('#uni_modal .modal-dialog').removeClass('modal-md').addClass("modal-lg");
 </script>
     
 <?php
@@ -246,22 +241,58 @@ if ($qry->num_rows > 0) {
 ?>
 
 <style>
-.reference-links a {
+/* 1. Responsifitas Link Referensi */
+.links-container li a {
     display: inline-block;
     max-width: 100%;
-    word-wrap: break-word;
+    /* Memastikan URL yang panjang akan wrap dan tidak menyebabkan horizontal scroll */
+    word-wrap: break-word; 
     word-break: break-all;
     overflow-wrap: break-word;
     white-space: normal;
 }
+
+/* 2. Responsifitas Avatar Assignee Stack */
+.avatar-stack-container {
+    /* Wadah utama yang memungkinkan scrolling horizontal */
+    overflow-x: auto; 
+    white-space: nowrap; /* Memastikan semua avatar tetap dalam satu baris */
+    padding-bottom: 5px; /* Memberi ruang untuk scrollbar */
+}
+.avatar-stack {
+    display: flex;
+    align-items: center;
+}
+.avatar-stack .avatar-item {
+    width: 40px; 
+    height: 40px;
+    object-fit: cover;
+    margin-right: 0; /* Hilangkan margin-right yang menyebabkan space berlebihan */
+    margin-left: -8px; /* Tumpukan avatar */
+    flex-shrink: 0; /* Penting: mencegah gambar menyusut */
+}
+.avatar-stack .avatar-item:first-child {
+    margin-left: 0px !important; 
+}
+
+/* 3. Footer Custom */
 #uni_modal .modal-footer {
     display: none; /* Hide default modal footer */
 }
 .modal-footer.display {
     display: flex !important;
+    flex-wrap: wrap; 
     justify-content: flex-end;
     align-items: center;
     padding: 1rem;
     border-top: 1px solid #dee2e6;
+}
+
+/* 4. Konten Deskripsi/Pillar */
+.description-content, .pillar-container {
+    word-wrap: break-word; 
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
 }
 </style>
