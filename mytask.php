@@ -350,9 +350,6 @@ function delete_task(id){
         }
     });
 }
-
-
-
 </script>
 
 

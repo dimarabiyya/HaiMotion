@@ -209,13 +209,6 @@ if ($qry->num_rows > 0) {
       
       // Beri sedikit jeda lalu buka modal edit task (manage_task.php)
       setTimeout(function(){
-          // 💡 PENTING: ID Task dan Project harus dienkripsi saat memanggil AJAX/URL baru
-          // Karena fungsi encode_id tidak tersedia di JS, kita asumsikan ID numerik
-          // yang kita kirim ke manage_task.php AKAN didekode/di-handle di manage_task.php
-          // Namun, jika manage_task.php diakses langsung dari URL, ia harus didekode.
-          // Agar konsisten, kita akan mengirim ID numerik karena sudah diverifikasi
-          // dan asumsikan manage_task.php TIDAK melakukan decoding lagi.
-          
           uni_modal("<i class='fa fa-edit'></i> Edit Task",
               "manage_task.php?id=" + id + "&pid=" + pid,
               "modal-xl");

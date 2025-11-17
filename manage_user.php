@@ -1,12 +1,38 @@
 <?php
+// FILE: manage_user.php
 include 'db_connect.php'; 
 
 if(isset($_GET['id'])){
-    $qry = $conn->query("SELECT * FROM users WHERE id = ".$_GET['id']);
-    foreach($qry->fetch_array() as $k => $v){
-        $$k = $v;
+    // 1. Ambil ID yang dienkripsi dari URL
+    $encoded_id = $_GET['id'];
+
+    // ➡️ 2. DECODE ID
+    // Fungsi decode_id() mengembalikan ID numerik atau null jika gagal.
+    $id = decode_id($encoded_id);
+
+    // 3. Verifikasi ID yang telah didekode
+    if (!is_numeric($id) || $id <= 0) {
+        // Hentikan proses jika ID tidak valid
+        echo "<div class='alert alert-danger p-3 text-center'>ID User tidak valid atau tidak dapat didekode.</div>";
+        exit;
+    }
+    
+    // 4. Lanjutkan query menggunakan ID numerik yang aman
+    // Note: Anda perlu memulai sesi di index.php sebelum menyertakan manage_user.php
+    $qry = $conn->query("SELECT * FROM users WHERE id = " . $id);
+    
+    if($qry->num_rows > 0){
+        $data = $qry->fetch_array();
+        foreach($data as $k => $v){
+            // Memuat variabel seperti $id, $firstname, $email, dll.
+            $$k = $v;
+        }
+    } else {
+        echo "<div class='alert alert-danger p-3 text-center'>User tidak ditemukan di database.</div>";
+        exit;
     }
 }
+// Sesi harus sudah dimulai di index.php
 ?>
 <div class="col-lg-12">
     <div class="card">
@@ -95,6 +121,7 @@ if(isset($_GET['id'])){
 }
 </style>
 <script>
+// ... (Bagian JavaScript tidak berubah, karena ia bekerja dengan ID numerik dari hidden input)
     function displayImg(input) {
         if (input.files && input.files[0]) {
             var reader = new FileReader();
