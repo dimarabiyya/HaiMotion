@@ -140,11 +140,7 @@ $(document).ready(function(){
     // Inisialisasi plugin/editor
     $('.summernote').summernote({ height: 200 });
     // Select2 fix agar dropdown muncul di atas modal
-    $('.select2').select2({
-        placeholder: "Select Employee",
-        width: '100%',
-        dropdownParent: $('#addTaskModal') // penting biar dropdown muncul di dalam modal
-    });
+
 
     // Auto-load user list jika project aktif saat modal dibuka
     if($('#project_id').val()){
