@@ -2,17 +2,21 @@
 include 'db_connect.php';
 session_start();
 
-if (!isset($_REQUEST['id'])) { // Diubah dari $_POST ke $_REQUEST untuk kompatibilitas uni_modal (GET)
+if (!isset($_REQUEST['id'])) { 
     echo "ID tidak ditemukan.";
     exit;
 }
 
-// ID sudah didekode dan diverifikasi di index.php (Project ID numerik)
-$id = $_GET['id'] ?? 0; 
-if ($id === 0) {
-    header("Location: index.php?page=404");
+$encoded_id = $_REQUEST['id'];
+
+$id = decode_id($encoded_id);
+
+// Jika decoding gagal atau ID tidak valid (null atau 0)
+if (!is_numeric($id) || $id <= 0) {
+    echo "ID Task tidak valid atau tidak dapat didekode.";
     exit;
 }
+// ---------------------------------------------------------------------
 
 // Update status overdue sebelum fetch
 $conn->query("
@@ -23,7 +27,7 @@ $conn->query("
 ");
 
 
-$id = intval($_REQUEST['id']); // Diubah dari $_POST ke $_REQUEST
+$id = intval($id); // Konversi ke integer untuk query
 $qry = $conn->query("SELECT * FROM task_list WHERE id = $id");
 
 if ($qry->num_rows > 0) {
@@ -60,7 +64,6 @@ if ($qry->num_rows > 0) {
     
     <div class="p-3">
 
-  <!-- Header: Task Title + Buttons -->
   <div class="d-flex justify-content-between align-items-center mb-3">
     <div>
       <h4 class="font-weight-bold mb-1"><?= htmlspecialchars($row['task']) ?></h4>
@@ -72,15 +75,12 @@ if ($qry->num_rows > 0) {
 
   <hr>
 
-  <!-- Project -->
   <div class="mb-3">
     <h6 class="text-muted mb-1">Project</h6>
     <h5 class="font-weight-bold mb-0"><?= htmlspecialchars($project_name) ?></h5>
   </div>
 
-  <!-- Creator & Assignment -->
   <div class="row mb-4">
-    <!-- Created By -->
     <div class="col-md-6 mb-3">
       <h6 class="text-muted">Created By</h6>
       <?php if ($creator): ?>
@@ -97,7 +97,6 @@ if ($qry->num_rows > 0) {
       <?php endif; ?>
     </div>
 
-    <!-- Assignment User -->
     <div class="col-md-6 mb-3">
       <h6 class="text-muted">Assignment User</h6>
       <?php 
@@ -129,7 +128,6 @@ if ($qry->num_rows > 0) {
       <?php endif; ?>
     </div>
 
-    <!-- Start & End Date -->
     <div class="col-md-6 mb-3">
       <h6 class="text-muted mb-1">Start Date</h6>
       <p class="mb-0"><?= date('F d, Y', strtotime($row['start_date'])) ?></p>
@@ -140,7 +138,6 @@ if ($qry->num_rows > 0) {
     </div>
   </div>
 
-  <!-- Description -->
   <div class="mb-3">
     <h6 class="text-muted">Description</h6>
     <div class="p-2 bg-light rounded border">
@@ -148,7 +145,6 @@ if ($qry->num_rows > 0) {
     </div>
   </div>
 
-  <!-- Content Pillar -->
   <div class="mb-3">
     <h6 class="text-muted">Content Pillar</h6>
     <?php 
@@ -163,7 +159,6 @@ if ($qry->num_rows > 0) {
     ?>
   </div>
 
-  <!-- Platform -->
   <div class="mb-3">
     <h6 class="text-muted">Platform</h6>
     <?php 
@@ -178,7 +173,6 @@ if ($qry->num_rows > 0) {
     ?>
   </div>
 
-  <!-- Reference Links -->
   <div class="mb-3">
     <h6 class="text-muted">Reference Links</h6>
     <ul class="pl-3 reference-links">
@@ -204,7 +198,6 @@ if ($qry->num_rows > 0) {
     <button type="button" class="btn btn-danger mr-auto" onclick="confirmDelete(<?= $id ?>)">
       <i class="fa fa-trash"></i> Delete
     </button>
-    </button>
   <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 </div>
 
@@ -216,10 +209,17 @@ if ($qry->num_rows > 0) {
       
       // Beri sedikit jeda lalu buka modal edit task (manage_task.php)
       setTimeout(function(){
+          // 💡 PENTING: ID Task dan Project harus dienkripsi saat memanggil AJAX/URL baru
+          // Karena fungsi encode_id tidak tersedia di JS, kita asumsikan ID numerik
+          // yang kita kirim ke manage_task.php AKAN didekode/di-handle di manage_task.php
+          // Namun, jika manage_task.php diakses langsung dari URL, ia harus didekode.
+          // Agar konsisten, kita akan mengirim ID numerik karena sudah diverifikasi
+          // dan asumsikan manage_task.php TIDAK melakukan decoding lagi.
+          
           uni_modal("<i class='fa fa-edit'></i> Edit Task",
               "manage_task.php?id=" + id + "&pid=" + pid,
               "modal-xl");
-      }, 300); // 300ms delay
+      }, 300); 
     }
     
     function confirmDelete(id) {
@@ -228,6 +228,7 @@ if ($qry->num_rows > 0) {
 
       // Tunggu sampai animasi modal selesai baru panggil konfirmasi
       setTimeout(() => {
+        // ID yang dikirim ke delete_task (AJAX) adalah ID numerik ($id)
         _conf('Are you sure to delete this task?', 'delete_task', [id]);
       }, 400);
     }
@@ -238,7 +239,7 @@ if ($qry->num_rows > 0) {
     $('#uni_modal .modal-dialog').removeClass('modal-md').addClass("modal-lg");
 </script>
     
-    <?php
+<?php
 } else {
     echo "Data task tidak ditemukan.";
 }

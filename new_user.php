@@ -1,5 +1,9 @@
 <?php
-include 'db_connect.php';
+// FILE: new_user.php
+
+// 🚨 PERHATIAN: Blok PHP ini dihapus karena file ini disajikan (include) oleh edit_user.php
+// yang sudah mengambil dan memproses data dari database.
+/*
 if(isset($_GET['id'])){
     // Ambil juga data notification_email dari database
     $qry = $conn->query("SELECT * FROM users WHERE id = ".$_GET['id']);
@@ -7,6 +11,7 @@ if(isset($_GET['id'])){
         $$k = $v;
     }
 }
+*/
 ?>
 <div class="col-lg-12">
     <div class="card">
@@ -38,8 +43,8 @@ if(isset($_GET['id'])){
                                 <label class="custom-file-label">Choose file</label>
                             </div>
                         </div>
-                        <div class="form-group d-flex justify-content-center">
-                            <img src="<?= isset($avatar) ? 'assets/uploads/'.$avatar : '' ?>" alt="Foto Profil" id="cimg" class="img-thumbnail">
+                        <div class="form-group d-flex justify-content-center justify-item-center text-center">
+                            <img src="<?= isset($avatar) ? 'assets/uploads/'.$avatar : '' ?>" alt="Profile" id="cimg" class="img-thumbnail">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -63,7 +68,6 @@ if(isset($_GET['id'])){
                         <div class="form-group">
                             <label>Notification Email (Gmail)</label>
                             <input type="email" name="notification_email" class="form-control form-control-sm" value="<?= isset($notification_email) ? $notification_email : '' ?>">
-                            <small class="text-muted">Opsional: Email lain untuk menerima push notifikasi.</small>
                         </div>
                         <div class="form-group">
                             <label>Password</label>
@@ -118,6 +122,7 @@ if(isset($_GET['id'])){
     $('[name="email"]').on('blur', function() {
         let email = $(this).val();
         let id = $('[name="id"]').val();
+        // ID yang dikirim ke check_email adalah ID numerik dari hidden input. Ini sudah AMAN.
         $.post('ajax.php?action=check_email', { email: email, id: id }, function(resp) {
             if (resp == 1) {
                 $('#msg_email').html('<div class="text-danger">Email sudah digunakan.</div>');

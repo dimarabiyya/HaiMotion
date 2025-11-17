@@ -549,7 +549,10 @@ class Action {
             
             $sender_name = $this->db->query("SELECT CONCAT(firstname, ' ', lastname) as name FROM users WHERE id = '{$sender_id}'")->fetch_assoc()['name'];
             $notification_message = "Pesan baru dari **{$sender_name}**.";
-            $link = "index.php?page=chat&thread_id={$thread_id}";
+            
+            // 💡 PERBAIKAN KRITIS: ENKRIPSI THREAD ID UNTUK LINK NOTIFIKASI
+            $encoded_thread_id = function_exists('encode_id') ? encode_id($thread_id) : $thread_id;
+            $link = "index.php?page=chat&thread_id={$encoded_thread_id}"; 
 
             // Tipe 4=Comment Added (digunakan kembali untuk chat/DM)
             $sql_notify = "INSERT INTO notification_list (user_id, type, message, link) VALUES ('{$recipient_id}', 4, '{$notification_message}', '{$link}')";
@@ -561,29 +564,49 @@ class Action {
         }
     }
 
-    // 4. Memuat pesan chat untuk thread tertentu
+    // 4. Memuat pesan chat untuk thread tertentu (REVISI PENTING)
     function get_personal_chat_messages() {
+        // Pastikan fungsi encode_id tersedia
+        // 💡 PERBAIKAN: Mengganti fn($id) => $id dengan anonymous function standar untuk kompatibilitas PHP < 7.4
+        $encoder = function_exists('encode_id') ? 'encode_id' : function($id) { return $id; }; 
+
         extract($_POST);
         $thread_id = $this->db->real_escape_string($thread_id);
         
-        // Ambil data-data untuk resolusi mention di frontend
-        $data = [];
+        $data = [
+            'users' => [], 
+            'projects' => [], 
+            'tasks' => []
+        ];
         
+        // --- A. Lookup Users (Tambahkan encoded_id) ---
         $users_q = $this->db->query("SELECT id, CONCAT(firstname, ' ', lastname) as name FROM users");
         while($row = $users_q->fetch_assoc()) {
-            $data['users'][$row['id']] = $row['name'];
+            $data['users'][$row['id']] = [
+                'name' => $row['name'],
+                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
+            ];
         }
 
+        // --- B. Lookup Projects (Tambahkan encoded_id) ---
         $projects_q = $this->db->query("SELECT id, name FROM project_list");
         while($row = $projects_q->fetch_assoc()) {
-            $data['projects'][$row['id']] = $row['name'];
+            $data['projects'][$row['id']] = [
+                'name' => $row['name'],
+                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
+            ];
         }
 
+        // --- C. Lookup Tasks (Tambahkan encoded_id) ---
         $tasks_q = $this->db->query("SELECT id, task FROM task_list");
         while($row = $tasks_q->fetch_assoc()) {
-            $data['tasks'][$row['id']] = $row['task'];
+            $data['tasks'][$row['id']] = [
+                'name' => $row['task'],
+                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
+            ];
         }
         
+        // --- D. Ambil Pesan ---
         $messages_q = $this->db->query("
             SELECT 
                 cm.*, 
@@ -597,7 +620,6 @@ class Action {
         
         $messages = [];
         while($row = $messages_q->fetch_assoc()) {
-            // Decode message content (undo htmlentities)
             $row['message_content'] = html_entity_decode($row['message_content']);
             $messages[] = $row;
         }
