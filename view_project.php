@@ -340,10 +340,9 @@ $bar_data_done = json_encode($bar_data_done);
                         <colgroup>
                             <col width="5%">
                             <col width="20%">
-                            <col width="37%">
-                            <col width="10%">
+                            <col width="40%">
+                            <col width="15%">
                             <col width="20%">
-                            <col width="5%">
                         </colgroup>
                         <thead>
                             <th class="text-left">No</th>
@@ -351,7 +350,6 @@ $bar_data_done = json_encode($bar_data_done);
                             <th class="text-left">Description</th>
                             <th class="text-left">Status</th>
                             <th class="text-left">Assignee</th>
-                            <th> </th>
                         </thead>
                         <tbody>
                             <?php 
@@ -422,19 +420,6 @@ $bar_data_done = json_encode($bar_data_done);
                                         <? else: ?>
                                             <span class="text-muted"></span>
                                         <?php endif; ?>
-                                    </td>
-
-                                    <td class="text-left">
-                                        <div class="dropdown">
-                                            <button class="btn text-secondary" type="button" id="dropdownMenu<?= $row_t['id'] ?>" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                                <i class="fa fa-ellipsis-v"></i>
-                                            </button>
-                                            <div class="dropdown-menu">
-                                                <a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?php echo $row_t['id'] ?>" data-task="<?php echo $row_t['task'] ?>"><i class="fa fa-eye mr-3"></i>View</a>
-                                                <a class="dropdown-item edit_task" href="javascript:void(0)" data-id="<?php echo $row_t['id'] ?>" data-task="<?php echo $row_t['task'] ?>"><i class="fa fa-pen mr-3"></i>Edit</a>
-                                                <a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?php echo $row_t['id'] ?>"><i class="fa fa-trash mr-3"></i>Delete</a>
-                                            </div>
-                                        </div>
                                     </td>
                                 </tr>
                             <?php endwhile; ?>

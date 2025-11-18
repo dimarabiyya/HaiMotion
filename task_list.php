@@ -238,8 +238,7 @@ while ($proj = $projects->fetch_assoc()):
                         <col width="40%">
                         <col width="15%">   
                         <col width="15%">
-                        <col width="20%">
-                        <col width="5%">
+                        <col width="25%">
                     </colgroup>
                     <thead>
                         <tr>
@@ -248,7 +247,6 @@ while ($proj = $projects->fetch_assoc()):
                             <th class="text-left">Due Date</th>
                             <th class="text-left">Task Status</th>
                             <th class="text-left">Assigned</th>
-                            <th class="text-left"></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -333,37 +331,6 @@ while ($proj = $projects->fetch_assoc()):
                                 <?php else: ?>
                                     <span class="text-muted">No User</span>
                                 <?php endif; ?>
-                            </td>
-
-                            <td class="text-left">
-                                <div class="dropdown">
-                                    <button class="btn text-secondary" type="button" data-toggle="dropdown">
-                                        <i class="fa fa-ellipsis-v"></i>
-                                    </button>
-                                    <div class="dropdown-menu">
-                                        <h6 class="dropdown-header">Action</h6>
-                                        <a class="dropdown-item view_task" href="javascript:void(0)" data-id="<?= $row['id'] ?>">
-                                            <i class="fa fa-eye mr-2"></i> View
-                                        </a>
-                                           <a class="dropdown-item edit_task" href="javascript:void(0)" 
-                                                data-id="<?= $row['id'] ?>" data-pid="<?= $proj['id'] ?>">
-                                                <i class="fa fa-edit mr-2"></i> Edit
-                                            </a>
-
-                                            <a class="dropdown-item new_productivity" 
-                                               data-pid="<?php echo $proj['id'] ?>" 
-                                               data-tid="<?php echo $row['id'] ?>" 
-                                               data-task="<?php echo ucwords($row['task']) ?>" 
-                                               href="javascript:void(0)">
-                                                <i class="fa fa-plus mr-2"></i> Add Comment
-                                            </a>
-                                        <?php if($_SESSION['login_type'] != 3): ?>
-                                            <a class="dropdown-item text-danger delete_task" href="javascript:void(0)" data-id="<?= $row['id'] ?>">
-                                                <i class="fa fa-trash mr-2"></i> Delete
-                                            </a>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
                             </td>
                         </tr>
                         <?php endwhile; ?>
