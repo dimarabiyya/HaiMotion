@@ -1,5 +1,5 @@
-<?php include 'db_connect.php'; ?>
 <?php 
+include 'db_connect.php'; 
 // Pastikan sesi dimulai dan variabel sesi ada
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -10,6 +10,9 @@ $login_avatar = isset($_SESSION['login_avatar']) ? $_SESSION['login_avatar'] : '
 $login_firstname = isset($_SESSION['login_firstname']) ? $_SESSION['login_firstname'] : 'Guest';
 
 $type_arr = array('', "Admin", "Project Manager", "Employee"); 
+
+// 💡 KRITIS: ENKRIPSI ID LOGIN DI SINI
+$encoded_login_id = $login_id ? encode_id($login_id) : '';
 ?>
 
 <nav class="main-header navbar navbar-expand navbar-light">
@@ -55,10 +58,8 @@ $type_arr = array('', "Admin", "Project Manager", "Employee");
       </a>
     </li>
 
-    <!-- ===================== PROFILE DROPDOWN (REVISI) ===================== -->
     <li class="nav-item dropdown ml-2 mr-4">
         
-        <!-- Tombol/Toggle yang memicu Dropdown -->
         <a class="nav-link p-0" href="#" id="navbarDropdownProfile" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="display: flex; align-items: center;">
             <img src="assets/uploads/<?php echo $login_avatar; ?>" 
                  class="img-circle elevation-2" 
@@ -67,32 +68,26 @@ $type_arr = array('', "Admin", "Project Manager", "Employee");
             <span class="ml-2"><b><?php echo ucwords($login_firstname); ?></b></span>
         </a>
 
-        <!-- Isi Dropdown Menu -->
         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="navbarDropdownProfile">
             
-            <!-- View Profile (Membuka Modal) -->
             <a class="dropdown-item view_profile_trigger" 
                href="javascript:void(0)" 
-               data-id="<?php echo $login_id; ?>">
+               data-id="<?php echo $encoded_login_id; ?>">
                 <i class="fa fa-user mr-2"></i> View Profile
             </a>
             
-            <!-- Setting (Navigasi Langsung ke edit_user.php) -->
-            <a class="dropdown-item" href="index.php?page=edit_user&id=<?php echo $login_id; ?>">
+            <a class="dropdown-item" href="index.php?page=edit_user&id=<?php echo $encoded_login_id; ?>">
                 <i class="fa fa-cog mr-2"></i> Settings
             </a>
             
             <div class="dropdown-divider"></div>
             
-            <!-- Logout -->
             <a class="dropdown-item" href="ajax.php?action=logout">
                 <i class="fa fa-sign-out-alt mr-2"></i> Log Out
             </a>
         </div>
     </li>
-    <!-- ===================== END PROFILE DROPDOWN ===================== -->
-
-  </ul>
+    </ul>
 </nav>
 
 <style>
@@ -143,34 +138,38 @@ $type_arr = array('', "Admin", "Project Manager", "Employee");
 </style>
 
 <script>
-// Fungsi untuk mengekstrak ID numerik dari URL notifikasi (Robust)
-function extractTaskId(url) {
-    // Mencari pola id=NUMERIC_ID (mengabaikan ID non-numerik yang dienkripsi)
-    const match = url.match(/id=(\d+)/);
-    return match ? match[1] : null; 
+// Fungsi untuk mengekstrak ID terenkripsi dan page dari URL
+function extractPageAndId(url) {
+    const match = url.match(/page=([^&]+)&id=([^&]+)/);
+    if (match) {
+        return { page: match[1], id: match[2] };
+    }
+    const chatMatch = url.match(/page=chat&thread_id=([^&]+)/);
+    if (chatMatch) {
+        return { page: 'chat', id: chatMatch[1], param: 'thread_id' };
+    }
+    return { page: null, id: null };
 }
-
 
 $(document).ready(function(){
 
-  // ====== Profile Dropdown JS (view_profile_trigger) ======
+  // ====== Profile Dropdown JS (view_profile_trigger) - TIDAK BERUBAH ======
+  // Note: Ini masih menggunakan uni_modal karena tujuannya adalah menampilkan profil
   $(document).on('click', '.view_profile_trigger', function(){
-      let userId = $(this).attr('data-id');
-      if(userId) {
+      let encodedUserId = $(this).attr('data-id');
+      if(encodedUserId) {
           uni_modal(
-              "", 
-              "view_profile.php?id=" + userId,
-              "md" // Ukuran modal medium
+              "Profile Details", 
+              "view_user.php?id=" + encodedUserId, // Mengirim ID terenkripsi ke file modal
+              "md"
           );
       } else {
-          // Catatan: alert_toast harus didefinisikan secara global
           alert_toast("User ID tidak ditemukan.", "danger");
       }
-      // Tutup dropdown setelah klik
       $(this).closest('.dropdown-menu').removeClass('show');
   });
 
-  // ====== Load Notifications ======
+  // ====== Load Notifications (timeAgo dan load_notifications tidak berubah) ======
   function timeAgo(dateStr) {
     const now = new Date();
     const then = new Date(dateStr);
@@ -183,7 +182,6 @@ $(document).ready(function(){
   }
 
   function load_notifications() {
-    // Pastikan jQuery dimuat dan dapat menjalankan AJAX
     if (typeof $ === 'undefined' || !$.ajax) {
         console.error("jQuery (AJAX) is not available.");
         return;
@@ -215,20 +213,15 @@ $(document).ready(function(){
               else if (n.type == 2) icon = '<i class="fa fa-sync-alt text-warning mr-2"></i>';
               else if (n.type == 4) icon = '<i class="fa fa-comment-dots text-info mr-2"></i>';
 
-              // Hilangkan markdown bold dari notifikasi
               let short_message = n.message.replace(/\*\*/g, '');
               short_message = short_message.length > 70 ? short_message.substring(0, 70) + '...' : short_message;
               const time = `<small class="text-muted d-block">${timeAgo(n.date_created)}</small>`;
               
-              // Simpan link asli di data-href dan buat href menjadi # (untuk intercept)
-              const taskLink = n.task_id 
-                ? `index.php?page=mytask&id=${n.task_id}`
-                : (n.link && n.link.trim() !== '' ? n.link : '#');
+              const originalLink = n.link && n.link.trim() !== '' ? n.link : '#';
 
               const html = `
-                <a href="${taskLink}" class="${itemClass} notification-item border-0"
-                  data-id="${n.id}" data-task-id="${n.task_id || ''}" 
-                  data-original-link="${n.link || ''}" style="cursor:pointer;">
+                <a href="${originalLink}" class="${itemClass} notification-item border-0"
+                  data-id="${n.id}" data-original-link="${originalLink}" style="cursor:pointer;">
                   <div class="d-flex align-items-start">
                     ${icon}
                     <div class="flex-fill">
@@ -254,7 +247,7 @@ $(document).ready(function(){
     });
   }
 
-  // ====== Mark as Read ======
+  // ====== Mark as Read (tidak berubah) ======
   function mark_as_read(id) {
     $.ajax({
       url: 'ajax.php?action=mark_as_read',
@@ -271,35 +264,25 @@ $(document).ready(function(){
     mark_as_read('all');
   });
 
-  // Handler untuk klik notifikasi di dropdown (Membuka modal jika itu notifikasi task)
+  // 💡 PERBAIKAN KRITIS: Hapus semua event.preventDefault() untuk notifikasi navigasi langsung
   $(document).on('click', '.notification-item', function(e) {
-      const originalLink = $(this).data('original-link');
       const id = $(this).data('id');
       
-      // 1. Periksa apakah ini adalah notifikasi tugas/progress
-      if (originalLink && (originalLink.includes('get_task_detail.php?id=') || originalLink.includes('view_task&id='))) {
-          e.preventDefault(); 
-          
-          const taskId = extractTaskId(originalLink);
-
-          if (taskId) {
-              // Jika ID numerik valid ditemukan, buka modal
-              // Target URL adalah get_task_detail.php
-              uni_modal("Task Details", 'get_task_detail.php?id=' + taskId, "mid-large"); 
-              
-              // Tutup dropdown setelah membuka modal
-              $(this).closest('.dropdown-menu').removeClass('show');
-          } else {
-              // Notifikasi lama/rusak (ID dienkripsi), kita bisa arahkan ke halaman utama task_list
-              console.warn("Notifikasi lama terdeteksi, navigasi ke task list.");
-              window.location.href = 'index.php?page=mytask';
-          }
-      }
-      
-      // 2. Mark as Read (Jika belum dibaca)
+      // 1. Mark as Read (Jika belum dibaca)
       if ($(this).hasClass('font-weight-bold')) { 
           mark_as_read(id);
       }
+
+      // 2. Navigasi Langsung
+      // Karena semua link notifikasi sudah diatur di href="${originalLink}" 
+      // dan view_task/view_project/chat sudah didecode, kita TIDAK PERLU 
+      // memanggil e.preventDefault() lagi. Biarkan browser menavigasi.
+      
+      // Tutup dropdown setelah klik (ini penting karena navigasi akan memakan waktu)
+      $(this).closest('.dropdown-menu').removeClass('show');
+      
+      // Tidak perlu ada logic uni_modal atau window.location.href di sini.
+      // Cukup biarkan browser mengikuti atribut href tag <a>.
   });
 
   // Panggil load_notifications dan atur interval HANYA setelah DOM siap

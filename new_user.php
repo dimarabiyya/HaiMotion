@@ -43,7 +43,7 @@ if(isset($_GET['id'])){
                                 <label class="custom-file-label">Choose file</label>
                             </div>
                         </div>
-                        <div class="form-group d-flex justify-content-center justify-item-center text-center">
+                        <div class="form-group d-flex justify-content-center justify-item-center text-cen">
                             <img src="<?= isset($avatar) ? 'assets/uploads/'.$avatar : '' ?>" alt="Profile" id="cimg" class="img-thumbnail">
                         </div>
                     </div>

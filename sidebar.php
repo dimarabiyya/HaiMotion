@@ -39,7 +39,13 @@
                 </a>
           </li> 
           <li class="nav-item mb-2">
-                <a href="./index.php?page=task_list" class="nav-link nav-task_list">
+            <?php
+              // Halaman yang termasuk ke menu Users
+              $userPages = ['view_task'];
+              $currentPage = $_GET['page'] ?? '';
+              $isAktif = in_array($currentPage, $userPages) ? 'active' : '';
+            ?>
+                <a href="./index.php?page=task_list" class="nav-link <?= $isAktif ?> nav-task_list">
                   <i class="fas fa-tasks nav-icon"></i>
                   <p>Task</p>
                 </a>
