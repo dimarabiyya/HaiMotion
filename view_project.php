@@ -6,10 +6,13 @@ session_start();
 
 // ID sudah didekode dan diverifikasi di index.php (Project ID numerik)
 $id = $_GET['id'] ?? 0; 
-if ($id === 0) {
+if ($id === 0 || !is_numeric($id) || $id <= 0) {
     header("Location: index.php?page=404");
     exit;
 }
+
+// 💡 DEKLARASI FUNGSI ENCODER/DECODER UNTUK KEAMANAN
+$encoder = function_exists('encode_id') ? 'encode_id' : function($i) { return $i; };
 
 // 1. Query Proyek
 $qry = $conn->query("SELECT * FROM project_list WHERE id = $id");
@@ -29,6 +32,9 @@ foreach($project_data as $k => $v){
 // 4. Deklarasikan $row dan $today
 $row = $project_data; 
 $today = strtotime(date("Y-m-d"));
+
+// 💡 ID PROJECT TERENKRIPSI UNTUK LINK KELUAR
+$encoded_project_id = $encoder($id);
 
 // =======================================================
 // LOGIKA UTAMA DAN PENGHITUNGAN STATUS PROYEK
@@ -78,7 +84,7 @@ $stat = array(
 );
 
 // =======================================================
-// ✅ PENGHITUNGAN DATA UNTUK CHART.JS (DIREVISI)
+// PENGHITUNGAN DATA UNTUK CHART.JS (DIREVISI)
 // =======================================================
 
 // --- 1. Data untuk Diagram DONUT (Task Status) ---
@@ -123,18 +129,14 @@ $pie_colors = json_encode(['#f56954', '#00a65a', '#f39c12', '#00c0ef', '#3c8dbc'
 
 
 // --- 3. Data untuk Diagram BAR (KPI Individual) ---
-
-// a. Ambil semua tugas untuk proyek ini
 $all_tasks_qry = $conn->query("SELECT user_ids, status FROM task_list WHERE project_id = {$id} AND user_ids != ''");
-$user_metrics = []; // [user_id => ['name' => 'Name', 'assigned' => 0, 'done' => 0]]
-
-// b. Kumpulkan semua ID user unik
+$user_metrics = [];
 $all_user_ids_str = '';
 if (!empty($user_ids)) {
     $all_user_ids_str = $user_ids;
 }
 if ($all_tasks_qry->num_rows > 0) {
-    $all_tasks_qry->data_seek(0); // Reset pointer
+    $all_tasks_qry->data_seek(0);
     while ($task = $all_tasks_qry->fetch_assoc()) {
         $all_user_ids_str .= ',' . $task['user_ids'];
     }
@@ -143,7 +145,6 @@ $all_user_ids = array_unique(array_filter(explode(',', $all_user_ids_str)));
 $all_user_ids_str = implode(',', $all_user_ids);
 
 
-// c. Ambil nama user
 if (!empty($all_user_ids_str)) {
     $user_names_qry = $conn->query("SELECT id, concat(firstname, ' ', lastname) as name FROM users WHERE id IN ({$all_user_ids_str})");
     while ($u_row = $user_names_qry->fetch_assoc()) {
@@ -151,9 +152,8 @@ if (!empty($all_user_ids_str)) {
     }
 }
 
-// d. Hitung tugas yang ditugaskan dan selesai
 if ($all_tasks_qry->num_rows > 0) {
-    $all_tasks_qry->data_seek(0); // Reset pointer lagi
+    $all_tasks_qry->data_seek(0); 
     while ($task = $all_tasks_qry->fetch_assoc()) {
         $assigned_users = array_filter(explode(',', $task['user_ids']));
         
@@ -169,7 +169,6 @@ if ($all_tasks_qry->num_rows > 0) {
     }
 }
 
-// e. Persiapan data akhir untuk Chart.js
 $bar_labels = [];
 $bar_data_assigned = [];
 $bar_data_done = [];
@@ -367,8 +366,11 @@ $bar_data_done = json_encode($bar_data_done);
                                 if($task_status != 5 && $task_status != 3 && $today > $endDate){
                                     $task_status = 4;
                                 }
+                                
+                                // 💡 ENKRIPSI ID TUGAS UNTUK LINK KELUAR
+                                $encoded_task_id = $encoder($row_t['id']);
                             ?>
-                                <tr class="view_task_row" data-id="<?php echo $row_t['id'] ?>" data-task="<?php echo $row_t['task'] ?>" style="cursor:pointer;">
+                                <tr class="view_task_row" data-id="<?php echo $encoded_task_id ?>" data-task="<?php echo $row_t['task'] ?>" style="cursor:pointer;">
                                     <td class="text-left"><?php echo $i++ ?></td>
                                     <td><b><?php echo ucwords($row_t['task']) ?></b></td>
                                     <td><p class="truncate"><?php echo strip_tags($desc) ?></p></td>
@@ -431,102 +433,13 @@ $bar_data_done = json_encode($bar_data_done);
             </div>
         </div>
     </div>
-    
-    <div class="row">
-        <div class="col-md-12">
-            <div class="row">
-                <div class="col-md-6">
-                    <span style="font-size: 20px;"><b>Comments</b></span>
-                </div>
-                <div class="col-md-6 text-right">
-                    <div class="card-tools">
-                        <button class="btn text-white" style="background-color:#B75301;" id="new_productivity">
-                            <i class="fa fa-plus mr-1"></i> Add Comment
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card mt-2">
-                <div class="card-body p-4">
-                    <?php $progress = $conn->query("SELECT p.*,concat(u.firstname,' ',u.lastname) as uname,u.avatar,t.task FROM user_productivity p inner join users u on u.id = p.user_id inner join task_list t on t.id = p.task_id where p.project_id = $id order by unix_timestamp(p.date_created) desc ");
-                    while($row_p = $progress->fetch_assoc()):
-                    ?>
-                        <div class="post mb-3 border-bottom comment-item"> 
-                            <div class="user-block d-flex align-items-left">
-                                
-                                <img class="img-circle img-bordered-sm" src="assets/uploads/<?php echo $row_p['avatar'] ?>" alt="user image">
-                                
-                                <div class="flex-grow-1"> 
-                                    <div class="d-flex justify-content-between align-items-center mb-0">
-                                        <span class="username font-weight-bold">
-                                            <a href="#"><?php echo ucwords($row_p['uname']) ?></a>
-                                        </span>
-                                        
-                                        <small class="text-muted text-right comment-time">
-                                            <?php echo date('M d, Y - h:i A',strtotime($row_p['date_created'])) ?> 
-                                        </small>
-                                    </div>
-                                    
-                                    <span class="description text-muted mt-0 pt-0">
-                                        Task: <?php echo ucwords($row_p['task']) ?>
-                                    </span>
-                                </div>
-
-                                <?php if($_SESSION['login_id'] == $row_p['user_id']): ?>
-                                <span class="btn-group dropleft ml-2">
-                                    <span class="btndropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="cursor: pointer;">
-                                        <i class="fa fa-ellipsis-v"></i>
-                                    </span>
-                                    <div class="dropdown-menu">
-                                        <h6 class="dropdown-header">Action</h6>
-                                        <a class="dropdown-item manage_progress" href="javascript:void(0)" data-id="<?php echo $row_p['id'] ?>"  data-task="<?php echo $row_p['task'] ?>">Edit</a>
-                                        <a class="dropdown-item delete_progress" href="javascript:void(0)" data-id="<?php echo $row_p['id'] ?>">Delete</a>
-                                    </div>
-                                </span>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <div class="mt-2 comment-content-body"> 
-                                <?php echo html_entity_decode($row_p['comment']) ?>
-                            </div>
-                        </div>
-                        
-                    <?php endwhile; ?>
-                </div>
-            </div>
-        </div>
-    </div>
 </div>
 </div>
 <style>
     /* ... CSS Styles (tetap sama) ... */
-    .truncate {
-        -webkit-line-clamp:1 !important;
-    }
-    .user-avatar-stack .member-avatar:first-child {
-        margin-left: 0px !important;
-    }
-    .post .user-block img.img-bordered-sm {
-        width: 40px !important; 
-        height: 40px !important;
-        object-fit: cover;
-        margin-right: 10px !important; 
-    }
-    .post .user-block .flex-grow-1 {
-        margin-left: 0 !important;
-    }
-    .post .user-block .description {
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        margin-left: 0 !important;
-        display: block;
-    }
 </style>
 
 <script>
-    // =========================================================
-    // MODAL HANDLER dan AJAX DELETE (tetap sama)
-    // =========================================================
     function uni_modal(title, url, size = "mid-large") {
         if ($('#uni_modal .summernote').length) {
             $('#uni_modal .summernote').summernote('destroy');
@@ -598,15 +511,15 @@ $bar_data_done = json_encode($bar_data_done);
         })
     }
     
-    function edit_task(id, taskName = 'Task'){
-        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=<?php echo $id ?>&id=" + id, "mid-large");
+    // 💡 FIXED: Menggunakan ID Project Terenkripsi
+    function edit_task(encodedTaskId, taskName = 'Task'){
+        const encodedProjectId = '<?php echo $encoded_project_id; ?>'; // ID Project terenkripsi dari PHP
+        uni_modal("Edit Task: " + taskName, "manage_task.php?pid=" + encodedProjectId + "&id=" + encodedTaskId, "mid-large");
     }
 
-    // =========================================================
-    // EVENT HANDLERS (tetap sama)
-    // =========================================================
     $('#new_task').click(function(){
-        uni_modal("New Task For <?php echo ucwords($name) ?>", "manage_task.php?pid=<?php echo $id ?>&id=0", "mid-large");
+        const encodedProjectId = '<?php echo $encoded_project_id; ?>';
+        uni_modal("New Task For <?php echo ucwords($name) ?>", "manage_task.php?pid=" + encodedProjectId + "&id=", "mid-large");
     })
     $('.edit_task').click(function(){
         const taskId = $(this).attr('data-id');
@@ -614,16 +527,20 @@ $bar_data_done = json_encode($bar_data_done);
         edit_task(taskId, taskName);
     });
     $('.view_task').click(function(){
+        // ID sudah dienkripsi
         uni_modal("Task Details","view_task.php?id="+$(this).attr('data-id'),"mid-large")
     })
     $('.delete_task').click(function(){
+        // ID yang dikirim ke AJAX delete harus numerik
         _conf("Are you sure to delete this task?", "delete_task", [$(this).attr('data-id')])
     })
     $('#new_productivity').click(function(){
-        uni_modal("<i class='fa fa-plus'></i> New Progress","manage_progress.php?pid=<?php echo $id ?>",'large')
+        const encodedProjectId = '<?php echo $encoded_project_id; ?>';
+        uni_modal("<i class='fa fa-plus'></i> New Progress","manage_progress.php?pid=" + encodedProjectId,'large')
     })
     $('.manage_progress').click(function(){
-        uni_modal("<i class='fa fa-edit'></i> Edit Progress","manage_progress.php?pid=<?php echo $id ?>&id="+$(this).attr('data-id'),'large')
+        const encodedProjectId = '<?php echo $encoded_project_id; ?>';
+        uni_modal("<i class='fa fa-edit'></i> Edit Progress","manage_progress.php?pid=" + encodedProjectId + "&id=" + $(this).attr('data-id'),'large')
     })
     $('.delete_progress').click(function(){
         _conf("Are you sure to delete this progress?","delete_progress",[$(this).attr('data-id')])
@@ -634,13 +551,12 @@ $bar_data_done = json_encode($bar_data_done);
             !$(e.target).is('button') &&
             !$(e.target).is('a')
         ) {
-            const taskId = $(this).data('id');
+            const taskId = $(this).data('id'); // HASH ID
             const taskName = $(this).data('task'); 
             uni_modal("Task: " + taskName, "get_task_detail.php?id=" + taskId, "mid-large");
         }
     });
     $('#uni_modal').off('hidden.bs.modal');
-    
     // =========================================================
     // CHART.JS INITIALIZATION (REVISI LOGIKA)
     // =========================================================

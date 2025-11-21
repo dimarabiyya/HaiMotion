@@ -1,6 +1,15 @@
 <?php
-include 'db_connect.php';
+include 'db_connect.php'; // Memastikan fungsi encode_id/decode_id tersedia
 session_start();
+
+// --- Memastikan fungsi encode/decode ID tersedia setelah include db_connect.php ---
+if (!function_exists('decode_id')) {
+    die('Error: decode_id function is not available.');
+}
+if (!function_exists('encode_id')) {
+    die('Error: encode_id function is not available.');
+}
+// ---------------------------------------------------------------------------------
 
 if (!isset($_SESSION['login_id']) || !isset($_SESSION['login_type'])) {
     die('Unauthorized access.');
@@ -19,10 +28,17 @@ $status_map_labels = [
     5 => 'Done'           
 ];
 
-// --- Handle Delete Task (Activity Logging) ---
+// 1. --- Handle Delete Task (Activity Logging) - DECODE ID ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
     header('Content-Type: application/json');
-    $id = (int) $_POST['delete_task_id'];
+    
+    // DECODE Task ID yang diterima
+    $id = decode_id($_POST['delete_task_id']); 
+    
+    if ($id === null) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid task ID.']);
+        exit;
+    }
     
     if ($login_type == 1 || $login_type == 2) {
         $task_to_delete_q = $conn->query("SELECT task, project_id FROM task_list WHERE id = $id");
@@ -56,11 +72,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
 }
 // -----------------------------
 
-// --- Update status drag & drop (Activity Logging) ---
+// 2. --- Update status drag & drop (Activity Logging) - DECODE ID ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'])) {
-    $id = (int) $_POST['id'];
+    // DECODE Task ID yang diterima
+    $id = decode_id($_POST['id']);
     $new_status = (int) $_POST['status'];
     
+    if ($id === null) {
+        // Abaikan atau log error jika ID tidak valid
+        exit;
+    }
+
     $old_task_q = $conn->query("SELECT task, project_id, status FROM task_list WHERE id = $id");
     $old_task = $old_task_q->fetch_assoc();
     $old_status = (int)$old_task['status'];
@@ -88,11 +110,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'
     
     exit;
 }
-// -----------------------------
 
-// =========================================================================
-// LOGIC BARU: Mass Update Task Status ke Overdue sebelum fetch data
-// =========================================================================
+// 3. --- Logika Overdue Task (Tidak perlu decode/encode, menggunakan ID internal) ---
 $today_date = date('Y-m-d');
 // Ambil task yang akan diupdate ke Overdue
 $overdue_tasks_q = $conn->query("
@@ -139,9 +158,6 @@ if ($overdue_tasks_q) {
         }
     }
 }
-// =========================================================================
-// END NEW LOGIC
-// =========================================================================
 
 
 // Filter project sesuai role
@@ -157,13 +173,22 @@ $project_q = $conn->query("SELECT id, name FROM project_list $where ORDER BY nam
 while ($row = $project_q->fetch_assoc()) $projects[] = $row;
 $allowed_project_ids = array_column($projects, 'id');
 
-// Project ID dari dropdown
-$project_id = isset($_GET['project_id']) ? (int)$_GET['project_id'] : 0;
+// 4. --- Project ID dari URL - DECODE ID ---
+$encoded_project_id = $_GET['project_id'] ?? null;
+$project_id = $encoded_project_id ? decode_id($encoded_project_id) : 0;
+
+// Validasi dan set project_id default (menggunakan ID numerik internal)
 if (!in_array($project_id, $allowed_project_ids) && !empty($allowed_project_ids)) {
-    $project_id = $allowed_project_ids[0];
+    $project_id = $allowed_project_ids[0]; // Set ke project pertama yang diizinkan
+    $encoded_project_id = encode_id($project_id); // Update encoded ID untuk URL
 } elseif (empty($allowed_project_ids)) {
     $project_id = 0; // Tidak ada project yang diizinkan
+    $encoded_project_id = null;
+} else {
+    // Jika ID dari URL valid, pastikan encoded ID-nya juga valid
+    $encoded_project_id = encode_id($project_id);
 }
+
 
 $status_map = [
     0 => ['label' => 'Pending', 'color' => '#6c757d'],       
@@ -189,6 +214,9 @@ if ($project_id) {
         ORDER BY t.id ASC
     ");
     while ($row = $query->fetch_assoc()) {
+        // 5. --- ENCODE Task ID sebelum dimasukkan ke array $tasks ---
+        $row['encoded_id'] = encode_id($row['id']); 
+        
         if (isset($tasks[$row['status']])) {
             $tasks[$row['status']][] = $row;
         } else {
@@ -207,7 +235,7 @@ if ($project_id) {
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
-/* --- KEMBALI KE BOOTSTRAP 4 / FONT AWESOME UNTUK KOMPATIBILITAS --- */
+/* ... (CSS tetap sama) ... */
 body {
     background-color: #f4f5f7;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -357,7 +385,7 @@ body {
                 <?php foreach ($projects as $project): ?>
                     <li>
                         <a class="dropdown-item <?= $project_id == $project['id'] ? 'active' : '' ?>"
-                           href="index.php?page=kanban&project_id=<?= $project['id'] ?>">
+                           href="index.php?page=kanban&project_id=<?= encode_id($project['id']) ?>">
                             <?= htmlspecialchars($project['name']) ?>
                         </a>
                     </li>
@@ -376,14 +404,23 @@ body {
                 </div>
                 <div class="kanban-column" data-status="<?= $status ?>">
                     <?php foreach ($tasks[$status] as $task): ?>
-                        <div class="task-card" data-id="<?= $task['id'] ?>" draggable="true">
+                        <div class="task-card" data-id="<?= $task['encoded_id'] ?>" draggable="true">
                             <div class="task-title"><?= htmlspecialchars($task['task']) ?></div>
                             <?php if ($login_type == 1 || $login_type == 2): ?>
-                                <button class="delete-btn" data-id="<?= $task['id'] ?>" title="Delete Task" onclick="event.stopPropagation(); deleteKanbanTask(<?= $task['id'] ?>)">
+                                <button class="delete-btn" data-id="<?= $task['encoded_id'] ?>" title="Delete Task" onclick="event.stopPropagation(); deleteKanbanTask('<?= $task['encoded_id'] ?>')">
                                     <i class="fas fa-times"></i>
                                 </button>
                             <?php endif; ?>
-                            <div class="task-desc mt-1"><?= htmlspecialchars(substr($task['description'], 0, 80)) ?><?= strlen($task['description']) > 80 ? '...' : '' ?></div>
+                                <div class="task-desc mt-1">
+                                    <?php 
+                                        $clean_description = strip_tags($task['description']);
+                                        $short_description = htmlspecialchars(substr($clean_description, 0, 80));
+                                        echo $short_description;
+                                        if (strlen($clean_description) > 80) {
+                                            echo '...';
+                                        }
+                                    ?>
+                                </div>
                             <div class="task-footer">
                                 <div class="task-avatars">
                                     <?php 
@@ -468,29 +505,31 @@ if (typeof _conf === 'undefined') {
 
 
 // FUNGSI GLOBAL DELETE YANG DIPANGGIL DARI MODAL DAN TOMBOL X
-function deleteKanbanTask(id) {
+function deleteKanbanTask(encodedId) {
     // Dipanggil dari tombol 'X' di card
-    _conf("Are you sure to delete this task?", "deleteKanbanTaskAjax", [id]);
+    _conf("Are you sure to delete this task?", "deleteKanbanTaskAjax", [encodedId]);
 }
 
-function deleteKanbanTaskFromModal(id) {
+function deleteKanbanTaskFromModal(encodedId) {
     // Dipanggil dari dalam get_task_detail.php
-    _conf('Are you sure to delete this task?', 'deleteKanbanTaskAjax', [id]); 
+    _conf('Are you sure to delete this task?', 'deleteKanbanTaskAjax', [encodedId]); 
 }
 
 
-function deleteKanbanTaskAjax(id) {
+function deleteKanbanTaskAjax(encodedId) {
     // start_load() 
     $.ajax({
         url: window.location.href, 
         method: 'POST',
-        data: { delete_task_id: id },
+        // Mengirim encoded ID
+        data: { delete_task_id: encodedId },
         dataType: 'json',
         success: function(resp){
             // end_load() 
             if(resp.status === 'success'){
                 alert("Task berhasil dihapus!");
-                $('.task-card[data-id="'+id+'"]').remove();
+                // Menghapus card menggunakan encoded ID
+                $('.task-card[data-id="'+encodedId+'"]').remove();
                 location.reload(); 
             } else {
                 alert("Gagal menghapus task: " + (resp.message || "Unknown error."));
@@ -508,6 +547,7 @@ function deleteKanbanTaskAjax(id) {
 $(document).ready(function() {
     // Drag & Drop Logic
     $('.task-card').on('dragstart', function(e) {
+        // Mengambil encoded ID
         e.originalEvent.dataTransfer.setData('text/plain', $(this).data('id'));
         $(this).addClass('dragging');
     }).on('dragend', function() {
@@ -522,19 +562,20 @@ $(document).ready(function() {
     }).on('drop', function(e) {
         e.preventDefault();
         $(this).removeClass('drag-over');
-        const taskId = e.originalEvent.dataTransfer.getData('text/plain');
+        // Mengambil encoded ID
+        const encodedTaskId = e.originalEvent.dataTransfer.getData('text/plain');
         const newStatus = $(this).data('status');
-        const $card = $('.task-card[data-id="'+taskId+'"]');
+        const $card = $('.task-card[data-id="'+encodedTaskId+'"]');
         
         $(this).append($card);
         
-        // Update status via POST
+        // Update status via POST (Mengirim encoded ID)
         $.ajax({
             url: window.location.href,
             method: 'POST',
-            data: { id: taskId, status: newStatus },
+            data: { id: encodedTaskId, status: newStatus },
             success: function(resp) {
-                console.log(`Task ${taskId} moved to status ${newStatus}.`);
+                console.log(`Task ${encodedTaskId} moved to status ${newStatus}.`);
             },
             error: function(err) {
                 console.error('Error updating status:', err);
@@ -546,8 +587,10 @@ $(document).ready(function() {
     $('.task-card').click(function(e) {
         if ($(e.target).closest('.delete-btn').length) return; 
 
-        const id = $(this).data('id');
-        uni_modal("Task Detail", "get_task_detail.php?id=" + id, "mid-large");
+        // Mengambil encoded ID
+        const encodedId = $(this).data('id');
+        // Mengirimkan encoded ID ke get_task_detail.php
+        uni_modal("Task Detail", "get_task_detail.php?id=" + encodedId, "mid-large");
     });
 });
 </script>

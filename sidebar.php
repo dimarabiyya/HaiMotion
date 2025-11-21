@@ -10,7 +10,7 @@
           <img src="assets/Logo1.png" id="logoMini" class="img-fluid d-none" style="width: 40px;" alt="Mini Logo">
         </h3>
     </a>
-    <small ><p class="text-dark mt-3 text-center pr-3" style="text-decoration: none">PT Hai Motion Kreatif</p> </small>
+    <small ><p class="text-dark text-center pr-3" style="text-decoration: none">PT Hai Motion Kreatif</p> </small>
     </div>
 
     <div class="sidebar pb-2 mb-4">
@@ -84,7 +84,7 @@
           </li> 
 
           <li class="nav-item  mb-2">
-            <a href="./index.php?page=Task_Calendar" class="nav-link nav-Task_Calendar">
+            <a href="./index.php?page=task_calendar" class="nav-link nav-Task_Calendar">
               <i class="nav-icon fas fa-calendar-check"></i>
               <p>
                 Task Calendar

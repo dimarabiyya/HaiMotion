@@ -197,7 +197,6 @@ if ($qry->num_rows > 0) {
 
       <div class="col-md-5 pl-4">
         <h5 class="font-weight-bold mb-3 text-secondary">Comments (<?= $comments_count ?>)</h5>
-        
         <div id="comments-container" style="max-height: 70vh; overflow-y: auto;">
         <?php if ($comments_count > 0): ?>
             <?php while($comment = $comments_qry->fetch_assoc()): ?>
@@ -253,6 +252,13 @@ if ($qry->num_rows > 0) {
                 No comments/progress updates yet.
             </div>
         <?php endif; ?>
+            <div class="text-center">
+                <h6>
+                    <a href="#" class="text-secondary " id="new_productivity">
+                        <i class="fa fa-plus mr-1"></i> Add Comment
+                    </a>
+                <h6>
+            </div>
         </div>
       </div>
       
@@ -346,6 +352,13 @@ if ($qry->num_rows > 0) {
         $('.delete_progress').click(function(){
             _conf("Are you sure to delete this progress?","delete_progress",[$(this).attr('data-id')])
         })
+
+         $(document).on('click', '#new_productivity', function(e){
+            e.preventDefault();
+            uni_modal("<i class='fa fa-plus'></i> New Comment for: " + $(this).attr('data-task'),
+            "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
+            "mid-large");
+        });
 
         $(document).ready(function() {
             // Sembunyikan footer default dan tampilkan footer kustom

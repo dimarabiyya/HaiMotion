@@ -11,6 +11,19 @@ if (!isset($_REQUEST['id'])) {
     exit;
 }
 
+// ----------------------------------------------------
+// ➡️ 1. DECODE TASK ID YANG MASUK (KRITIS)
+// ----------------------------------------------------
+$encoded_task_id = $_REQUEST['id'];
+$id_decoded = decode_id($encoded_task_id);
+
+if (!is_numeric($id_decoded) || $id_decoded <= 0) {
+    echo "<div class='alert alert-danger p-3'>ID Task tidak valid atau tidak dapat didekode.</div>";
+    exit;
+}
+
+$id = intval($id_decoded); // ID Task numerik yang aman
+
 // Logic untuk update overdue juga di task detail (optional, tapi dipertahankan)
 $conn->query("
     UPDATE task_list 
@@ -19,13 +32,15 @@ $conn->query("
     AND status NOT IN (0,3,5)
 ");
 
-
-$id = intval($_REQUEST['id']); 
 $qry = $conn->query("SELECT * FROM task_list WHERE id = $id");
 
 if ($qry->num_rows > 0) {
     $row = $qry->fetch_assoc();
     $project_id = $row['project_id']; 
+
+    // ➡️ 2. ENKRIPSI ID UNTUK OUTBOUND LINKS
+    $encoded_task_id_out = encode_id($id);
+    $encoded_project_id_out = encode_id($project_id);
 
     $project_name = "Unknown Project";
     $proj_q = $conn->query("SELECT name FROM project_list WHERE id = $project_id LIMIT 1");
@@ -59,9 +74,8 @@ if ($qry->num_rows > 0) {
         4 => ['Over Due', 'danger'],
         5 => ['Done', 'success']
     ];
-    // Menggunakan kelas badge-* Bootstrap 4
     $status = $statusArr[$row['status']] ?? ['Unknown', 'dark'];
-    ?>
+?>
     
     <div class="row p-3">
         <div class="col-md-7 border-right pr-4"> 
@@ -201,6 +215,7 @@ if ($qry->num_rows > 0) {
         <div id="comments-container" style="max-height: 70vh; overflow-y: auto;">
         <?php if ($comments_count > 0): ?>
             <?php while($comment = $comments_qry->fetch_assoc()): ?>
+            <?php $encoded_comment_id = encode_id($comment['id']); // Encode Progress ID ?>
             <div class="card p-3 mb-3 shadow-sm border comment-card">
                 <div class="d-flex align-items-start mb-2">
                     <img class="img-circle img-bordered-sm mr-2" 
@@ -225,15 +240,14 @@ if ($qry->num_rows > 0) {
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item manage_progress_modal" 
                                href="javascript:void(0)" 
-                               data-id="<?= $comment['id'] ?>" 
+                               data-id="<?= $encoded_comment_id ?>" 
                                data-task="<?= htmlspecialchars($row['task']) ?>"
-                               data-project-id="<?= $project_id ?>">
+                               data-project-id="<?= $encoded_project_id_out ?>">
                                 Edit
                             </a>
                             <a class="dropdown-item delete_progress_modal text-danger" 
                                href="javascript:void(0)" 
-                               data-id="<?= $comment['id'] ?>">
-                                Delete
+                               data-id="<?= $comment['id'] ?>"> Delete
                             </a>
                         </div>
                     </div>
@@ -253,13 +267,23 @@ if ($qry->num_rows > 0) {
                 No comments/progress updates yet.
             </div>
         <?php endif; ?>
+            <div class="text-center">
+                <h6>
+                    <a href="#" class="text-secondary" id="new_productivity"
+                       data-pid="<?= $encoded_project_id_out ?>"
+                       data-tid="<?= $encoded_task_id_out ?>"
+                       data-task="<?= htmlspecialchars($row['task']) ?>">
+                        <i class="fa fa-plus mr-1"></i> Add Comment
+                    </a>
+                <h6>
+            </div>
         </div>
       </div>
       
     </div>
     <div class="modal-footer display p-0 m-0 custom-footer">
         <button class="btn btn-primary mr-2" 
-                onclick="editTaskKanban(<?= $id ?>, <?= $project_id ?>)">
+                onclick="editTaskKanban('<?= $encoded_task_id_out ?>', '<?= $encoded_project_id_out ?>')">
           <i class="fa fa-edit"></i> Edit Task
         </button>
         <button type="button" class="btn btn-danger mr-auto" 
@@ -269,11 +293,10 @@ if ($qry->num_rows > 0) {
         <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
     </div>
 
-    
-
     <script>
         function delete_progress($id){
             if (typeof start_load !== 'undefined') { start_load(); }
+            // ID yang dikirim adalah ID numerik
             $.ajax({
                 url:'ajax.php?action=delete_progress',
                 method:'POST',
@@ -287,12 +310,13 @@ if ($qry->num_rows > 0) {
             })
         }
 
-        function editTaskKanban(id, pid) {
+        // 💡 1. EDIT TASK JS HANDLER: Menerima ID terenkripsi dan memanggil manage_task.php
+        function editTaskKanban(encodedTaskId, encodedProjectId) {
             $('#uni_modal').modal('hide'); 
             setTimeout(function(){
-                // Memanggil uni_modal yang diasumsikan ada di index.php
+                // manage_task.php harus memiliki logic decode untuk 'id' dan 'pid'
                 uni_modal("<i class='fa fa-edit'></i> Edit Task",
-                    "manage_task.php?id=" + id + "&pid=" + pid,
+                    `manage_task.php?id=${encodedTaskId}&pid=${encodedProjectId}`,
                     "modal-xl");
             }, 300);
         }
@@ -310,28 +334,43 @@ if ($qry->num_rows > 0) {
             }, 400);
         }
         
-        // Handler untuk Edit Progress/Comment dari dalam modal ini
+        // 💡 2. EDIT PROGRESS JS HANDLER: Menerima ID terenkripsi dan memanggil manage_progress.php
         $(document).on('click', '.manage_progress_modal', function() {
-            const progressId = $(this).data('id');
-            const projectId = $(this).data('project-id');
+            // ID Progress dan Project sudah terenkripsi dari PHP
+            const encodedProgressId = $(this).data('id');
+            const encodedProjectId = $(this).data('project-id'); 
             
             $('#uni_modal').modal('hide'); 
             setTimeout(() => {
                 uni_modal(
                     "<i class='fa fa-edit'></i> Edit Progress", 
-                    `manage_progress.php?pid=${projectId}&id=${progressId}`, 
+                    `manage_progress.php?pid=${encodedProjectId}&id=${encodedProgressId}`, 
                     'large'
                 );
             }, 300);
         });
 
-        // Handler untuk Delete Progress/Comment dari dalam modal ini
+        // 💡 3. ADD COMMENT JS HANDLER (FIXED): HANYA MEMBUKA MODAL
+        $(document).on('click', '#new_productivity', function(e){
+            e.preventDefault();
+            const taskName = $(this).attr('data-task');
+            const encodedPid = $(this).attr('data-pid');
+            const encodedTid = $(this).attr('data-tid');
+            
+            // HANYA MEMBUKA MODAL
+            uni_modal("<i class='fa fa-plus'></i> New Comment for: " + taskName,
+            `manage_progress.php?pid=${encodedPid}&tid=${encodedTid}`, 
+            "mid-large");
+
+            // Blok AJAX submission yang salah sudah dihapus dari sini
+        });
+
+        // Handler untuk Delete Progress/Comment
         $(document).on('click', '.delete_progress_modal', function() {
-            const progressId = $(this).data('id');
+            const progressId = $(this).data('id'); // ID numerik
             
             $('#uni_modal').modal('hide'); 
             setTimeout(() => {
-                // Asumsi _conf adalah fungsi global
                 if (typeof _conf === 'function') {
                     _conf("Are you sure to delete this progress/comment?", "delete_progress", [progressId]);
                 } else {
@@ -339,14 +378,10 @@ if ($qry->num_rows > 0) {
                 }
             }, 400);
         });
-        
-        $('.manage_progress').click(function(){
-        uni_modal("<i class='fa fa-edit'></i> Edit Progress","manage_progress.php?pid=<?php echo $id ?>&id="+$(this).attr('data-id'),'large')
-        })
-        $('.delete_progress').click(function(){
-            _conf("Are you sure to delete this progress?","delete_progress",[$(this).attr('data-id')])
-        })
 
+        // ❌ MENGHAPUS BLOK KODE YANG TIDAK PERLU / DUPLIKAT DI BAGIAN AKHIR
+        // Semua handler duplikat yang ada di file Anda di bagian bawah sudah dihapus.
+        
         $(document).ready(function() {
             // Sembunyikan footer default dan tampilkan footer kustom
             $('#uni_modal .modal-footer').hide(); 

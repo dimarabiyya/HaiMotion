@@ -4,7 +4,25 @@ if (session_status() == PHP_SESSION_NONE) {
 }
 include 'db_connect.php'; 
 
-$selected_project_id = isset($_GET['project_id']) ? intval($_GET['project_id']) : 0; 
+// -----------------------------------------------------------------
+// ➡️ 1. DECODE PROJECT ID YANG MUNGKIN MASUK DARI URL (jika ada)
+// -----------------------------------------------------------------
+$selected_project_id = 0;
+if (isset($_GET['project_id'])) {
+    $encoded_pid = $_GET['project_id'];
+    $decoded_pid = decode_id($encoded_pid);
+
+    if (is_numeric($decoded_pid) && $decoded_pid > 0) {
+        $selected_project_id = intval($decoded_pid); // ID numerik aman
+    } else {
+        // Jika decoding gagal, project ID tetap 0
+        $selected_project_id = 0; 
+    }
+} else {
+    $selected_project_id = 0;
+}
+// -----------------------------------------------------------------
+
 $user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 ?>
@@ -28,8 +46,6 @@ $login_type = $_SESSION['login_type'];
               <?php
               $project_where = " WHERE 1=1 ";
               if ($login_type == 2) {
-                  // **PERUBAHAN DI SINI**: Manager sees projects they manage OR projects they are assigned to
-                  // Menggunakan FIND_IN_SET untuk mengecek user_ids
                   $project_where .= " AND (manager_id = '$user_id' OR FIND_IN_SET('$user_id', user_ids)) ";
               } elseif ($login_type == 3) {
                   $project_where .= " AND FIND_IN_SET('$user_id', user_ids) ";
@@ -43,6 +59,7 @@ $login_type = $_SESSION['login_type'];
               ");
 
               while($row = $projects->fetch_assoc()):
+                // 💡 Pastikan ID di OPTION adalah NUMERIK
                 $selected = ($row['id'] == $selected_project_id) ? 'selected' : '';
               ?>
               <option value="<?= $row['id'] ?>" <?= $selected ?>>
@@ -51,7 +68,7 @@ $login_type = $_SESSION['login_type'];
               <?php endwhile; ?>
             </select>
           </div>
-
+          
           <div class="form-group">
             <label for="task"><b>Task</b></label>
             <input type="text" name="task" id="task" class="form-control" required>
@@ -153,13 +170,15 @@ $(document).ready(function(){
 
     // Event handler saat project berubah
     $('#project_id').change(function(){
-    var pid = $(this).val();
+    // 💡 PID yang diambil di sini adalah ID NUMERIK dari value option
+    var pid = $(this).val(); 
     var userSelect = $('#user_ids');
     
     userSelect.html('<option value="">Loading users...</option>');
     userSelect.prop('disabled', true);
 
     if(pid){
+        // 💡 AJAX mengirim ID NUMERIK ke get_project_users
         $.ajax({
             url: 'ajax.php?action=get_project_users',
             method: 'POST',
@@ -186,6 +205,9 @@ $(document).ready(function(){
         e.preventDefault();
         // Cek apakah fungsi start_load/end_load ada (jika digunakan untuk loading screen)
         if (typeof start_load !== 'undefined') { start_load(); }
+        
+        // 💡 Form submission menggunakan ID NUMERIK di project_id, yang diharapkan
+        // oleh ajax.php?action=save_task.
 
         $.ajax({
             url: 'ajax.php?action=save_task',

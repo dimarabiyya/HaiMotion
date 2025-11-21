@@ -2,31 +2,72 @@
 session_start();
 include 'db_connect.php';
 
-if(isset($_GET['id'])){
-    $qry = $conn->query("SELECT * FROM task_list where id = ".$_GET['id'])->fetch_array();
-    foreach($qry as $k => $v){
-        $$k = $v;
+// ---------------------------------------------
+// ➡️ 1. DECODE INCOMING IDs DARI URL
+// ---------------------------------------------
+$id_decoded = null;
+$pid_decoded = null;
+$id_encoded = $_GET['id'] ?? null;
+$pid_encoded = $_GET['pid'] ?? null;
+
+// Decode Task ID (id)
+if (!empty($id_encoded)) {
+    $decoded = decode_id($id_encoded);
+    if (is_numeric($decoded) && $decoded > 0) {
+        $id_decoded = $decoded;
     }
 }
 
-// pastikan ada project_id dari task
-$pid = isset($_GET['pid']) ? $_GET['pid'] : (isset($project_id) ? $project_id : 0);
+// Decode Project ID (pid)
+if (!empty($pid_encoded)) {
+    $decoded = decode_id($pid_encoded);
+    if (is_numeric($decoded) && $decoded > 0) {
+        $pid_decoded = $decoded;
+    }
+}
+// ---------------------------------------------
+
+
+// 2. Fetch existing task data if $id_decoded is set (Edit Mode)
+if(isset($id_decoded)){
+    // Gunakan ID numerik yang sudah didekode
+    $qry = $conn->query("SELECT * FROM task_list where id = ".$id_decoded);
+    
+    if($qry->num_rows > 0){
+        $data = $qry->fetch_array();
+        foreach($data as $k => $v){
+            $$k = $v;
+        }
+        // Pastikan $pid_decoded diisi dari project_id di DB jika ini mode edit
+        $pid_decoded = isset($project_id) ? $project_id : $pid_decoded;
+    } else {
+        $id_decoded = null; // Task tidak ditemukan, kembali ke mode 'Add New'
+    }
+}
+
+
+// 3. Set Project ID Numerik yang aman untuk seluruh form logic
+// Ambil dari pid_decoded atau dari project_id hasil query jika ada, fallback ke 0
+$pid = $pid_decoded ?? (isset($project_id) ? $project_id : 0);
+
+if ($pid === 0) {
+    echo "<div class='alert alert-danger p-3'>Project ID tidak valid atau hilang.</div>";
+    exit;
+}
 
 $project_user_ids = [];
-if($pid){
-    $proj = $conn->query("SELECT user_ids, manager_id FROM project_list WHERE id = $pid");
-    if($proj->num_rows > 0){
-        $proj_data = $proj->fetch_assoc();
-        
-        // Tambahkan semua user_ids (anggota)
-        if(!empty($proj_data['user_ids'])){
-            $project_user_ids = array_merge($project_user_ids, explode(',', $proj_data['user_ids']));
-        }
-        
-        // Tambahkan manager_id
-        if(!empty($proj_data['manager_id'])){
-            $project_user_ids[] = $proj_data['manager_id'];
-        }
+$proj = $conn->query("SELECT user_ids, manager_id FROM project_list WHERE id = $pid"); // Query menggunakan $pid (numeric)
+if($proj->num_rows > 0){
+    $proj_data = $proj->fetch_assoc();
+    
+    // Tambahkan semua user_ids (anggota)
+    if(!empty($proj_data['user_ids'])){
+        $project_user_ids = array_merge($project_user_ids, explode(',', $proj_data['user_ids']));
+    }
+    
+    // Tambahkan manager_id
+    if(!empty($proj_data['manager_id'])){
+        $project_user_ids[] = $proj_data['manager_id'];
     }
 }
 
@@ -48,8 +89,8 @@ while($row = $all_users_q->fetch_assoc()){
 <? include 'header.php'?>
 <div class="container-fluid">
     <form action="" id="manage-task">
-        <input type="hidden" name="id" value="<?php echo isset($id) ? $id : '' ?>">
-        <input type="hidden" name="project_id" value="<?php echo isset($_GET['pid']) ? $_GET['pid'] : '' ?>">
+        <input type="hidden" name="id" value="<?php echo isset($id_decoded) ? $id_decoded : '' ?>">
+        <input type="hidden" name="project_id" value="<?php echo $pid ?>">
         <input type="hidden" name="created_by" value="<?php echo $_SESSION['login_id']; ?>"> 
         <div class="form-group">
             <label for="">Task</label>
@@ -123,6 +164,9 @@ while($row = $all_users_q->fetch_assoc()){
                     $role_label = $user['type'] == 1 ? ' (Admin)' : ($user['type'] == 2 ? ' (Manager)' : '');
                     
                     // Cek apakah user ini sudah di-assign sebelumnya
+                    $selected = in_array($user['id'], $current_users) ? 'checked' : ''; // menggunakan 'checked' karena ini bukan select2
+                    
+                    // Gunakan in_array yang benar: $current_users adalah array ID numerik
                     $selected = in_array($user['id'], $current_users) ? 'selected' : '';
                     
                     // Tampilkan user
@@ -159,14 +203,16 @@ while($row = $all_users_q->fetch_assoc()){
     // Inisialisasi Select2 untuk ASSIGN TO (Class: .select2)
     $('.select2').select2({
         placeholder: "Select Employee",
-        width: "100%"
+        width: "100%",
+        dropdownParent: $('#uni_modal') // Pastikan ini ada jika modal digunakan
     });
 
     // !!! TAMBAHAN: Inisialisasi Select2 untuk STATUS (Class: .select2-status)
     $('.select2-status').select2({
         placeholder: "Select Status",
         minimumResultsForSearch: Infinity, // Biasanya Status tidak perlu fitur pencarian
-        width: "100%"
+        width: "100%",
+        dropdownParent: $('#uni_modal') // Pastikan ini ada jika modal digunakan
     });
 });
 
@@ -185,9 +231,18 @@ while($row = $all_users_q->fetch_assoc()){
                     $('#uni_modal').modal('hide'); 
                     location.reload();
                 }, 1500);
-            } else {
+            } else if (resp == 2) {
+                // Tambahkan penanganan error jika email sudah digunakan (jika ada logic email di sini)
+                 alert_toast("Task gagal disimpan: Data duplikat atau error server", 'danger');
+            }
+             else {
                 alert_toast(resp, 'danger');
             }
+             end_load(); // Pastikan loading dihentikan
+        },
+        error: function(xhr, status, error) {
+            alert_toast('AJAX Error: ' + error, "error");
+            end_load();
         }
     });
 });

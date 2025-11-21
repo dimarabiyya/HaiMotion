@@ -181,7 +181,43 @@ $initial_recipient_id_js = $initial_recipient_id === null ? '' : (string)$initia
         text-decoration: none;
         font-size: 0.9em;
     }
+    /* USER LIST ITEM BARU */
+    .user-item {
+        display: flex; /* Memastikan layout rata */
+        align-items: center;
+        padding: 12px 15px;
+        border-bottom: 1px solid #f1f1f1;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .user-item .flex-grow-1 {
+        min-width: 0; /* Penting untuk flexbox */
+    }
+    .user-item:hover, .user-item.active {
+        background-color: #e9ecef;
+    }
+
+    /* Badge Notifikasi */
+    .badge-danger {
+        background-color: #dc3545; /* Warna merah standar */
+        color: white;
+        font-size: 0.7rem;
+        padding: 4px 6px;
+        line-height: 1;
+    }
+
+    /* Default Avatar untuk tampilan yang lebih baik */
+    .default-avatar {
+        width: 40px; 
+        height: 40px;
+        font-size: 1.1em;
+        border-radius: 50%; /* Memastikan bentuk lingkaran */
+        text-align: center;
+        line-height: 40px;
+        flex-shrink: 0; /* Tidak boleh menyusut */
+    }
 </style>
+
     <h3 class="m-0 mb-3">Messenger</h3>
     <div class="p-0 chat-container container-fluid">
             
@@ -393,7 +429,6 @@ $initial_recipient_id_js = $initial_recipient_id === null ? '' : (string)$initia
         });
     }
 
-    // 4. Memuat daftar pengguna di sidebar
     function loadUserList() {
         $.ajax({
             url: 'ajax.php?action=get_all_users_for_chat',
@@ -408,27 +443,64 @@ $initial_recipient_id_js = $initial_recipient_id === null ? '' : (string)$initia
                     return;
                 }
                 
+                users.sort((a, b) => {
+                    const timeA = a.last_message_timestamp ? new Date(a.last_message_timestamp).getTime() : 0;
+                    const timeB = b.last_message_timestamp ? new Date(b.last_message_timestamp).getTime() : 0;
+                    return timeB - timeA; // Urutan menurun (terbaru di atas)
+                });
+
                 users.forEach(function(user) {
+                    // Jangan tampilkan pengguna saat ini dalam daftar kontak
+                    if (user.id == currentUserId) return; 
+
                     var activeClass = (user.id == currentRecipientId) ? 'active' : '';
                     var avatarHtml;
                     
                     if (user.avatar && user.avatar !== '') {
-                        avatarHtml = `<img src="assets/uploads/${user.avatar}" class="img-circle elevation-2 mr-2" alt="User Image" style="width: 35px; height: 35px; object-fit: cover;">`;
+                        avatarHtml = `<img src="assets/uploads/${user.avatar}" class="img-circle elevation-2 mr-2" alt="User Image" style="width: 40px; height: 40px; object-fit: cover;">`;
                     } else {
                         var initials = (user.name || 'NN').split(' ').map(n => n[0]).join('').substring(0, 2);
-                        avatarHtml = `<div class="default-avatar">${initials}</div>`;
+                        avatarHtml = `<div class="default-avatar d-flex justify-content-center align-items-center bg-secondary text-white rounded-circle mr-2">${initials}</div>`;
                     }
 
+                    // **LOGIKA NOTIFIKASI & PESAN TERAKHIR**
+                    var unreadBadge = '';
+                    if (user.unread_count && user.unread_count > 0) {
+                        unreadBadge = `<span class="badge badge-pill badge-danger">${user.unread_count}</span>`;
+                    }
+                    
+                    var lastMessageContent = user.last_message_content ? 
+                        user.last_message_content.substring(0, 30) + (user.last_message_content.length > 30 ? '...' : '') : 
+                        'Start Conversation';
+                    
+                    var lastMessageTime = user.last_message_timestamp ? 
+                        moment(user.last_message_timestamp).fromNow() : ''; // Menggunakan moment.js
+                        
+                    var boldClass = (user.unread_count && user.unread_count > 0) ? 'font-weight-bold' : '';
+
                     var userHtml = `
-                        <div class="user-item d-flex align-items-center ${activeClass}" data-user-id="${user.id}" data-user-name="${user.name.trim()}">
+                        <div class="user-item d-flex align-items-center ${activeClass}" 
+                            data-user-id="${user.id}" 
+                            data-user-name="${user.name.trim()}">
+                            
                             ${avatarHtml}
-                            <span class="text-dark">${user.name}</span>
+                            
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="text-dark ${boldClass}">${user.name}</span>
+                                    <small class="text-muted">${lastMessageTime}</small>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted ${boldClass}">${lastMessageContent}</small>
+                                    ${unreadBadge}
+                                </div>
+                            </div>
                         </div>
                     `;
                     $('#user_list_display').append(userHtml);
                 });
 
-                // Pasang event listener untuk klik pengguna
+                // ... (Event Listener Klik Pengguna SAMA)
                 $('.user-item').click(function() {
                     $('.user-item').removeClass('active');
                     $(this).addClass('active');
@@ -436,23 +508,26 @@ $initial_recipient_id_js = $initial_recipient_id === null ? '' : (string)$initia
                     currentRecipientId = $(this).data('user-id').toString();
                     currentRecipientName = $(this).data('user-name');
                     
+                    // Tambahan: Ketika user diklik, hapus badge notif
+                    $(this).find('.badge-danger').remove(); 
+                    $(this).find('.font-weight-bold').removeClass('font-weight-bold');
+                    
                     currentThreadId = ''; 
                     getOrCreateThread();
                 });
-                
-                // Jika ada inisialisasi dari URL, muat chat secara otomatis
+                // ... (Logika inisialisasi dari URL SAMA)
                 if (currentRecipientId !== '') {
                     var selectedUser = $(`.user-item[data-user-id="${currentRecipientId}"]`);
                     if(selectedUser.length > 0) {
-                       currentRecipientName = selectedUser.data('user-name');
-                       selectedUser.addClass('active');
-                       getOrCreateThread();
+                    currentRecipientName = selectedUser.data('user-name');
+                    selectedUser.addClass('active');
+                    getOrCreateThread();
                     } else {
-                       $('#recipient_header h5').html('<div class="d-flex align-items-center"><i class="fas fa-comment-dots mr-2"></i>Recipient tidak ditemukan</div>');
-                       $('#chat_input_container').hide();
+                    $('#recipient_header h5').html('<div class="d-flex align-items-center"><i class="fas fa-comment-dots mr-2"></i>Recipient tidak ditemukan</div>');
+                    $('#chat_input_container').hide();
                     }
                 } else {
-                     $('#chat_input_container').hide();
+                    $('#chat_input_container').hide();
                 }
             },
             error: function(xhr, status, error) {
@@ -497,4 +572,9 @@ $initial_recipient_id_js = $initial_recipient_id === null ? '' : (string)$initia
 
     // Panggil fungsi awal
     loadUserList();
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/locale/id.min.js"></script> <script>
+    moment.locale('id'); 
 </script>
