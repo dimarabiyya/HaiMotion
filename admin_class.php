@@ -477,16 +477,62 @@ class Action {
         return 0;
     }
 
-        // --- Tambahkan di dalam class Actions di admin_class.php ---
-
-    // 1. Mengambil daftar semua pengguna (kecuali diri sendiri) untuk sidebar chat
+    // --- Tambahkan di dalam class Actions di admin_class.php ---
+// 1. Mengambil daftar semua pengguna (kecuali diri sendiri) untuk sidebar chat
     function get_all_users_for_chat() {
         $current_user_id = $_SESSION['login_id'];
-        // Ambil juga avatar untuk tampilan yang lebih baik
-        $sql = "SELECT id, CONCAT(firstname, ' ', lastname) as name, avatar FROM users WHERE id != '{$current_user_id}' ORDER BY firstname ASC";
+        
+        // SQL KRITIS: Menggunakan LEFT JOIN dan Subquery
+        $sql = "
+            SELECT 
+                u.id, 
+                CONCAT(u.firstname, ' ', u.lastname) AS name, 
+                u.avatar,
+                t.id AS thread_id,
+                t.last_message_at AS last_message_timestamp,
+                
+                -- Subquery untuk mengambil konten pesan terakhir
+                (
+                    SELECT cm_last.message_content 
+                    FROM chat_messages cm_last
+                    WHERE cm_last.thread_id = t.id 
+                    ORDER BY cm_last.created_at DESC 
+                    LIMIT 1
+                ) AS last_message_content,
+                
+                -- Subquery untuk menghitung pesan belum dibaca
+                (
+                    SELECT COUNT(cm_unread.id) 
+                    FROM chat_messages cm_unread
+                    WHERE cm_unread.thread_id = t.id 
+                    AND cm_unread.sender_id != '{$current_user_id}' 
+                    AND cm_unread.is_read = 0
+                ) AS unread_count
+            FROM users u
+            LEFT JOIN chat_threads t 
+                ON (t.user1_id = u.id AND t.user2_id = '{$current_user_id}') 
+                OR (t.user2_id = u.id AND t.user1_id = '{$current_user_id}')
+            WHERE u.id != '{$current_user_id}'
+        ";
+        
         $result = $this->db->query($sql);
+        
+        if (!$result) {
+            error_log("SQL Error in get_all_users_for_chat: " . $this->db->error);
+            // Mengembalikan JSON kosong atau error jika gagal
+            return json_encode(['error' => 'SQL_FAILED', 'debug' => $this->db->error, 'users' => []]);
+        }
+        
         $users = [];
         while ($row = $result->fetch_assoc()) {
+            // Konversi tipe data untuk konsistensi
+            $row['unread_count'] = $row['unread_count'] === null ? 0 : (int)$row['unread_count'];
+            $row['thread_id'] = $row['thread_id'] === null ? null : (int)$row['thread_id'];
+            
+            if ($row['last_message_content'] !== null) {
+                 $row['last_message_content'] = html_entity_decode($row['last_message_content']);
+            }
+            
             $users[] = $row;
         }
         return json_encode($users);
@@ -498,11 +544,9 @@ class Action {
         $user1 = $_SESSION['login_id'];
         $user2 = $this->db->real_escape_string($user2_id);
         
-        // Gunakan min/max untuk memastikan urutan user1_id dan user2_id selalu sama
         $id1 = min($user1, $user2);
         $id2 = max($user1, $user2);
 
-        // Cek apakah thread sudah ada
         $sql_check = "SELECT id FROM chat_threads WHERE user1_id = '{$id1}' AND user2_id = '{$id2}'";
         $result = $this->db->query($sql_check);
 
@@ -510,103 +554,109 @@ class Action {
             $thread = $result->fetch_assoc();
             return $thread['id'];
         } else {
-            // Buat thread baru
-            $sql_create = "INSERT INTO chat_threads (user1_id, user2_id) VALUES ('{$id1}', '{$id2}')";
+            // Set last_message_at ke NOW() agar thread baru langsung muncul di daftar
+            $sql_create = "INSERT INTO chat_threads (user1_id, user2_id, last_message_at) VALUES ('{$id1}', '{$id2}', NOW())";
             $save = $this->db->query($sql_create);
 
             if ($save) {
                 return $this->db->insert_id;
             } else {
-                return 0; // Error
+                error_log("Error creating thread: " . $this->db->error);
+                return 0;
             }
         }
     }
 
-    // 3. Menyimpan pesan chat personal
+    // 3. Menyimpan pesan chat personal (Push Notifikasi Email)
     function save_personal_chat_message() {
         extract($_POST);
         $sender_id = $_SESSION['login_id'];
         $thread_id = $this->db->real_escape_string($thread_id);
         
-        // Escape message content, use htmlentities to prevent XSS and preserve markdown style tags
         $message = $this->db->real_escape_string(htmlentities($message_content)); 
         
         if (empty($thread_id)) {
-            return 0; // Tidak ada thread yang dipilih
+            return 0;
         }
 
-        $sql = "INSERT INTO chat_messages (thread_id, sender_id, message_content) VALUES ('{$thread_id}', '{$sender_id}', '{$message}')";
+        // is_read = 1 karena pesan ini dikirim oleh pengguna saat ini
+        $sql = "INSERT INTO chat_messages (thread_id, sender_id, message_content, is_read) VALUES ('{$thread_id}', '{$sender_id}', '{$message}', 1)";
         $save = $this->db->query($sql);
 
         if ($save) {
-            // Update last_message_at di thread
+            // A. Update last_message_at
             $this->db->query("UPDATE chat_threads SET last_message_at = NOW() WHERE id = '{$thread_id}'");
             
-            // Kirim notifikasi ke user lawan bicara
+            // B. Ambil Recipient & Kirim Notifikasi (Push & Email)
             $sql_thread = $this->db->query("SELECT user1_id, user2_id FROM chat_threads WHERE id = '{$thread_id}'");
             $thread_data = $sql_thread->fetch_assoc();
             $recipient_id = ($thread_data['user1_id'] == $sender_id) ? $thread_data['user2_id'] : $thread_data['user1_id'];
             
             $sender_name = $this->db->query("SELECT CONCAT(firstname, ' ', lastname) as name FROM users WHERE id = '{$sender_id}'")->fetch_assoc()['name'];
-            $notification_message = "Pesan baru dari **{$sender_name}**.";
+            $preview_message = substr(html_entity_decode($message), 0, 50) . (strlen(html_entity_decode($message)) > 50 ? '...' : '');
+            $notification_message = "Pesan baru dari **{$sender_name}**: " . $preview_message;
             
-            // 💡 PERBAIKAN KRITIS: ENKRIPSI THREAD ID UNTUK LINK NOTIFIKASI
             $encoded_thread_id = function_exists('encode_id') ? encode_id($thread_id) : $thread_id;
             $link = "index.php?page=chat&thread_id={$encoded_thread_id}"; 
+            
+            $recipient_q = $this->db->query("SELECT email, notification_email, firstname, lastname FROM users WHERE id = '{$recipient_id}'");
+            $recipient_user = $recipient_q->fetch_assoc();
+            
+            if ($recipient_user) {
+                $full_name = ucwords($recipient_user['firstname'] . ' ' . $recipient_user['lastname']);
+                $target_email = !empty($recipient_user['notification_email']) ? $recipient_user['notification_email'] : $recipient_user['email'];
 
-            // Tipe 4=Comment Added (digunakan kembali untuk chat/DM)
-            $sql_notify = "INSERT INTO notification_list (user_id, type, message, link) VALUES ('{$recipient_id}', 4, '{$notification_message}', '{$link}')";
-            $this->db->query($sql_notify);
+                $email_details = [
+                    'email' => $target_email,
+                    'name'  => $full_name,
+                    'subject' => "[CHAT BARU] Pesan dari {$sender_name}"
+                ];
+                
+                // Tipe 4: Pesan Chat. Parameter ke-6 (true) mengaktifkan pengiriman email.
+                record_notification($recipient_id, 4, $notification_message, $link, $this->db, true, $email_details);
+            }
 
             return 1;
         } else {
-            return 0; // Error
+            error_log("save_personal_chat_message error: " . $this->db->error);
+            return 0;
         }
     }
 
-    // 4. Memuat pesan chat untuk thread tertentu (REVISI PENTING)
+    // 4. Memuat pesan chat untuk thread tertentu (Tandai Dibaca)
     function get_personal_chat_messages() {
-        // Pastikan fungsi encode_id tersedia
-        // 💡 PERBAIKAN: Mengganti fn($id) => $id dengan anonymous function standar untuk kompatibilitas PHP < 7.4
         $encoder = function_exists('encode_id') ? 'encode_id' : function($id) { return $id; }; 
+        $current_user_id = $_SESSION['login_id'];
 
         extract($_POST);
         $thread_id = $this->db->real_escape_string($thread_id);
         
-        $data = [
-            'users' => [], 
-            'projects' => [], 
-            'tasks' => []
-        ];
+        // --- A. Tandai semua pesan masuk sebagai sudah dibaca ---
+        // Ini mengurangi 'unread_count' di get_all_users_for_chat() berikutnya
+        $this->db->query("
+            UPDATE chat_messages 
+            SET is_read = 1 
+            WHERE thread_id = '{$thread_id}' 
+            AND sender_id != '{$current_user_id}' 
+            AND is_read = 0
+        ");
         
-        // --- A. Lookup Users (Tambahkan encoded_id) ---
+        // ... (Logika Lookup Data Users, Projects, Tasks SAMA) ...
+        $data = ['users' => [], 'projects' => [], 'tasks' => []];
         $users_q = $this->db->query("SELECT id, CONCAT(firstname, ' ', lastname) as name FROM users");
         while($row = $users_q->fetch_assoc()) {
-            $data['users'][$row['id']] = [
-                'name' => $row['name'],
-                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
-            ];
+            $data['users'][$row['id']] = ['name' => $row['name'], 'encoded_id' => $encoder($row['id'])];
         }
-
-        // --- B. Lookup Projects (Tambahkan encoded_id) ---
         $projects_q = $this->db->query("SELECT id, name FROM project_list");
         while($row = $projects_q->fetch_assoc()) {
-            $data['projects'][$row['id']] = [
-                'name' => $row['name'],
-                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
-            ];
+            $data['projects'][$row['id']] = ['name' => $row['name'], 'encoded_id' => $encoder($row['id'])];
         }
-
-        // --- C. Lookup Tasks (Tambahkan encoded_id) ---
         $tasks_q = $this->db->query("SELECT id, task FROM task_list");
         while($row = $tasks_q->fetch_assoc()) {
-            $data['tasks'][$row['id']] = [
-                'name' => $row['task'],
-                'encoded_id' => $encoder($row['id']) // Menggunakan fungsi $encoder
-            ];
+            $data['tasks'][$row['id']] = ['name' => $row['task'], 'encoded_id' => $encoder($row['id'])];
         }
-        
-        // --- D. Ambil Pesan ---
+
+        // --- B. Ambil Pesan ---
         $messages_q = $this->db->query("
             SELECT 
                 cm.*, 
@@ -628,8 +678,7 @@ class Action {
 
         return json_encode($data);
     }
-
-    // === DESTRUCT ===
+    
     function __destruct() {
         if ($this->db) $this->db->close();
         ob_end_flush();

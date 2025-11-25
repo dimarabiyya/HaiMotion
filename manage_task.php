@@ -185,7 +185,6 @@ while($row = $all_users_q->fetch_assoc()){
 
 <script>
     $(document).ready(function(){
-    // Inisialisasi Summernote
     $('.summernote').summernote({
         height: 200,
         toolbar: [

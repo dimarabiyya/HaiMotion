@@ -25,7 +25,7 @@ if ($action == 'delete_user') { echo $crud->delete_user(); exit; }
 if ($action == 'get_all_users_for_chat') { echo $crud->get_all_users_for_chat(); exit; } 
 if ($action == 'get_or_create_thread_id') { echo $crud->get_or_create_thread_id(); exit; }
 if ($action == 'save_personal_chat_message') { echo $crud->save_personal_chat_message(); exit; }
-if ($action == 'get_personal_chat_messages') { echo $crud->get_personal_chat_messages(); exit; } 
+if ($action == 'get_personal_chat_messages') { echo $crud->get_personal_chat_messages(); exit; }
 
 /* ========== PROJECT MANAGEMENT ========== */
 if ($action == 'save_project') {

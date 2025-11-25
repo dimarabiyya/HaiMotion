@@ -1,5 +1,4 @@
 <?php include 'db_connect.php' ?>
-<?php include 'add_task.php'; ?>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>

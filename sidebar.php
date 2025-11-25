@@ -54,7 +54,7 @@
           <li class="nav-item">
             <a href="index.php?page=chat" class="nav-link nav-chat">
               <i class="nav-icon fas fa-comments"></i>
-              <p>Messanger</p>
+              <p>Messenger</p>
             </a>
           </li>
 
@@ -83,15 +83,19 @@
             </a>
           </li> 
 
-          <li class="nav-item  mb-2">
-            <a href="./index.php?page=task_calendar" class="nav-link nav-Task_Calendar">
+        <?php
+          $currentPage = $_GET['page'] ?? '';
+          $isActiveTaskCalendar = ($currentPage == 'task_calendar') ? 'active' : '';
+        ?>
+          <li class="nav-item mb-2">
+            <a href="./index.php?page=task_calendar" class="nav-link nav-Task_Calendar <?= $isActiveTaskCalendar ?>">
               <i class="nav-icon fas fa-calendar-check"></i>
               <p>
                 Task Calendar
               </p>
             </a>
           </li>
-
+        
          <?php
           if ($_SESSION['login_type'] == 1):
             // Halaman yang termasuk ke menu Users

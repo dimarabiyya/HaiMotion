@@ -238,7 +238,6 @@ window._conf = function($msg='',$func='',$params = []){
         $(this).remove();
       })
   })
-
 </script>	
 
 

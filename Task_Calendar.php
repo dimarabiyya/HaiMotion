@@ -216,8 +216,8 @@ if ($project_id > 0) {
                 <?php endif; ?>
                 <li>
                     <a class="dropdown-item <?= $project_id == 0 ? 'active' : '' ?>"
-                       href="task_calendar.php">
-                        Semua Project
+                       href="index.php?page=task_calendar">
+                        All Project
                     </a>
                 </li>
             </div>

@@ -32,7 +32,11 @@ $qry = $conn->query("SELECT * FROM task_list WHERE id = $id");
 
 if ($qry->num_rows > 0) {
     $row = $qry->fetch_assoc();
-    $project_id = $row['project_id']; // Dapatkan Project ID untuk edit
+    $project_id = $row['project_id']; // Dapatkan Project ID numerik
+
+    // ➡️ 1. ENKRIPSI ID TASK DAN PROJECT UNTUK OUTBOUND LINKS
+    $encoded_task_id_out = encode_id($id);
+    $encoded_project_id_out = encode_id($project_id); // Project ID terenkripsi
 
     // Ambil data project
     $project_name = "Unknown Project";
@@ -49,6 +53,16 @@ if ($qry->num_rows > 0) {
             $creator = $creator_q->fetch_assoc();
         }
     }
+    
+    // Query untuk mengambil COMMENTS/PRODUCTIVITY
+    $comments_qry = $conn->query("
+        SELECT p.*, CONCAT(u.firstname, ' ', u.lastname) as uname, u.avatar 
+        FROM user_productivity p 
+        INNER JOIN users u ON u.id = p.user_id 
+        WHERE p.task_id = $id 
+        ORDER BY p.date_created DESC
+    ");
+    $comments_count = $comments_qry->num_rows;
     
     // Mapping status
     $statusArr = [
@@ -76,7 +90,7 @@ if ($qry->num_rows > 0) {
           </div>
 
           <hr>
-
+        
           <div class="mb-3">
             <h6 class="text-muted mb-1">Project</h6>
             <h5 class="font-weight-bold mb-0"><?= htmlspecialchars($project_name) ?></h5>
@@ -224,14 +238,14 @@ if ($qry->num_rows > 0) {
                         <div class="dropdown-menu dropdown-menu-right">
                             <a class="dropdown-item manage_progress_modal" 
                                href="javascript:void(0)" 
-                               data-id="<?= $comment['id'] ?>" 
+                               data-id="<?= encode_id($comment['id']) ?>" 
                                data-task="<?= htmlspecialchars($row['task']) ?>"
-                               data-project-id="<?= $project_id ?>">
+                               data-project-id="<?= $encoded_project_id_out ?>">
                                 Edit
                             </a>
                             <a class="dropdown-item delete_progress_modal text-danger" 
                                href="javascript:void(0)" 
-                               data-id="<?= $comment['id'] ?>">
+                               data-id="<?= encode_id($comment['id']) ?>">
                                 Delete
                             </a>
                         </div>
@@ -254,36 +268,29 @@ if ($qry->num_rows > 0) {
         <?php endif; ?>
             <div class="text-center">
                 <h6>
-                    <a href="#" class="text-secondary " id="new_productivity">
+                    <a href="#" 
+                       class="text-secondary" 
+                       id="new_productivity"
+                       data-pid="<?= $encoded_project_id_out ?>"
+                       data-tid="<?= $encoded_task_id_out ?>"
+                       data-task="<?= htmlspecialchars($row['task']) ?>">
                         <i class="fa fa-plus mr-1"></i> Add Comment
                     </a>
-                <h6>
+                </h6>
             </div>
         </div>
       </div>
       
     </div>
-    <div class="modal-footer display p-0 m-0 custom-footer">
-        <button class="btn btn-primary mr-2" 
-                onclick="editTaskKanban(<?= $id ?>, <?= $project_id ?>)">
-          <i class="fa fa-edit"></i> Edit Task
-        </button>
-        <button type="button" class="btn btn-danger mr-auto" 
-                onclick="confirmDeleteKanban(<?= $id ?>)">
-          <i class="fa fa-trash"></i> Delete
-        </button>
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-    </div>
-
-    
-
+   
     <script>
         function delete_progress($id){
             if (typeof start_load !== 'undefined') { start_load(); }
+            // Progress ID yang diterima di sini adalah ID terenkripsi
             $.ajax({
                 url:'ajax.php?action=delete_progress',
                 method:'POST',
-                data:{id:$id},
+                data:{id:$id}, // Mengirim ID terenkripsi
                 success:function(resp){
                     if(resp==1){
                         alert_toast("Data successfully deleted",'success')
@@ -296,7 +303,7 @@ if ($qry->num_rows > 0) {
         function editTaskKanban(id, pid) {
             $('#uni_modal').modal('hide'); 
             setTimeout(function(){
-                // Memanggil uni_modal yang diasumsikan ada di index.php
+                // ID yang dikirim harus ID terenkripsi
                 uni_modal("<i class='fa fa-edit'></i> Edit Task",
                     "manage_task.php?id=" + id + "&pid=" + pid,
                     "modal-xl");
@@ -306,6 +313,7 @@ if ($qry->num_rows > 0) {
         function confirmDeleteKanban(id) {
             $('#uni_modal').modal('hide');
             setTimeout(() => {
+                // ID yang dikirim harus ID terenkripsi
                 if (typeof _conf === 'function') {
                     _conf("Are you sure to delete this task permanently?", "delete_task", [id]);
                 } else if (typeof window.deleteKanbanTaskFromModal === 'function') {
@@ -318,14 +326,16 @@ if ($qry->num_rows > 0) {
         
         // Handler untuk Edit Progress/Comment dari dalam modal ini
         $(document).on('click', '.manage_progress_modal', function() {
+            // ID progress dan Project ID sudah terenkripsi dari data-attribute
             const progressId = $(this).data('id');
-            const projectId = $(this).data('project-id');
+            const encodedProjectId = $(this).data('project-id'); 
             
             $('#uni_modal').modal('hide'); 
             setTimeout(() => {
                 uni_modal(
                     "<i class='fa fa-edit'></i> Edit Progress", 
-                    `manage_progress.php?pid=${projectId}&id=${progressId}`, 
+                    // Menggunakan ID terenkripsi (pid dan id)
+                    `manage_progress.php?pid=${encodedProjectId}&id=${progressId}`, 
                     'large'
                 );
             }, 300);
@@ -333,12 +343,12 @@ if ($qry->num_rows > 0) {
 
         // Handler untuk Delete Progress/Comment dari dalam modal ini
         $(document).on('click', '.delete_progress_modal', function() {
-            const progressId = $(this).data('id');
+            const progressId = $(this).data('id'); // ID terenkripsi
             
             $('#uni_modal').modal('hide'); 
             setTimeout(() => {
-                // Asumsi _conf adalah fungsi global
                 if (typeof _conf === 'function') {
+                    // Progress ID yang dikirim harus didekode di ajax.php
                     _conf("Are you sure to delete this progress/comment?", "delete_progress", [progressId]);
                 } else {
                     console.error("_conf function not found for deleting progress.");
@@ -346,18 +356,18 @@ if ($qry->num_rows > 0) {
             }, 400);
         });
         
-        $('.manage_progress').click(function(){
-        uni_modal("<i class='fa fa-edit'></i> Edit Progress","manage_progress.php?pid=<?php echo $id ?>&id="+$(this).attr('data-id'),'large')
-        })
-        $('.delete_progress').click(function(){
-            _conf("Are you sure to delete this progress?","delete_progress",[$(this).attr('data-id')])
-        })
-
+        // ➡️ 3. KRITIS: Perbaiki handler untuk tombol "Add Comment"
          $(document).on('click', '#new_productivity', function(e){
             e.preventDefault();
-            uni_modal("<i class='fa fa-plus'></i> New Comment for: " + $(this).attr('data-task'),
-            "manage_progress.php?pid=" + $(this).attr('data-pid') + "&tid=" + $(this).attr('data-tid'),
-            "mid-large");
+            const $this = $(this);
+            const encodedPid = $this.data('pid'); // Mengambil Project ID terenkripsi
+            const encodedTid = $this.data('tid'); // Mengambil Task ID terenkripsi
+            const taskName = $this.data('task');
+
+            uni_modal("<i class='fa fa-plus'></i> New Comment for: " + taskName,
+                // Mengirim ID terenkripsi ke manage_progress.php
+                "manage_progress.php?pid=" + encodedPid + "&tid=" + encodedTid,
+                "mid-large");
         });
 
         $(document).ready(function() {
@@ -368,11 +378,15 @@ if ($qry->num_rows > 0) {
             $('#uni_modal .modal-dialog').removeClass('modal-md modal-lg').addClass("modal-xl");
             // Mengurangi min-height karena konten tidak terbungkus card
             $('#uni_modal .modal-content').css("min-height", "70vh"); 
+            
+            // Menginisialisasi tombol delete/edit di footer kustom (jika ada)
+            // Tombol ini tidak ada di HTML Anda, tapi jika ditambahkan, pastikan
+            // ia menggunakan $encoded_task_id_out dan $encoded_project_id_out.
         });
     </script>
     
     <style>
-    /* Style untuk tata letak 2 kolom */
+    /* ... (Style tetap sama) ... */
     .modal-xl { 
         max-width: 90% !important; 
         width: 100% !important;
@@ -405,7 +419,6 @@ if ($qry->num_rows > 0) {
     .user-avatar-stack-modal img:first-child {
         margin-left: 0 !important;
     }
-    /* Card untuk setiap COMMENT tetap dipertahankan karena sudah baik */
     .comment-card {
         border-radius: 0.5rem;
     }

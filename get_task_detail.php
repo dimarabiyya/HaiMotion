@@ -317,7 +317,7 @@ if ($qry->num_rows > 0) {
                 // manage_task.php harus memiliki logic decode untuk 'id' dan 'pid'
                 uni_modal("<i class='fa fa-edit'></i> Edit Task",
                     `manage_task.php?id=${encodedTaskId}&pid=${encodedProjectId}`,
-                    "modal-xl");
+                    "mid-large");
             }, 300);
         }
 
@@ -345,7 +345,7 @@ if ($qry->num_rows > 0) {
                 uni_modal(
                     "<i class='fa fa-edit'></i> Edit Progress", 
                     `manage_progress.php?pid=${encodedProjectId}&id=${encodedProgressId}`, 
-                    'large'
+                    'mid-large'
                 );
             }, 300);
         });
