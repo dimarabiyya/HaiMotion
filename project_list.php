@@ -450,7 +450,7 @@ $(document).ready(function(){
     });
     
     $('#new_project_btn').click(function(){
-        uni_modal("<span style='color:white;'><i class='fa fa-plus mr-1'></i> Add New Project</span>", "new_project.php", "mid-large"); 
+        window.location.href = "index.php?page=new_project"; 
     });
 
     function delete_project(id){

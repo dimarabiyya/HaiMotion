@@ -66,7 +66,7 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
         // ========== TEMPLATE EMAIL ==========
         $email_template = "
             <div style='font-family: Arial, sans-serif; color: #333; max-width:600px; margin:auto; border:1px solid #eee; border-radius:10px; overflow:hidden;'>
-                <div style='background:##B75301; color:#fff; padding:15px 20px;'>
+                <div style='background:#B75301; color:#fff; padding:15px 20px;'>
                     <h2 style='margin:0;'>Hai Motion Dashboard</h2>
                 </div>
                 <div style='padding:20px;'>
@@ -74,14 +74,14 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
                     <p>{$body_html}</p>
                     <p style='margin-top:20px;'>
                         <a href='" . APP_BASE_URL . "' 
-                           style='background:##B75301; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;'>
-                           Buka Dashboard
+                           style='background:#B75301; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;'>
+                           Mail Dashboard
                         </a>
                     </p>
                 </div>
                 <div style='background:#f9f9f9; padding:15px; font-size:12px; color:#777; text-align:center;'>
-                    Email ini dikirim otomatis oleh sistem <strong>HaiMotion Dashboard</strong>.<br>
-                    Mohon jangan membalas langsung ke email ini.
+                    Email was send from <strong>HaiMotion Dashboard</strong>.<br>
+                    Don't reply this mail
                 </div>
             </div>
         ";
@@ -120,14 +120,14 @@ function record_notification($user_id, $type, $message, $link, $conn, $send_emai
     if ($insert_success && $send_email && !empty($email_details) && isset($email_details['email'])) {
         $full_link = APP_BASE_URL . $link;
         $html_message = "
-            Anda mendapat notifikasi baru: <strong>{$message}</strong><br>
-            Lihat detail di sini: <a href='{$full_link}'>{$full_link}</a>
+            You got new Notification: <strong>{$message}</strong><br>
+            See more : <a href='{$full_link}'>{$full_link}</a>
         ";
 
         send_task_notification_email(
             $email_details['email'],
             $email_details['name'] ?? 'User',
-            $email_details['subject'] ?? 'Notifikasi Baru dari HaiMotion Dashboard',
+            $email_details['subject'] ?? 'New Dashboard Notification',
             $html_message
         );
     }

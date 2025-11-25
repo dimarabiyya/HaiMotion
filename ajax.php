@@ -158,5 +158,46 @@ if(isset($_GET['action']) && $_GET['action'] == 'get_project_users'){
     exit;
 }
 
+switch($action){
+    // ...
+    case 'save_task':
+        // ... (Logic save task) ...
+        if($save) {
+            echo 1; // Success
+        } else {
+            echo 2; // Error
+        }
+        break;
+    
+    case 'delete_task':
+        $id = decode_id($_POST['id']); // Menerima ID terenkripsi
+        // ... (Logic delete task) ...
+        if($delete) {
+            echo 1; // Success
+        } else {
+            echo 2; // Error
+        }
+        break;
+
+    case 'save_progress':
+        // ... (Logic save comment/progress) ...
+        if($save) {
+            echo 1; // Success
+        } else {
+            echo 2; // Error
+        }
+        break;
+    
+    case 'delete_progress':
+        $id = decode_id($_POST['id']); // Menerima ID terenkripsi
+        // ... (Logic delete comment/progress) ...
+        if($delete) {
+            echo 1; // Success
+        } else {
+            echo 2; // Error
+        }
+        break;
+}
+
 ob_end_flush();
 ?>

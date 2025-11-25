@@ -383,6 +383,44 @@ if ($qry->num_rows > 0) {
             // Tombol ini tidak ada di HTML Anda, tapi jika ditambahkan, pastikan
             // ia menggunakan $encoded_task_id_out dan $encoded_project_id_out.
         });
+
+        function delete_progress($id){
+        // $id adalah ID terenkripsi dari komentar/progress
+        // if (typeof start_load !== 'undefined') { start_load(); } // Jika ada fungsi global loading
+        $.ajax({
+            url:'ajax.php?action=delete_progress',
+            method:'POST',
+            data:{id:$id}, 
+            success:function(resp){
+                if(resp.trim() == 1){ // Penting: gunakan .trim() jika resp mungkin mengandung spasi
+                    alert_toast("Comment successfully deleted",'success'); // ✅ PESAN ENGLIS
+                    setTimeout(function(){ location.reload() },1500);
+                } else {
+                    alert_toast("Failed to delete comment",'error'); // ✅ PESAN ENGLIS
+                }
+            }
+        });
+    }
+
+    // ... (Edit Progress Modal handler) ...
+    $(document).on('click', '.manage_progress_modal', function() {
+        // ... (Logic untuk buka modal Edit Progress) ...
+    });
+    
+    // ... (Delete Progress Modal handler) ...
+    $(document).on('click', '.delete_progress_modal', function() {
+        const progressId = $(this).data('id'); // ID terenkripsi
+        
+        $('#uni_modal').modal('hide'); 
+        setTimeout(() => {
+            if (typeof _conf === 'function') {
+                // Menggunakan fungsi delete_progress yang sudah dimodifikasi di atas
+                _conf("Are you sure to delete this progress/comment?", "delete_progress", [progressId]);
+            } else {
+                console.error("_conf function not found.");
+            }
+        }, 400);
+    });
     </script>
     
     <style>

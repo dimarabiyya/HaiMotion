@@ -480,19 +480,18 @@ $('.delete_task').click(function(){
 
 
 // Function delete (assuming it is globally defined or defined here)
-function delete_task(encodedId){
-    // Mengirim HASH ID ke ajax.php
+function delete_task(encodedId){ // Menerima ID terenkripsi
+    // start_load() // Jika ada fungsi global loading
     $.ajax({
         url: 'ajax.php?action=delete_task',
         method: 'POST',
-        // Menggunakan kunci 'id' yang diharapkan oleh ajax.php
-        data: { id: encodedId }, 
+        data: { id: encodedId }, // Mengirim ID terenkripsi
         success: function(resp){
-            if(resp == 1){
-                alert("Task berhasil dihapus");
+            if(resp.trim() == 1){ // ✅ PESAN ENGLIS
+                alert_toast("Task successfully deleted", "success");
                 setTimeout(() => location.reload(), 1500);
             } else {
-                alert("Gagal menghapus task");
+                alert_toast("Failed to delete task", "error"); // ✅ PESAN ENGLIS
             }
         }
     });

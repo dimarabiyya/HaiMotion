@@ -179,7 +179,7 @@ while($row = $all_users_q->fetch_assoc()){
         
         <div class="d-flex justify-content-end pt-3">
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-brown ml-2" form="manage-task">Save</button>
+            <button type="submit" class="btn ml-2 text-white" style="background-color: #B75301;" form="manage-task">Save</button>
         </div>
 </div>
 
@@ -231,7 +231,6 @@ while($row = $all_users_q->fetch_assoc()){
                     location.reload();
                 }, 1500);
             } else if (resp == 2) {
-                // Tambahkan penanganan error jika email sudah digunakan (jika ada logic email di sini)
                  alert_toast("Task gagal disimpan: Data duplikat atau error server", 'danger');
             }
              else {

@@ -175,10 +175,6 @@ if (empty($form_project_id)) {
                 $('#progress_end_time').val(currentTime);
             }
 
-            // 💡 PENTING: ID yang dikirim di sini adalah ID NUMERIK AMAN.
-            // AJAX action=save_progress di server (admin_class.php)
-            // harus memastikan ia menerima ID numerik yang aman ini.
-
             start_load()
             $.ajax({
                 url:'ajax.php?action=save_progress',
@@ -207,4 +203,6 @@ if (empty($form_project_id)) {
             })
         })
     })
+
+
 </script>

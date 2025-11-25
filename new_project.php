@@ -122,14 +122,11 @@ if (session_status() == PHP_SESSION_NONE) {
 
     $(document).ready(function(){
         
-        // Pastikan select2 diinisialisasi, dan menggunakan parent modal
-        // PENTING: dropdownParent: $('#uni_modal') mengatasi z-index Select2
         $('.select2').select2({
             placeholder: "Select here",
             width: '100%',
-            dropdownParent: $('#uni_modal')
+            dropdownParent: $('#uni_modal') // <- Perbaikan utama untuk Z-Index
         });
-        
         // Pastikan summernote diinisialisasi
         $('#description_summernote').summernote({
             height: 150,
@@ -171,4 +168,6 @@ if (session_status() == PHP_SESSION_NONE) {
             })
         })
     });
+
+    
 </script>
