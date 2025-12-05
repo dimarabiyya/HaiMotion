@@ -49,9 +49,6 @@
         // E. Simpan ID numerik yang aman kembali ke $_GET
         $_GET['id'] = $project_id;
     }
-    // =======================================================
-    // 🚨 AKHIR KODE KEAMANAN
-    // =======================================================
 
   if(!isset($_SESSION['system'])){
 

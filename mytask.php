@@ -359,10 +359,6 @@ $('.new_productivity').click(function(){
 
 // Delete Task (menggunakan ID numerik untuk AJAX)
 $('.delete_task').click(function(){
-    // ID yang dikirim harus numerik (jika di-encode di sini, harus didecode di ajax.php)
-    // Asumsi: Jika tombol delete ini ada di mytask.php, Anda mungkin ingin menyimpan ID numerik di data-attribute juga
-    // Atau pastikan ID di data-id adalah numerik jika Anda tidak meng-encode di PHP block ini.
-    // Karena kita tidak melihat tombol delete di kode HTML, kita asumsikan ID yang dikirim adalah ID NUMERIK mentah.
     var numericId = $(this).attr('data-id'); 
     _conf("Are you sure to delete this task?", "delete_task", [numericId]);
 });
@@ -386,9 +382,6 @@ function delete_task(id){
     });
 }
 
-// ============================================
-// FITUR FILTER BY STATUS MY TASK
-// ============================================
 var currentMyTaskStatusFilter = -1; // -1 = All Status
 
 $('.status-mytask-filter').on('click', function(e) {
@@ -402,9 +395,6 @@ $('.status-mytask-filter').on('click', function(e) {
     applyMyTaskFilters();
 });
 
-// ============================================
-// FITUR SEARCH MY TASK
-// ============================================
 $('#searchMyTask').on('keyup', function() {
     applyMyTaskFilters();
 });

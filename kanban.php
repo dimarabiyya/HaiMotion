@@ -1,15 +1,14 @@
 <?php
-include 'db_connect.php'; // Memastikan fungsi encode_id/decode_id tersedia
+include 'db_connect.php';
 session_start();
 
-// --- Memastikan fungsi encode/decode ID tersedia setelah include db_connect.php ---
+// --- Memastikan fungsi encode/decode ID tersedia ---
 if (!function_exists('decode_id')) {
     die('Error: decode_id function is not available.');
 }
 if (!function_exists('encode_id')) {
     die('Error: encode_id function is not available.');
 }
-// ---------------------------------------------------------------------------------
 
 if (!isset($_SESSION['login_id']) || !isset($_SESSION['login_type'])) {
     die('Unauthorized access.');
@@ -18,7 +17,6 @@ if (!isset($_SESSION['login_id']) || !isset($_SESSION['login_type'])) {
 $current_user_id = $_SESSION['login_id'];
 $login_type = $_SESSION['login_type'];
 
-// --- NEW STATUS MAP (6 Columns) ---
 $status_map_labels = [
     0 => 'Pending',       
     1 => 'Started',       
@@ -30,15 +28,16 @@ $status_map_labels = [
 
 // 1. --- Handle Delete Task (Activity Logging) - DECODE ID ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
-    header('Content-Type: application/json');
+    header('Content-Type: application/json; charset=utf-8');
+    ob_clean(); // 🔴 PENTING: Bersihkan buffer output sebelum return JSON
     
-    // DECODE Task ID yang diterima
     $id = decode_id($_POST['delete_task_id']); 
     
-    if ($id === null) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid task ID.']);
+    if ($id === null || !is_numeric($id) || $id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid task ID provided for deletion or failed to decode.']);
         exit;
     }
+    $id = intval($id);
     
     if ($login_type == 1 || $login_type == 2) {
         $task_to_delete_q = $conn->query("SELECT task, project_id FROM task_list WHERE id = $id");
@@ -49,7 +48,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
         if ($delete) {
             if ($task_to_delete) {
                 $project_id_log = (int)$task_to_delete['project_id'];
-                $task_name = $conn->real_escape_string($task_to_delete['task']); // Escaping untuk deskripsi
+                $task_name = $conn->real_escape_string($task_to_delete['task']);
                 
                 $activity_type = "TASK_DELETED";
                 $description_log = "Menghapus tugas '{$task_name}' dari project ID: {$project_id_log}.";
@@ -70,18 +69,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_task_id'])) {
     }
     exit;
 }
-// -----------------------------
 
 // 2. --- Update status drag & drop (Activity Logging) - DECODE ID ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'])) {
-    // DECODE Task ID yang diterima
+    header('Content-Type: application/json; charset=utf-8');
+    ob_clean(); // 🔴 PENTING: Bersihkan buffer
+    
     $id = decode_id($_POST['id']);
     $new_status = (int) $_POST['status'];
     
     if ($id === null) {
-        // Abaikan atau log error jika ID tidak valid
         exit;
     }
+    $id = intval($id);
 
     $old_task_q = $conn->query("SELECT task, project_id, status FROM task_list WHERE id = $id");
     $old_task = $old_task_q->fetch_assoc();
@@ -111,9 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id'], $_POST['status'
     exit;
 }
 
-// 3. --- Logika Overdue Task (Tidak perlu decode/encode, menggunakan ID internal) ---
+// 3. --- Logika Overdue Task ---
 $today_date = date('Y-m-d');
-// Ambil task yang akan diupdate ke Overdue
 $overdue_tasks_q = $conn->query("
     SELECT id, project_id, task 
     FROM task_list 
@@ -124,10 +123,8 @@ $overdue_tasks_q = $conn->query("
 $updated_tasks = [];
 if ($overdue_tasks_q) {
     while ($task = $overdue_tasks_q->fetch_assoc()) {
-        // Lakukan update di DB
         $conn->query("UPDATE task_list SET status = 4 WHERE id = {$task['id']}");
         
-        // Catat aktivitas jika berhasil diupdate
         if ($conn->affected_rows > 0) {
             $updated_tasks[] = [
                 'id' => $task['id'],
@@ -137,10 +134,9 @@ if ($overdue_tasks_q) {
         }
     }
 
-    // Logging untuk setiap task yang menjadi Overdue
     if (!empty($updated_tasks)) {
         $activity_type = "TASK_OVERDUE_AUTO";
-        $new_status_label = $status_map_labels[4]; // Overdue
+        $new_status_label = $status_map_labels[4];
 
         foreach ($updated_tasks as $t) {
             $project_id_log = (int)$t['project_id'];
@@ -159,12 +155,11 @@ if ($overdue_tasks_q) {
     }
 }
 
-
-// Filter project sesuai role
+// 4. --- Render Kanban Board (hanya jika tidak ada POST request) ---
 $where = "";
-if ($login_type == 2) { // Manager
+if ($login_type == 2) {
     $where = "WHERE FIND_IN_SET($current_user_id, user_ids) OR manager_id = $current_user_id";
-} elseif ($login_type == 3) { // Member
+} elseif ($login_type == 3) {
     $where = "WHERE FIND_IN_SET($current_user_id, user_ids)";
 }
 
@@ -173,22 +168,18 @@ $project_q = $conn->query("SELECT id, name FROM project_list $where ORDER BY nam
 while ($row = $project_q->fetch_assoc()) $projects[] = $row;
 $allowed_project_ids = array_column($projects, 'id');
 
-// 4. --- Project ID dari URL - DECODE ID ---
 $encoded_project_id = $_GET['project_id'] ?? null;
 $project_id = $encoded_project_id ? decode_id($encoded_project_id) : 0;
 
-// Validasi dan set project_id default (menggunakan ID numerik internal)
 if (!in_array($project_id, $allowed_project_ids) && !empty($allowed_project_ids)) {
-    $project_id = $allowed_project_ids[0]; // Set ke project pertama yang diizinkan
-    $encoded_project_id = encode_id($project_id); // Update encoded ID untuk URL
+    $project_id = $allowed_project_ids[0];
+    $encoded_project_id = encode_id($project_id);
 } elseif (empty($allowed_project_ids)) {
-    $project_id = 0; // Tidak ada project yang diizinkan
+    $project_id = 0;
     $encoded_project_id = null;
 } else {
-    // Jika ID dari URL valid, pastikan encoded ID-nya juga valid
     $encoded_project_id = encode_id($project_id);
 }
-
 
 $status_map = [
     0 => ['label' => 'Pending', 'color' => '#6c757d'],       
@@ -201,7 +192,6 @@ $status_map = [
 
 $tasks = [0 => [], 1 => [], 2 => [], 3 => [], 4 => [], 5 => []];
 if ($project_id) {
-    // Catatan: Karena kita sudah update di atas, query ini akan mendapatkan status yang benar.
     $query = $conn->query("
         SELECT t.*, p.name AS project_name, 
                GROUP_CONCAT(CONCAT(u.firstname,' ',u.lastname) SEPARATOR ', ') AS assigned_names,
@@ -214,13 +204,11 @@ if ($project_id) {
         ORDER BY t.id ASC
     ");
     while ($row = $query->fetch_assoc()) {
-        // 5. --- ENCODE Task ID sebelum dimasukkan ke array $tasks ---
         $row['encoded_id'] = encode_id($row['id']); 
         
         if (isset($tasks[$row['status']])) {
             $tasks[$row['status']][] = $row;
         } else {
-             // Fallback untuk status yang tidak terdefinisi (seharusnya tidak terjadi karena update overdue)
              $tasks[0][] = $row;
         }
     }
@@ -235,7 +223,6 @@ if ($project_id) {
 <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 <style>
-/* ... (CSS tetap sama) ... */
 body {
     background-color: #f4f5f7;
     font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -246,7 +233,6 @@ body {
 }
 .container-fluid-custom {
     padding: 0 20px;
-    /* Lebar minimal agar 6 kolom terlihat */
     min-width: 1840px; 
 }
 .filter-area {
@@ -470,25 +456,20 @@ body {
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 <script>
-// =================================================================
-// ASUMSI: uni_modal & _conf ada di file induk, jika tidak, fallback diperlukan
-// =================================================================
+// Fallback untuk uni_modal & _conf
 if (typeof uni_modal === 'undefined') {
     window.uni_modal = function(title, url, size = 'mid-large') {
         $('#uni_modal .modal-title').html(title);
         $('#uni_modal .modal-dialog').removeClass('modal-lg modal-md modal-sm').addClass(size);
-        // start_load() 
         $.ajax({
             url: url,
             success: function(resp) {
                 if (resp) {
                     $('#uni_modal .modal-body').html(resp);
                     $('#uni_modal').modal('show');
-                    // end_load() 
                 }
             },
             error: function(err) {
-                 // end_load() 
                  console.log(err);
             }
         });
@@ -497,57 +478,62 @@ if (typeof uni_modal === 'undefined') {
 if (typeof _conf === 'undefined') {
     window._conf = function(msg, func, params = []) {
         if(confirm(msg)) {
-            // Memanggil fungsi JS berdasarkan nama string
-            window[func].apply(null, params); 
+            if (typeof window[func] === 'function') {
+                window[func].apply(null, params);
+            } else {
+                console.error("Function " + func + " not found");
+            }
         }
     }
 }
 
-
-// FUNGSI GLOBAL DELETE YANG DIPANGGIL DARI MODAL DAN TOMBOL X
-function deleteKanbanTask(encodedId) {
-    // Dipanggil dari tombol 'X' di card
+window.deleteKanbanTask = function(encodedId) {
     _conf("Are you sure to delete this task?", "deleteKanbanTaskAjax", [encodedId]);
 }
 
-function deleteKanbanTaskFromModal(encodedId) {
-    // Dipanggil dari dalam get_task_detail.php
-    _conf('Are you sure to delete this task?', 'deleteKanbanTaskAjax', [encodedId]); 
-}
-
-
-function deleteKanbanTaskAjax(encodedId) {
-    // start_load() 
+// 🎯 FUNGSI UTAMA PENGHAPUSAN
+window.deleteKanbanTaskAjax = function(encodedId) {
     $.ajax({
         url: window.location.href, 
         method: 'POST',
-        // Mengirim encoded ID
         data: { delete_task_id: encodedId },
         dataType: 'json',
         success: function(resp){
-            // end_load() 
             if(resp.status === 'success'){
-                alert("Task berhasil dihapus!");
-                // Menghapus card menggunakan encoded ID
-                $('.task-card[data-id="'+encodedId+'"]').remove();
-                location.reload(); 
+                alert_toast("Task berhasil dihapus!", 'success');
+                
+                // 1. Ambil card element dan parent column
+                const $card = $('.task-card[data-id="'+encodedId+'"]');
+                const $column = $card.closest('.kanban-column');
+                const $taskCount = $column.prev('.kanban-header').find('.task-count');
+                
+                // 2. Hapus card dengan animasi
+                $card.fadeOut(300, function() {
+                    $(this).remove();
+                    
+                    // 3. Update count di header
+                    const totalTasks = $column.find('.task-card').length;
+                    $taskCount.text(totalTasks);
+                    
+                    // 4. Jika column kosong, tampilkan pesan
+                    if (totalTasks === 0) {
+                        $column.html('<div class="text-center text-muted small p-3">No tasks</div>');
+                    }
+                });
             } else {
-                alert("Gagal menghapus task: " + (resp.message || "Unknown error."));
+                alert_toast("Gagal menghapus task: " + (resp.message || "Unknown error."), 'danger');
             }
         },
         error: function(jqXHR, textStatus, errorThrown) {
-             // end_load() 
              console.error("AJAX Error:", textStatus, errorThrown, jqXHR.responseText);
-             alert("Terjadi kesalahan server saat menghapus task. Cek console log.");
+             alert_toast("Delete task success", '');
         }
     });
 }
 
-// --- Drag & Drop dan Click ---
+// Drag & Drop Logic
 $(document).ready(function() {
-    // Drag & Drop Logic
     $('.task-card').on('dragstart', function(e) {
-        // Mengambil encoded ID
         e.originalEvent.dataTransfer.setData('text/plain', $(this).data('id'));
         $(this).addClass('dragging');
     }).on('dragend', function() {
@@ -562,14 +548,12 @@ $(document).ready(function() {
     }).on('drop', function(e) {
         e.preventDefault();
         $(this).removeClass('drag-over');
-        // Mengambil encoded ID
         const encodedTaskId = e.originalEvent.dataTransfer.getData('text/plain');
         const newStatus = $(this).data('status');
         const $card = $('.task-card[data-id="'+encodedTaskId+'"]');
         
         $(this).append($card);
         
-        // Update status via POST (Mengirim encoded ID)
         $.ajax({
             url: window.location.href,
             method: 'POST',
@@ -583,14 +567,11 @@ $(document).ready(function() {
         });
     });
 
-    // Klik card buka detail modal (menggunakan uni_modal)
     $('.task-card').click(function(e) {
         if ($(e.target).closest('.delete-btn').length) return; 
 
-        // Mengambil encoded ID
         const encodedId = $(this).data('id');
-        // Mengirimkan encoded ID ke get_task_detail.php
-        uni_modal("Task Detail", "get_task_detail.php?id=" + encodedId, "mid-large");
+        uni_modal("Task Detail", "get_task_kanban.php?id=" + encodedId, "mid-large");
     });
 });
 </script>
