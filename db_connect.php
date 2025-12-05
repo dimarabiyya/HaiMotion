@@ -1,8 +1,6 @@
 <?php 
 $conn = new mysqli('localhost','root','','tsm_db') or die("Could not connect to mysql".mysqli_error($conn)); 
 
-
-// 2. DEKLARASI KONSTANTA (ID_SALT)
 if (!defined('ID_SALT')) {
     define('ID_SALT', 'kunci_rahasia_project_anda_2025_TSM'); 
 }

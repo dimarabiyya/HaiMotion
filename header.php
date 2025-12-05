@@ -60,4 +60,33 @@ if (!ini_get('date.timezone')) {
     <script type="text/javascript" src="assets/js/jquery-te-1.4.0.min.js" charset="utf-8"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
+
+    <?php
+    // 💡 LOGIKA SWEETALERT2 TOAST DARI SESSION
+    if(isset($_SESSION['notification'])):
+    ?>
+    <script>
+        // SweetAlert2 Mixin Configuration (Tampilan Toast yang Keren)
+        const Toast = Swal.mixin({
+            toast: true,
+            position: 'top-end', // Tampil di kanan atas
+            showConfirmButton: false,
+            timer: 4000, // Durasi 4 detik
+            timerProgressBar: true,
+            didOpen: (toast) => {
+                toast.addEventListener('mouseenter', Swal.stopTimer)
+                toast.addEventListener('mouseleave', Swal.resumeTimer)
+            }
+        })
+
+        // Tampilkan Toast
+        Toast.fire({
+            icon: '<?php echo $_SESSION['notification']['status'] ?>', // 'success' atau 'error'
+            // Hilangkan markdown bold (**) saat ditampilkan di toast
+            title: '<?php echo str_replace('**', '', $_SESSION['notification']['message']) ?>'  
+        })
+    </script>
+    <?php unset($_SESSION['notification']); ?>
+    <?php endif; ?>
+    
  </head>
