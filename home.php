@@ -5,6 +5,13 @@ if($_SESSION['login_type'] != 1)
   $twhere = "  ";
 ?>
 
+<?php
+  if (!function_exists('encode_id')) {
+    function encode_id($id) {
+        return base64_encode($id);
+    }
+}
+?>
 <?php 
 include 'header.php' 
 ?>
@@ -12,7 +19,6 @@ include 'header.php'
 <head>
   <link rel="stylesheet" href="css/style.css">
 </head>
-<!-- Info boxes -->
 <div class="col-12">    
   <h3 class="font-weight-bold" style="color:#b75301;">
     Hi, <?php echo $_SESSION['login_name'] ?>! 
@@ -25,7 +31,7 @@ include 'header.php'
     $where = "";
     if($_SESSION['login_type'] == 2){
       $where = " where manager_id = '{$_SESSION['login_id']}' ";
-    }elseif($_SESSION['login_type'] == 3){
+    }elseif($_SESSION['login_type'] == 3){  
       $where = " where concat('[',REPLACE(user_ids,',','],['),']') LIKE '%[{$_SESSION['login_id']}]%' ";
     }
      $where2 = "";
@@ -39,18 +45,26 @@ include 'header.php'
 <div class="container-fluid">
   <div class="row">
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <?php if($_SESSION['login_type'] == 1): ?>
+      <a href="index.php?page=user_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
+      <?php else: ?>
+      <div class="small-box bg-light shadow-sm border p-2"> <?php endif; ?>
               <div class="inner">
                 <h3><?php echo $conn->query('SELECT * FROM users')->num_rows ?></h3>
-                <p class="mb-0">Total User</p>
+                <p class="mb-0">Total Users</p>
               </div>
               <div class="icon">
                 <i class="fa fa-solid fa-users" style="color:#d49867;"></i>
               </div>
+      <?php if($_SESSION['login_type'] == 1): ?>
+      </a>
+      <?php else: ?>
       </div>
+      <?php endif; ?>
     </div>
+
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <a href="index.php?page=project_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
               <div class="inner">
                 <h3><?php echo $conn->query("SELECT * FROM project_list $where")->num_rows; ?></h3>
                 <p class="mb-0">Total Projects</p>
@@ -58,10 +72,11 @@ include 'header.php'
               <div class="icon">
                 <i class="fa fa-solid fa-folder-open" style="color:#d49867;"></i>
               </div>
-      </div>
+      </a>
     </div>
+
     <div class="col">
-      <div class="small-box bg-light shadow-sm border p-2">
+      <a href="index.php?page=task_list" class="small-box bg-light shadow-sm border p-2 d-block text-dark">
               <div class="inner">
                 <h3><?php echo $conn->query("SELECT t.*,p.name as pname,p.start_date,p.status as pstatus, p.end_date,p.id as pid FROM task_list t inner join project_list p on p.id = t.project_id $where2")->num_rows; ?></h3>
                 <p class="mb-0">Total Tasks</p>
@@ -69,90 +84,83 @@ include 'header.php'
               <div class="icon">
                 <i class="fa fa-solid fa-tasks" style="color:#d49867;"></i>
               </div>
-      </div>
+      </a>
     </div>
   </div>
 </div>
 
 <div class="container-fluid">
   <div class="row">
-    <!-- Pending -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=0" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 0")->num_rows; ?>
           </h3>
           <p>Task Pending</p>
         </div>
-      </div>
+      </a>
     </div>
 
-    <!-- Started -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=1" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 1")->num_rows; ?>
           </h3>
           <p>Task Started</p>
         </div>
-      </div>
+      </a>
     </div>
 
-    <!-- On-Progress -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=2" class="small-box bg-light shadow-sm border p-2 text-center d-block text-dark">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 2")->num_rows; ?>
           </h3>
           <p>Task On-Progress</p>
         </div>
-      </div>
+      </a>
     </div>
 
-    <!-- On-Hold -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=3" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 3")->num_rows; ?>
           </h3>
           <p>Task On-Hold</p>
         </div>
-      </div>
+      </a>
     </div>
 
-    <!-- On-Hold -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=4" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 4")->num_rows; ?>
           </h3>
           <p>Task Overdue</p>
         </div>
-      </div>
+      </a>
     </div>
 
-    <!-- Done -->
     <div class="col-6 col-md custom-width-20 col-sm-6 mb-3">
-      <div class="small-box bg-light shadow-sm border p-2 text-center">
+      <a href="index.php?page=task_list&status=5" class="small-box bg-light shadow-sm border p-2 text-center">
         <div class="inner">
           <h3>
             <?php echo $conn->query("SELECT t.*, p.name as pname, p.start_date, p.status as pstatus, p.end_date, p.id as pid FROM task_list t INNER JOIN project_list p ON p.id = t.project_id $where2 AND t.status = 5")->num_rows; ?>
           </h3>
           <p>Task Done</p>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 </div>
 
- <div class="container-fluid">
+<div class="container-fluid">
   <div class="row">
-    <!-- ======== LEFT: Project Progress ======== -->
     <div class="col-md-8 mb-4">
       <div class="card card-outline shadow-sm h-70">
         <div class="card-header py-2 d-flex align-items-center justify-content-between">
@@ -160,7 +168,6 @@ include 'header.php'
         </div>
 
         <div class="card-body" style="max-height: 600px; overflow-y: auto;">
-          <!-- Legend -->
           <div class="mb-3">
             <span class="badge badge-secondary">Pending</span>
             <span class="badge badge-info">Started</span>
@@ -170,7 +177,6 @@ include 'header.php'
             <span class="badge badge-success">Done</span>
           </div>
 
-          <!-- Scrollable Chart Row -->
           <div class="d-flex overflow-auto" style="gap: 1rem; padding-bottom: .5rem;">
             <?php
             $chart_scripts = "";
@@ -183,12 +189,13 @@ include 'header.php'
                 if (isset($task_counts[$s])) $task_counts[$s]++;
               }
               $chart_id = "chart_" . $row['id'];
+              $encoded_proj_id = encode_id($row['id']); // Encoding ID di sini
             ?>
-              <div class="card p-3 shadow-sm project-card" data-id="<?php echo $row['id'] ?>" style="min-width: 280px; cursor: pointer;">
+              <a href="index.php?page=view_project&id=<?php echo $encoded_proj_id; ?>" class="card p-3 shadow-sm project-card" data-id="<?php echo $row['id'] ?>" style="min-width: 280px; cursor: pointer; text-decoration: none; color: inherit;">
                 <h6 class="font-weight-bold text-truncate"><?php echo ucwords($row['name']) ?></h6>
                 <p class="mb-2 text-muted small">Due: <?php echo date("d M Y", strtotime($row['end_date'])) ?></p>
                 <canvas id="<?php echo $chart_id ?>" height="180"></canvas>
-              </div>
+              </a>
                 <?php
                 $chart_scripts .= "<script>
                 document.addEventListener('DOMContentLoaded', function() {
@@ -209,7 +216,7 @@ include 'header.php'
                               responsive: true,
                               plugins: {
                                   legend: {
-                                      display: false // ✅ cara benar untuk v3+
+                                      display: false 
                                   },
                                   tooltip: {
                                       enabled: true
@@ -227,7 +234,6 @@ include 'header.php'
       </div>
     </div>
  
-    <!-- ======== RIGHT: Recent Activities (Timeline - Compact & Match Height) ======== -->
     <div class="col-md-4">
       <div class="card card-outline shadow-sm h-70">
         <div class="card-header py-2">
@@ -272,15 +278,15 @@ include 'header.php'
               while ($log = $logs->fetch_assoc()):
                 $avatar = !empty($log['avatar']) ? 'assets/uploads/'.$log['avatar'] : 'assets/logo.png';
     
-                // Warna badge berdasarkan status task (1–5)
+                  // Warna badge berdasarkan status task (1–5)
                 // Asumsi: Status 1=Started, 2=On-Progress, 3=On-Hold, 4=Over Due, 5=Done
                 switch ((int)$log['task_status']) {
-                  case 5: $color = '#28a745'; break; // Done - hijau
-                  case 4: $color = '#dc3545'; break; // Over Due - merah
-                  case 3: $color = '#ffc107'; break; // On-Hold - kuning
-                  case 2: $color = '#17a2b8'; break; // On-Progress - biru
-                  case 1: $color = '#007bff'; break; // Started - biru muda
-                  default: $color = '#adb5bd'; break; // Pending/lainnya - abu
+                  case 5: $color = '#4c9a2a'; break; // Done - hijau
+                  case 4: $color = '#c62828'; break; // Over Due - merah
+                  case 3: $color = '#e66a00'; break; // On-Hold - kuning
+                  case 2: $color = '#95c0dc'; break; // On-Progress - biru
+                  case 1: $color = '#f3dc80'; break; // Started - biru muda
+                  default: $color = '#3a495c'; break; // Pending/lainnya - abu
                 }
             ?>
               <li class="timeline-item">
@@ -295,14 +301,14 @@ include 'header.php'
                 <div class="timeline-content">
                   <span><?= htmlspecialchars($log['description']) ?></span>
                   <?php if (!empty($log['project_name'])): ?>
-                    <br><small class="text-muted">Project: **<?= $log['project_name'] ?>**</small>
+                    <br><small class="text-muted">Project: <?= $log['project_name'] ?></small>
                   <?php endif; ?>
                 </div>
               </li>
             <?php 
               endwhile;
             else: ?>
-              <p class="text-muted text-center py-3">Belum ada aktivitas yang relevan untuk Anda.</p>
+              <p class="text-muted text-center py-3">No Activities</p>
             <?php endif; ?>
           </ul>
         </div>
@@ -400,8 +406,9 @@ while($proj = $projects->fetch_assoc()){
 <div class="container-fluid">
   <div class="row">
     <?php foreach($project_stats as $p): ?>
+      <?php $encoded_id = encode_id($p['id']); // Encoding ID untuk URL ?>
       <div class="col-md-12 mb-4">
-        <div class="card shadow-sm">
+        <div class="card shadow-sm project-card-link" data-id="<?= $p['id'] ?>" data-encoded-id="<?= $encoded_id ?>" style="cursor: pointer;">
           <div class="card-header py-2">
             <h5 class="m-0">
               <b><?= $p['name'] ?></b> (<?= $p['total_tasks'] ?> Tasks)
@@ -471,7 +478,73 @@ while($proj = $projects->fetch_assoc()){
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<style>
+/* ================================================= */
+/* CSS Fix untuk Timeline Badge (Recent Activities) */
+/* ================================================= */
+
+/* Pastikan list item memiliki posisi relatif */
+.timeline-item {
+    position: relative;
+    list-style: none;
+}
+
+/* Garis vertikal (Timeline line) */
+.card-body .timeline.pl-3::before { 
+    content: '';
+    padding-left: 0 !important;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 12px !important;
+    width: 2px;
+    background-color: #e9ecef; 
+    z-index: 0;
+}
+
+.card-body .timeline-item .timeline-badge {
+    position: absolute;
+    top: 5px; 
+    left: 10px !important; 
+    transform: translateX(-50%) !important; 
+    width: 10px; 
+    height: 10px; 
+    border-radius: 50%;
+    z-index: 1;
+    border: 2px solid white; 
+}
+.card-body .timeline-item > div {
+  padding-left: 20px !important;
+}
+
+/* Menghapus margin default dari item (jika ada) */
+.timeline li {
+    margin-bottom: 15px; 
+}
+
+/* Pastikan kartu Project Progress (atas) berfungsi sebagai link */
+.project-card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15) !important;
+    transform: translateY(-2px);
+    transition: all 0.2s ease-in-out;
+}
+</style>
+
 <script>
+$(document).ready(function(){
+  // Event listener untuk mengklik kartu proyek di bagian bawah (yang memiliki grafik detail)
+  $(document).on('click', '.project-card-link', function(e){
+    // Pastikan klik bukan pada elemen interaktif di dalam kartu (misalnya canvas chart)
+    if ($(e.target).closest('canvas').length === 0) {
+      var encoded_pid = $(this).data('encoded-id'); 
+      if(encoded_pid){
+        window.location.href = "index.php?page=view_project&id=" + encoded_pid;
+      }
+    }
+  });
+});
+
 <?php foreach($project_stats as $p): ?>
 
 // === STATUS CHART ===

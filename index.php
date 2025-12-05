@@ -8,7 +8,7 @@
     ob_start();
     
     // =======================================================
-    // 🚨 KODE KEAMANAN PROJECT HEADER CHECK 🚨
+    //  KODE KEAMANAN PROJECT HEADER CHECK 
     // =======================================================
     $page = $_GET['page'] ?? 'home';
     if ($page == 'view_project' || $page == 'edit_project') {
@@ -31,6 +31,7 @@
             header("Location: index.php?page=404");
             exit;
         }
+        
 
         // C. Verifikasi Otorisasi
         $is_member = isset($proj_check['user_ids']) && in_array($user_login_id, explode(',', $proj_check['user_ids']));
@@ -60,7 +61,7 @@
     }
   }
   ob_end_flush();
-  include 'header.php'  
+  include 'header.php'
 ?>
 
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
@@ -91,6 +92,7 @@
             }
           ?>
       </div></section>
+
     <div class="modal fade" id="confirm_modal" role='dialog'>
     <div class="modal-dialog modal-md" role="document">
       <div class="modal-content">
@@ -118,29 +120,44 @@
       </div>
     </div>
   </div>
-  <div class="modal fade" id="uni_modal_right" role='dialog'>
-    <div class="modal-dialog modal-full-height  modal-md" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-        <h5 class="modal-title"></h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span class="fa fa-arrow-right"></span>
-        </button>
-      </div>
-      <div class="modal-body">
-      </div>
-      </div>
+  
+  </div>
+
+  <?php include 'new_task.php'; ?>
+  
+  <!-- Speed Dial Floating Button -->
+  <div class="speed-dial-container">
+    <!-- Speed Dial Options (Must be BEFORE main button for proper stacking) -->
+    <div class="speed-dial-options" id="speedDialOptions">
+      <?php if($_SESSION['login_type'] == 1): ?>
+      <a href="javascript:void(0)" class="speed-dial-action" data-label="Add User" onclick="closeSpeedDial(); window.location.href='index.php?page=new_user'">
+        <i class="fa fa-user-plus"></i>
+      </a>
+      <?php endif; ?>
+      
+      <a a href="javascript:void(0)" class="speed-dial-action" data-label="Messenger" onclick="closeSpeedDial(); window.location.href='index.php?page=chat'">
+        <i class="fa fa-comment"></i>
+      </a>
+      
+      <?php if($_SESSION['login_type'] == 1 || $_SESSION['login_type'] == 2): ?>
+      <a href="javascript:void(0)" class="speed-dial-action" data-label="Add Project" onclick="closeSpeedDial(); window.location.href='index.php?page=new_project'">
+        <i class="fa fa-folder-open"></i>
+      </a>
+      <?php endif; ?>
+      
+      <?php if($_SESSION['login_type'] == 1 || $_SESSION['login_type'] == 2): ?>
+      <a href="#addTaskModal" class="speed-dial-action" data-toggle="modal" data-label="Add Task" onclick="closeSpeedDial()">
+        <i class="fa fa-tasks"></i>
+      </a>
+      <?php endif; ?>
     </div>
+    
+    <!-- Main Floating Button -->
+    <button class="float speed-dial-main" id="speedDialBtn" title="Add New">
+      <i class="fa fa-plus my-float"></i>
+    </button>
   </div>
-  <div class="modal fade" id="viewer_modal" role='dialog'>
-    <div class="modal-dialog modal-md" role="document">
-      <div class="modal-content">
-              <button type="button" class="btn-close" data-dismiss="modal"><span class="fa fa-times"></span></button>
-              <img src="" alt="">
-      </div>
-    </div>
-  </div>
-  </div>
+
   <aside class="control-sidebar control-sidebar-dark">
     </aside>
   <footer class="main-footer" style="
@@ -152,12 +169,261 @@
     background-size: contain;
     padding: 10px;
 ">
-    <strong>&copy; 2025 
+    <strong style="color:#B75301;">&copy; 2025 
         <a style="color:#B75301;">PT HAI MOTION KREATIF</a>
     </strong>
     All rights reserved.
 </footer>
 </div>
+
+<style>
+  /* ============================================== */
+  /* SPEED DIAL FLOATING BUTTON STYLES             */
+  /* ============================================== */
+  
+  .speed-dial-container {
+    position: fixed;
+    bottom: 60px;
+    right: 40px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0;
+  }
+  
+  /* Speed Dial Options Container */
+  .speed-dial-options {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+    margin-bottom: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(0.5);
+    transform-origin: bottom right;
+    transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    pointer-events: none;
+  }
+  
+  .speed-dial-options.active {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    pointer-events: auto;
+  }
+  
+  /* Individual Speed Dial Action Buttons */
+  .speed-dial-action {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background-color: #fff;
+    color: #B75301;
+    border-radius: 50%;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  
+  .speed-dial-options.active .speed-dial-action {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .speed-dial-options.active .speed-dial-action:nth-child(1) {
+    transition-delay: 0.05s;
+  }
+  
+  .speed-dial-options.active .speed-dial-action:nth-child(2) {
+    transition-delay: 0.1s;
+  }
+  
+  .speed-dial-options.active .speed-dial-action:nth-child(3) {
+    transition-delay: 0.15s;
+  }
+  
+  .speed-dial-options.active .speed-dial-action:nth-child(4) {
+    transition-delay: 0.2s;
+  }
+  
+  .speed-dial-action:hover {
+    background-color: #B75301;
+    color: #fff;
+    transform: translateY(0) scale(1.1);
+    box-shadow: 0 4px 12px rgba(183, 83, 1, 0.4);
+  }
+  
+  .speed-dial-action i {
+    font-size: 18px;
+  }
+  
+  /* Tooltip Label */
+  .speed-dial-action::before {
+    content: attr(data-label);
+    position: absolute;
+    right: 60px;
+    background-color: #2c3e50;
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    z-index: 10;
+  }
+  
+  .speed-dial-action::after {
+    content: '';
+    position: absolute;
+    right: 52px;
+    border: 6px solid transparent;
+    border-left-color: #2c3e50;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 10;
+  }
+  
+  .speed-dial-action:hover::before,
+  .speed-dial-action:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+  }
+  
+  /* Main Floating Button */
+  .float {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    background-color: #B75301;
+    color: #FFF;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(183, 83, 1, 0.4);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 1001;
+  }
+
+  .float:hover {
+    background-color: #8f4001;
+    transform: scale(1.05);
+    box-shadow: 0 6px 16px rgba(183, 83, 1, 0.6);
+  }
+  
+  .float.active {
+    transform: rotate(45deg);
+    background-color: #8f4001;
+  }
+
+  .my-float {
+    font-size: 22px;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .fa-plus:before {
+    content: "\f067";
+    font-family: "Font Awesome 5 Free";
+    font-weight: 900;
+    display: block;
+    line-height: 1;
+  }
+  
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    .speed-dial-container {
+      bottom: 70px;
+      right: 20px;
+    }
+    
+    .float {
+      width: 56px;
+      height: 56px;
+    }
+    
+    .my-float {
+      font-size: 20px;
+    }
+    
+    .speed-dial-action {
+      width: 46px;
+      height: 46px;
+    }
+    
+    .speed-dial-action i {
+      font-size: 17px;
+    }
+    
+    .speed-dial-action::before {
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    .speed-dial-container {
+      bottom: 60px;
+      right: 15px;
+    }
+    
+    .float {
+      width: 52px;
+      height: 52px;
+    }
+    
+    .my-float {
+      font-size: 18px;
+    }
+    .speed-dial-action {
+      width: 44px;
+      height: 44px;
+    }
+    
+    .speed-dial-action i {
+      font-size: 16px;
+    }
+  }
+  
+  /* FORCE MODAL CENTER ON MOBILE */
+  @media (max-width: 768px) {
+    #uni_modal .modal-dialog {
+      max-width: 90vw !important;
+      width: 90vw !important;
+      margin: 1rem auto !important;
+      position: relative !important;
+      transform: none !important;
+      left: 0 !important;
+      right: 0 !important;
+    }
+    
+    #uni_modal .modal-content {
+      width: 100% !important;
+      margin: 0 auto !important;
+    }
+  }
+</style>
 
 <script>
 	 window.start_load = function(){
@@ -213,7 +479,45 @@ window._conf = function($msg='',$func='',$params = []){
     $('#preloader').fadeOut('fast', function() {
         $(this).remove();
       })
-  })
+    
+    // Force close sidebar on page load for mobile
+    if (window.innerWidth <= 991) {
+      $('body').removeClass('sidebar-open');
+      $('body').removeClass('sidebar-collapse');
+    }
+    
+    // ============================================
+    // SPEED DIAL TOGGLE FUNCTIONALITY
+    // ============================================
+    $('#speedDialBtn').on('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      const options = $('#speedDialOptions');
+      const button = $(this);
+      
+      // Toggle active state
+      button.toggleClass('active');
+      options.toggleClass('active');
+    });
+    
+    // Close speed dial when clicking outside
+    $(document).on('click', function(e) {
+      const speedDialContainer = $('.speed-dial-container');
+      
+      if (!speedDialContainer.is(e.target) && speedDialContainer.has(e.target).length === 0) {
+        $('#speedDialBtn').removeClass('active');
+        $('#speedDialOptions').removeClass('active');
+      }
+    });
+    
+    // Function to close speed dial (called from action buttons)
+    window.closeSpeedDial = function() {
+      $('#speedDialBtn').removeClass('active');
+      $('#speedDialOptions').removeClass('active');
+    };
+
+  });
 </script>	
 
 

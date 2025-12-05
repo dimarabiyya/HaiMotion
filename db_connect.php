@@ -2,7 +2,20 @@
 // FILE: db_connect.php - KODE KONEKSI DAN KEAMANAN ID (FINAL FIX)
 
 // 1. KONEKSI DATABASE (Variabel $conn)
-$conn = new mysqli('localhost','root','','tsm_db') or die("Could not connect to mysql".mysqli_error($conn)); 
+
+// Coba ganti host eksternal dengan localhost
+$host = "localhost"; 
+$username = "haimoti2_dashboard"; 
+$password = "@4=MTnP9V73J%M*L"; 
+$database = "haimoti2_db"; 
+
+// Buat koneksi ke database
+$conn = mysqli_connect($host, $username, $password, $database);
+
+// Periksa koneksi dan tampilkan pesan error spesifik
+if (!$conn) {
+    die("Koneksi gagal: " . mysqli_connect_error());
+}
 
 // =======================================================
 // FUNGSI KEAMANAN ID (Obfuscation) - FIX REDECLARE

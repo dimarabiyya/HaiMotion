@@ -12,7 +12,7 @@ if (!ini_get('date.timezone')) {
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <?php 
-    $title = isset($title) ? $title : "Project Management System";
+    $title = isset($title) ? $title : "Dashboard";
     // Ambil variabel sistem dari sesi
     $system_name = isset($_SESSION['system']['name']) ? $_SESSION['system']['name'] : "HaiMotion";
     ?>
@@ -28,6 +28,8 @@ if (!ini_get('date.timezone')) {
     <link rel="stylesheet" href="assets/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
     <link rel="stylesheet" href="assets/plugins/bootstrap4-toggle/css/bootstrap4-toggle.min.css">
     <link rel="stylesheet" href="assets/plugins/summernote/summernote-bs4.min.css"> 
+    <link rel="stylesheet" href="assets/plugins/select2-bootstrap4-theme/select2-bootstrap4.min.css">
+    
     
     <link rel="stylesheet" href="assets/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="assets/dist/css/styles.css">
@@ -53,4 +55,9 @@ if (!ini_get('date.timezone')) {
     
     <link rel="icon" type="image/png" href="assets/logobw.png">
     
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
+    <script type="text/javascript" src="assets/js/jquery-te-1.4.0.min.js" charset="utf-8"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.10.1/dist/sweetalert2.all.min.js"></script>
  </head>

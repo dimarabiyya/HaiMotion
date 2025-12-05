@@ -18,30 +18,29 @@
     <div class="col-md-6 ">
       <div class="d-flex justify-content-end">
           <?php if($_SESSION['login_type'] != 3): ?>
-            <div class="card-tools">
-                <button class="btn text-white" style="background-color:#B75301;" id="add_user_btn">
-                  New User
-                </button>
-            </div>
+            <button class="btn text-white" style="background-color:#B75301;" id="add_user_btn">
+              New User
+            </button>
         <?php endif; ?>
       </div>
     </div>
   </div>
 </div>
 
-<div class="col-lg-12 mt-3">
-  <div class="card card-outline card-orange">
+
+<div class="mt-2">
+  <div class="">
     <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover table-bordered" id="list">
+      <div class="table-responsive card p-4">
+        <table class="table " id="list">
           <thead>
             <tr>
-              <th class="text-center">#</th>
+              <th class="text-center">No</th>
               <th>Avatar</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
-              <th>Action</th>
+              <th class="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -57,7 +56,7 @@
                 <?php 
                   $avatar = !empty($row['avatar']) ? 'assets/uploads/'.$row['avatar'] : 'assets/logo.png';
                 ?>
-                <img src="<?php echo $avatar ?>" alt="Avatar" width="40" height="40" class="img-thumbnail rounded-circle">  
+                <img src="<?php echo $avatar ?>" alt="Avatar" width="40" height="40" class="rounded-circle">  
               </td>
               <td><b><?php echo ucwords($row['name']) ?></b></td>
               <td><b><?php echo $row['email'] ?></b></td>
@@ -69,18 +68,22 @@
                      <i class="fa fa-ellipsis-v"></i>
                   </button>
                   <div class="dropdown-menu">
-                    <a class="dropdown-item view_user" href="javascript:void(0)" data-id="<?php echo $row['id'] ?>">
-                      <i class="fa fa-eye mr-2"></i> View
+                    <?php 
+                      $encoded_id = encode_id($row['id']); 
+                    ?>
+
+                    <a class="dropdown-item view_user" href="javascript:void(0)" 
+                       data-id="<?php echo $encoded_id ?>"> <i class="fa fa-eye mr-2"></i> View
                     </a>
                     <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="./index.php?page=edit_user&id=<?php echo $row['id'] ?>">
-                      <i class="fa fa-cog mr-2"></i> Edit
+
+                    <a class="dropdown-item" href="./index.php?page=edit_user&id=<?php echo $encoded_id ?>"> <i class="fa fa-cog mr-2"></i> Edit
                     </a>
                     <div class="dropdown-divider"></div>
+
                     <a class="dropdown-item text-danger delete_user_trigger" 
                        href="javascript:void(0)" 
-                       data-id="<?php echo $row['id'] ?>" 
-                       data-name="<?php echo ucwords($row['name']) ?>">
+                       data-id="<?php echo $encoded_id ?>"  data-name="<?php echo ucwords($row['name']) ?>">
                       <i class="fa fa-trash mr-2"></i> Delete
                     </a>
                   </div>
@@ -137,6 +140,16 @@ $(document).ready(function(){
     window.location.href = "index.php?page=new_user";
   });
 
+    $('.summernote').summernote({ height: 200 });
+
+    // >>> START SOLUSI SELECT2 BARU DITAMBAHKAN DI SINI <<<
+    // Inisialisasi Select2 untuk elemen 'Assign To'
+    // Menggunakan dropdownParent untuk memastikan dropdown Select2 muncul di atas modal Bootstrap.
+    $('#user_ids').select2({
+        placeholder: "Select users",
+        dropdownParent: $('#addTaskModal')
+    });
+    // >>> END SOLUSI SELECT2 BARU DITAMBAHKAN DI SINI <<<
 
   // View User
   $('.view_user').click(function(){

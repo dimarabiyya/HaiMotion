@@ -2,40 +2,37 @@
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
-// Pastikan autoload Composer dipanggil (wajib kalau install via composer)
+// Wajib: Autoload Composer PHPMailer
 require_once __DIR__ . '/vendor/autoload.php';
 
-// GANTI KONFIGURASI DI BAWAH INI dengan detail SMTP Anda yang sebenarnya!
+/* ==============================
+   KONFIGURASI SMTP SERVER
+   ============================== */
 define('SMTP_HOST', 'mail.haimotion.com');
 define('SMTP_USERNAME', 'dashboard@haimotion.com'); 
 define('SMTP_PASSWORD', 'e[M)1hjKN-30(Ety'); 
 define('SMTP_PORT', 465);
 define('SMTP_SECURE', 'ssl'); 
+
 define('EMAIL_FROM', 'dashboard@haimotion.com');
 define('EMAIL_FROM_NAME', 'HaiMotion Dashboard');
 define('APP_BASE_URL', 'https://dashboard.haimotion.com/');
 define('MAIL_NAME', 'HaiMotion');
 
-/**
- * Mengirim notifikasi email.
- * @param string 
- * @param string 
- * @param string 
- * @param string 
- * @return bool
- */
+/* ==============================
+   FUNGSI KIRIM EMAIL
+   ============================== */
 function send_task_notification_email($recipient_email, $recipient_name, $subject, $body_html) {
-    // Cek apakah PHPMailer ada (misalnya jika tidak menggunakan Composer)
     if (!class_exists('PHPMailer\PHPMailer\PHPMailer')) {
-        // Fallback atau log error
-        // error_log("PHPMailer class not found. Email not sent to {$recipient_email}."); 
+        error_log("PHPMailer class not found.");
         return false;
     }
     
     $mail = new PHPMailer(true);
-    
+
     try {
-        $mail->isSMTP(); 
+        // ========== SMTP CONFIG ==========
+        $mail->isSMTP();
         $mail->Host       = SMTP_HOST;
         $mail->SMTPAuth   = true;
         $mail->Username   = SMTP_USERNAME;
@@ -43,7 +40,10 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
         $mail->SMTPSecure = SMTP_SECURE;
         $mail->Port       = SMTP_PORT;
 
-         // ✅ tambahan biar aman di localhost (skip verifikasi SSL)
+        // Return-Path sama dengan FROM
+        $mail->Sender     = EMAIL_FROM;
+
+        // Opsi tambahan SSL (dev mode)
         $mail->SMTPOptions = [
             'ssl' => [
                 'verify_peer' => false,
@@ -51,50 +51,75 @@ function send_task_notification_email($recipient_email, $recipient_name, $subjec
                 'allow_self_signed' => true
             ]
         ];
-        
+
         $mail->setFrom(EMAIL_FROM, EMAIL_FROM_NAME);
-        $mail->addAddress($recipient_email, $recipient_name); 
+        $mail->addAddress($recipient_email, $recipient_name);
+        $mail->addReplyTo('support@haimotion.com', 'HaiMotion Support');
+        $mail->addCustomHeader('X-Mailer', 'HaiMotion Notifier 1.0');
+        $mail->addCustomHeader('X-Priority', '3');
+        $mail->CharSet = 'UTF-8';
+        $mail->isHTML(true);
 
-        $mail->isHTML(true); 
+        $email_template = "
+            <div style='font-family: Arial, sans-serif; color: #333; max-width:600px; margin:auto; border:1px solid #eee; border-radius:10px; overflow:hidden;'>
+                <div style='background:#B75301; color:#fff; padding:15px 20px;'>
+                    <h2 style='margin:0;'>Hai Motion Dashboard</h2>
+                </div>
+                <div style='padding:20px;'>
+                    <p>Halo <strong>{$recipient_name}</strong>,</p>
+                    <p>{$body_html}</p>
+                    <p style='margin-top:20px;'>
+                        <a href='" . APP_BASE_URL . "' 
+                           style='background:##B75301; color:#fff; padding:10px 20px; text-decoration:none; border-radius:5px;'>
+                           Open Dashboard
+                        </a>
+                    </p>
+                </div>
+                <div style='background:#f9f9f9; padding:15px; font-size:12px; color:#777; text-align:center;'>
+                    Email send from <strong>Hai Motion Dashboard</strong>.<br>
+                    don't reply this mail
+                </div>
+            </div>
+        ";
+
         $mail->Subject = $subject;
-        $mail->Body    = $body_html;
-        $mail->AltBody = strip_tags($body_html); 
-
+        $mail->Body    = $email_template;
+        $mail->AltBody = strip_tags($body_html);
         $mail->send();
         return true;
+
     } catch (Exception $e) {
-        // error_log("Mailer Error: " . $mail->ErrorInfo);
+        error_log("Mailer Error: " . $mail->ErrorInfo);
         return false;
     }
 }
 
-/**
- * Mencatat notifikasi ke database dan mengirim email jika diminta.
- * @param int $user_id ID penerima
- * @param int $type Tipe notifikasi (sesuai DB COMMENT)
- * @param string $message Pesan notifikasi
- * @param string $link Link relatif ke halaman (misalnya: index.php?page=view_task&id=1)
- * @param mysqli $conn Objek koneksi database
- * @param bool $send_email Apakah akan mengirim email
- * @param array $email_details Array berisi 'email', 'name', 'subject' untuk email
- */
 function record_notification($user_id, $type, $message, $link, $conn, $send_email = false, $email_details = []) {
     $message_db = $conn->real_escape_string($message);
     $link_db = $conn->real_escape_string($link);
     $user_id_db = intval($user_id);
     $type_db = intval($type);
 
-    $query = "INSERT INTO notification_list (user_id, type, message, link) 
-              VALUES ('{$user_id_db}', '{$type_db}', '{$message_db}', '{$link_db}')";
-              
+    $query = "
+        INSERT INTO notification_list (user_id, type, message, link)
+        VALUES ('{$user_id_db}', '{$type_db}', '{$message_db}', '{$link_db}')
+    ";
+
     $insert_success = $conn->query($query);
-    
+
     if ($insert_success && $send_email && !empty($email_details) && isset($email_details['email'])) {
         $full_link = APP_BASE_URL . $link;
-        $email_body = "Halo " . ($email_details['name'] ?? 'User') . ",<br><br>"
-                    . "Anda mendapat notifikasi baru: " . $message . "<br>"
-                    . "Lihat detail di sini: <a href='{$full_link}'>{$full_link}</a>";
-        send_task_notification_email($email_details['email'], $email_details['name'] ?? '', $email_details['subject'] ?? 'Notifikasi Tugas Baru', $email_body);
+        $html_message = "
+            Anda mendapat notifikasi baru: <strong>{$message}</strong><br>
+            Lihat detail di sini: <a href='{$full_link}'>{$full_link}</a>
+        ";
+
+        send_task_notification_email(
+            $email_details['email'],
+            $email_details['name'] ?? 'User',
+            $email_details['subject'] ?? 'Notifikasi Baru dari HaiMotion Dashboard',
+            $html_message
+        );
     }
 }
 ?>

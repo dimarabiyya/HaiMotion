@@ -10,7 +10,7 @@
           <img src="assets/Logo1.png" id="logoMini" class="img-fluid d-none" style="width: 40px;" alt="Mini Logo">
         </h3>
     </a>
-    <small ><p class="text-dark mt-3 text-center pr-3" style="text-decoration: none">PT Hai Motion Kreatif</p> </small>
+    <small ><p class="text-dark text-center pr-3" style="text-decoration: none">PT Hai Motion Kreatif</p> </small>
     </div>
 
     <div class="sidebar pb-2 mb-4">
@@ -39,11 +39,24 @@
                 </a>
           </li> 
           <li class="nav-item mb-2">
-                <a href="./index.php?page=task_list" class="nav-link nav-task_list">
+            <?php
+              // Halaman yang termasuk ke menu Users
+              $userPages = ['view_task'];
+              $currentPage = $_GET['page'] ?? '';
+              $isAktif = in_array($currentPage, $userPages) ? 'active' : '';
+            ?>
+                <a href="./index.php?page=task_list" class="nav-link <?= $isAktif ?> nav-task_list">
                   <i class="fas fa-tasks nav-icon"></i>
                   <p>Task</p>
                 </a>
           </li> 
+
+          <li class="nav-item">
+            <a href="index.php?page=chat" class="nav-link nav-chat">
+              <i class="nav-icon fas fa-comments"></i>
+              <p>Messenger</p>
+            </a>
+          </li>
 
           <li class="nav-item dropdown mb-2">
             <a href="./index.php?page=kanban" class="nav-link nav-kanban">
@@ -61,24 +74,20 @@
           </li> 
           <?php endif; ?> 
 
-          <li class="nav-item  mb-2">
-            <a href="./index.php?page=calendar" class="nav-link nav-calendar">
-              <i class="nav-icon fas fa-calendar"></i>
+        <?php
+          $currentPage = $_GET['page'] ?? '';
+          $isActiveTaskCalendar = ($currentPage == 'task_calendar') ? 'active' : '';
+          $isActiveCalendar = ($currentPage == 'calendar') ? 'active' : '';
+        ?>
+          <li class="nav-item mb-2">
+            <a href="./index.php?page=task_calendar" class="nav-link nav-Task_Calendar <?= $isActiveTaskCalendar ?> <?= $isActiveCalendar ?>">
+              <i class="nav-icon fas fa-calendar-check"></i>
               <p>
                 Calendar
               </p>
             </a>
-          </li> 
-
-          <li class="nav-item  mb-2">
-            <a href="./index.php?page=Task_Calendar" class="nav-link nav-Task_Calendar">
-              <i class="nav-icon fas fa-calendar-check"></i>
-              <p>
-                Task Calendar
-              </p>
-            </a>
           </li>
-
+        
          <?php
           if ($_SESSION['login_type'] == 1):
             // Halaman yang termasuk ke menu Users

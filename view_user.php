@@ -1,22 +1,41 @@
 <?php include 'db_connect.php'; ?>
 
 <?php
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $id = intval($_GET['id']);
-    $type_arr = array('', "Admin", "Project Manager", "Employee");
+// Cek apakah parameter ID ada di URL
+if (isset($_GET['id'])) {
+    
+    // 1. Ambil ID yang dienkripsi dari URL
+    $encoded_id = $_GET['id'];
+    
+    // 2. Gunakan fungsi decode_id untuk mengembalikan ke ID numerik
+    // Fungsi ini ada di db_connect.php
+    $id = decode_id($encoded_id); // Mengembalikan ID numerik (misalnya 17) atau null jika gagal.
 
-    $qry = $conn->query("SELECT *, CONCAT(firstname,' ',lastname) AS name FROM users WHERE id = $id");
+    // 3. Verifikasi apakah decoding berhasil (ID numerik valid)
+    if (!is_null($id)) {
+        
+        $type_arr = array('', "Admin", "Project Manager", "Employee");
 
-    if ($qry && $qry->num_rows > 0) {
-        $row = $qry->fetch_assoc();
-        foreach ($row as $k => $v) {
-            $$k = $v;
+        // 4. Lakukan query menggunakan ID numerik yang sudah didapat
+        $qry = $conn->query("SELECT *, CONCAT(firstname,' ',lastname) AS name FROM users WHERE id = $id");
+
+        if ($qry && $qry->num_rows > 0) {
+            $row = $qry->fetch_assoc();
+            foreach ($row as $k => $v) {
+                $$k = $v;
+            }
+        } else {
+            // Jika ID numerik valid, tapi tidak ditemukan di DB
+            echo "<div class='p-3 text-center text-danger'>User tidak ditemukan.</div>";
+            exit;
         }
     } else {
-        echo "<div class='p-3 text-center text-danger'>User tidak ditemukan.</div>";
+        // Jika parameter ID ada, tapi proses decoding gagal
+        echo "<div class='p-3 text-center text-danger'>Parameter ID tidak valid.</div>";
         exit;
     }
 } else {
+    // Jika parameter ID tidak ada di URL
     echo "<div class='p-3 text-center text-danger'>Parameter ID tidak valid.</div>";
     exit;
 }
@@ -50,17 +69,12 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
           <dd class="col-sm-8"><?php echo $type_arr[$type] ?></dd>
           <dt class="col-sm-4">Staff ID</dt>
           <dd class="col-sm-8"><?php echo $nik ?></dd>
-          <dt class="col-sm-4">Jabatan</dt>
+          <dt class="col-sm-4">Bio</dt>
           <dd class="col-sm-8"><?php echo $address ?></dd>
         </dl>
       </div>
     </div>
   </div>
-</div>
-
-<div class="modal-footer display p-0 m-0">
-  <a href="./index.php?page=edit_user&id=<?php echo $row['id'] ?>" class="btn text-white font-weight-bold" style="background-color:#B75301;">Edit Profile</a>
-  <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
 </div>
 
 <style>
