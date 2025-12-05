@@ -410,110 +410,111 @@ class Action {
         } catch (Exception $e) {
             $this->db->rollback();
             error_log("Task Deletion Error: " . $e->getMessage());
-            $_SESSION['notification']['status'] = 'error';
+            $_SESSION['notification']['status'] = '';
             $_SESSION['notification']['message'] = 'Gagal menghapus tugas. ' . $e->getMessage();
             return 0;
         }
     }
 
-
     // === PROGRESS (TASK ACTIVITY) ===
     function save_progress() {
+        // Menerima semua data POST yang dikirim dari form
         extract($_POST);
-        $data = "";
-        $task_id = intval($task_id ?? 0);
-        $user_id = intval($_SESSION['login_id'] ?? 0);
         
-        // Data sanitization
-        $progress_val = $this->db->real_escape_string($progress ?? 0);
-        $description_val = $this->db->real_escape_string(htmlentities(str_replace("'", "&#x2019;", $comment ?? '')));
-        $date_created_val = $this->db->real_escape_string($date_created ?? date('Y-m-d H:i:s'));
-
-        // Hitung durasi
-        $dur = 0;
-        if (isset($end_time) && isset($start_time)) {
-             $dur = abs(strtotime("2020-01-01 " . $end_time)) - abs(strtotime("2020-01-01 " . $start_time));
-             $dur = $dur / (60 * 60);
-             $data .= ", time_rendered='{$dur}' ";
-        } else {
-             $data .= ", time_rendered='0' ";
+        // 1. Validasi Sesi dan User ID
+        if (!isset($_SESSION['login_id'])) {
+            // Mengembalikan pesan yang lebih jelas untuk AJAX
+            return "0: Sesi login tidak ditemukan. Harap login kembali."; 
         }
+        $user_id = intval($_SESSION['login_id']);
         
-        $data .= "task_id = {$task_id}, progress = '{$progress_val}', comment = '{$description_val}', date_created = '{$date_created_val}', user_id = {$user_id} ";
+        // 2. Sanitasi dan Inisialisasi Variabel
+        $id_val = intval($id ?? 0); // ID progress (0 jika baru)
+        $task_id_val = intval($task_id ?? 0); // ID task
+        $project_id_val = intval($project_id ?? 0); // ID project
         
-        $is_new = empty($id);
+        // Data input dari Form manage_progress.php
+        $subject_val = $this->db->real_escape_string($subject ?? ''); // Field Subject
+        $comment_val = $this->db->real_escape_string(htmlentities(str_replace("'", "&#x2019;", $comment ?? ''))); // Field Comment (dari summernote)
+        
+        // Data Waktu
+        $date_val = $this->db->real_escape_string($date ?? date('Y-m-d')); 
+        $start_time_val = $this->db->real_escape_string($start_time ?? '00:00:00');
+        $end_time_val = $this->db->real_escape_string($end_time ?? '00:00:00');
+        
+        // Jika kolom 'progress' ada di DB Anda dengan nama lain, ubah $progress_val di sini.
+        // Karena ada error "Unknown column 'progress'", kolom ini dihapus dari query.
+        $progress_val = 0; // Tetapkan nilai default jika tidak digunakan
+        
+        // 3. Validasi ID Kritis
+        if ($task_id_val === 0 || $project_id_val === 0) {
+            return "0: ID Tugas atau ID Proyek tidak valid.";
+        }
+
+        // 4. Hitung Durasi (time_rendered)
+        $dur = 0; 
+        if (!empty($end_time_val) && !empty($start_time_val)) {
+             $start_ts = strtotime("2020-01-01 " . $start_time_val);
+             $end_ts = strtotime("2020-01-01 " . $end_time_val);
+             
+             // Pastikan waktu berakhir >= waktu mulai
+             if ($end_ts >= $start_ts) {
+                 $dur_seconds = $end_ts - $start_ts;
+                 $dur = round($dur_seconds / (60 * 60), 2); // Konversi ke jam, 2 desimal
+             }
+        } 
+        $time_rendered_val = $this->db->real_escape_string($dur);
+        
+        // 5. Susun Data SQL
+        $data = "project_id = {$project_id_val}";
+        $data .= ", task_id = {$task_id_val}";
+        $data .= ", user_id = {$user_id}";
+        $data .= ", date = '{$date_val}'"; 
+        $data .= ", start_time = '{$start_time_val}'"; 
+        $data .= ", end_time = '{$end_time_val}'"; 
+        $data .= ", time_rendered = '{$time_rendered_val}'";
+        $data .= ", subject = '{$subject_val}'"; 
+        $data .= ", comment = '{$comment_val}'"; 
+        
+        // !! KOLOM 'progress' DIHAPUS DARI SINI !!
+        // Jika tabel Anda memiliki kolom "progress" dengan nama lain (misalnya "completion_percentage"),
+        // Anda HARUS mengganti salah satu baris di atas, bukan menghapusnya. 
+        // Contoh: $data .= ", nama_kolom_anda = '{$progress_val}'";
+
+        
+        $is_new = ($id_val === 0);
         $sql = '';
 
         if ($is_new) {
-            $sql = "INSERT INTO user_productivity SET $data";
-            $save = $this->db->query($sql);
+            $sql = "INSERT INTO user_productivity SET {$data}, date_created = NOW()";
         } else {
-            $id = intval($id);
-            $sql = "UPDATE user_productivity SET $data WHERE id = $id";
-            $save = $this->db->query($sql);
+            $sql = "UPDATE user_productivity SET {$data} WHERE id = {$id_val}";
         }
 
+        $save = $this->db->query($sql);
+
+        // 6. Penanganan Hasil Query (Kunci Diagnosis Error)
         if (!$save) {
-            error_log("save_progress error: " . $this->db->error);
-            $_SESSION['notification']['status'] = 'error';
-            $_SESSION['notification']['message'] = 'Gagal menyimpan progres tugas.';
-            return 0;
+            $error_message = $this->db->error;
+            error_log("save_progress failed SQL: " . $error_message . " | Query: " . $sql);
+            
+            // Mengembalikan pesan error MySQL yang sebenarnya (untuk diagnosis)
+            return "0: MySQL Error: " . $error_message; 
         }
+        
+        // 7. Log Aktivitas dan Notifikasi (Jika Sukses)
+        $task_id_for_log = $is_new ? $this->db->insert_id : $task_id_val;
 
         $action_type = $is_new ? 'progress_add' : 'progress_update';
-        $message_prefix = $is_new ? "Progres baru" : "Progres diperbarui";
+        $task_name_q = $this->db->query("SELECT task FROM task_list WHERE id = {$task_id_val}");
+        $task_name = $task_name_q && $task_name_q->num_rows > 0 ? $task_name_q->fetch_assoc()['task'] : 'Unknown Task';
         
-        // --- Fetch Data for Notification ---
-        $task_details_q = $this->db->query("
-            SELECT t.task, t.project_id, p.manager_id, t.user_ids AS task_users 
-            FROM task_list t 
-            INNER JOIN project_list p ON p.id = t.project_id 
-            WHERE t.id = {$task_id}
-        ");
-        
-        $project_id = null; $task_name = ''; $manager_id = null;
-        if ($task_details_q && $task_details_q->num_rows > 0) {
-            $tr = $task_details_q->fetch_assoc();
-            $project_id = $tr['project_id'];
-            $task_name = $tr['task'];
-            $manager_id = $tr['manager_id'];
-            $task_user_ids = array_map('intval', array_filter(explode(',', $tr['task_users'])));
+        $this->log_activity($user_id, $project_id_val, $task_id_for_log, $action_type, ($is_new ? "Menambah" : "Mengupdate") . " progress pada task: " . $task_name);
 
-            // Recipients: Manager + All Task Assignees (unique and exclude current user)
-            $recipients_ids = array_unique(array_merge([$manager_id], $task_user_ids));
-            
-            // Notification Logic 
-            if (!empty($recipients_ids)) {
-                $ids_str = implode(',', array_map('intval', $recipients_ids));
-                
-                $current_user_name = ucwords($_SESSION['login_firstname'] . ' ' . $_SESSION['login_lastname']);
-                $link = "index.php?page=view_task&id=" . (function_exists('encode_id') ? encode_id($task_id) : $task_id);
-                $notification_message = "Task **{$task_name}** mendapat update progres ({$progress_val}%) dari {$current_user_name}.";
-                $email_subject = "[PROGRES] Task: {$task_name} {$message_prefix}";
-                
-                $users_q = $this->db->query("SELECT id, email, notification_email, firstname, lastname FROM users WHERE id IN ({$ids_str}) AND id != {$user_id}"); // Kecuali diri sendiri
-                
-                while ($user = $users_q->fetch_assoc()) {
-                    $full_name = ucwords($user['firstname'] . ' ' . $user['lastname']);
-                    $target_email = !empty($user['notification_email']) ? $user['notification_email'] : $user['email'];
-
-                    $email_details = [
-                        'email' => $target_email,
-                        'name' => $full_name,
-                        'subject' => $email_subject
-                    ];
-                    // Type 2: Progress Update
-                    record_notification($user['id'], 2, $notification_message, $link, $this->db, true, $email_details);
-                }
-            }
-        }
-        
-        $this->log_activity($user_id, $project_id, $task_id, $action_type, $message_prefix . ' pada task: ' . $task_name);
-        
-        // >>> LOGIKA NOTIFIKASI TAMBAHAN <<<
         $_SESSION['notification']['status'] = 'success';
-        $_SESSION['notification']['message'] = 'Progres tugas berhasil disimpan!';
-        return 1;
+        $_SESSION['notification']['message'] = 'Progres tugas berhasil disimpan! 🎉';
+        
+        return 1; // Sukses
     }
 
     function delete_progress() {

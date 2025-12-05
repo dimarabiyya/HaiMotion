@@ -5,7 +5,7 @@ include 'db_connect.php';
 
 // a) Decode Progress ID (ID progress saat mode Edit)
 $encoded_progress_id = $_GET['id'] ?? null;
-$progress_id_decoded = null;
+$progress_id_decoded = null; 
 if ($encoded_progress_id) {
     // Asumsi decode_id() tersedia dari db_connect.php
     $decoded = decode_id($encoded_progress_id);
@@ -142,7 +142,6 @@ if (empty($form_project_id)) {
         });
     }
 
-
     $(document).ready(function(){
         initializeSummernote(); 
         
@@ -163,8 +162,10 @@ if (empty($form_project_id)) {
         $('#manage-progress').submit(function(e){
             e.preventDefault()
             
+            // 1. Ambil konten summernote
             $('#progress_comment').val($('#progress_comment').summernote('code'));
 
+            // 2. Isi hidden fields waktu jika mode input baru (ID kosong)
             if ($('#manage-progress input[name="id"]').val() == '') {
                 const now = new Date();
                 const today = now.toISOString().split('T')[0]; // Format YYYY-MM-DD
@@ -174,10 +175,6 @@ if (empty($form_project_id)) {
                 $('#progress_start_time').val(currentTime);
                 $('#progress_end_time').val(currentTime);
             }
-
-            // 💡 PENTING: ID yang dikirim di sini adalah ID NUMERIK AMAN.
-            // AJAX action=save_progress di server (admin_class.php)
-            // harus memastikan ia menerima ID numerik yang aman ini.
 
             start_load()
             $.ajax({
@@ -189,19 +186,27 @@ if (empty($form_project_id)) {
                 method: 'POST',
                 type: 'POST',
                 success:function(resp){
-                    if(resp == 1){
+                    // Menggunakan trim() untuk membersihkan whitespace yang bocor
+                    var responseText = resp.trim(); 
+                    
+                    if(responseText == '1'){
                         alert_toast('Data successfully saved',"success");
                         setTimeout(function(){
-                            // Refresh halaman setelah sukses
                             location.reload()
                         },1500)
+                    } else if (responseText.startsWith('0:')) {
+                         // Tangkap pesan error yang dikirim oleh PHP (0: Error Message)
+                         var errorMessage = responseText.substring(2).trim();
+                         // Pesan ini akan menampilkan error MySQL yang sebenarnya!
+                         alert_toast('Gagal menyimpan data! Detail Server: ' + errorMessage,"error");
                     } else {
-                         alert_toast('Error saving data: ' + resp,"error");
+                         // Menangkap output tak terduga (misalnya PHP Notice/Warning/Fatal Error)
+                         alert_toast('Gagal menyimpan data! Respon Server Tidak Murni (Mungkin ada Fatal Error). Respon: ' + responseText,"error");
                     }
                     end_load(); 
                 },
                 error: function(xhr, status, error) {
-                     alert_toast('AJAX Error: ' + error,"error");
+                     alert_toast('AJAX Request Failed! Cek koneksi atau Log Server (Status HTTP: ' + xhr.status + ')',"error");
                      end_load();
                 }
             })

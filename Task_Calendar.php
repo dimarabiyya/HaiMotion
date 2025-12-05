@@ -368,13 +368,6 @@ function delete_task(encodedId){
                 data: { id: encodedId },
                 success: function(resp){
                     end_load();
-
-                    // TIDAK ADA LAGI PANGGILAN alert_toast() di sini.
-                    // Cukup reload halaman. PHP akan menampilkan SweetAlert2 dari header.php
-                    // karena admin_class.php sudah mengatur $_SESSION['notification'] sebelum kembali.
-                    
-                    // Cek resp untuk kepastian (1: Sukses, 0/2: Gagal/Error dari backend)
-                    // Tidak peduli sukses atau gagal, kita reload untuk menampilkan notifikasi sesi.
                     if (resp.trim() === '1' || resp.trim() === '0' || resp.trim() === '2') {
                          // Tunggu sejenak agar browser memproses penghapusan modal
                          setTimeout(() => location.reload(), 100); 
